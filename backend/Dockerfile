@@ -21,10 +21,10 @@ RUN addgroup -S qmai && adduser -S -G qmai qmai
 
 COPY --from=build /app/publish .
 
-ENV ASPNETCORE_URLS=http://+:5610 \
+ENV ASPNETCORE_URLS=http://+:5611 \
     ASPNETCORE_ENVIRONMENT=Production
 
-EXPOSE 5610
+EXPOSE 5611
 
 USER qmai
 

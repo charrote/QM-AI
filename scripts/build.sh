@@ -43,8 +43,8 @@ case "$SERVICE" in
     docker compose build --parallel
     docker compose up -d
     echo "✅ 启动完成"
-    echo "   前端: http://localhost:5611"
-    echo "   后端: http://localhost:5610/swagger"
+    echo "   前端: http://localhost:5610"
+    echo "   后端: http://localhost:5611/swagger"
     echo "   AI:   http://localhost:8000/health"
     ;;
   *)

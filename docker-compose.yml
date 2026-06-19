@@ -106,17 +106,17 @@ services:
     restart: unless-stopped
     environment:
       ASPNETCORE_ENVIRONMENT: Production
-      ASPNETCORE_URLS: http://+:5610
+      ASPNETCORE_URLS: http://+:5611
       ConnectionStrings__DefaultConnection: "Server=mysql;Port=3306;Database=${MYSQL_DATABASE:-qmai};User=${MYSQL_USER:-qmai};Password=${MYSQL_PASSWORD:-qmai_123};Charset=utf8mb4"
       Redis__Connection: redis:6379
       MinIO__Endpoint: minio:9000
       MinIO__AccessKey: ${MINIO_ROOT_USER:-qmai_admin}
       MinIO__SecretKey: ${MINIO_ROOT_PASSWORD:-qmai_minio_2024}
       Jwt__Secret: ${JWT_SECRET:-QM-AI-SuperSecretKey-2024-MustBeAtLeast32CharactersLong!}
-      Cors__AllowedOrigins__0: http://localhost:5611
-      Cors__AllowedOrigins__1: http://frontend:5611
+      Cors__AllowedOrigins__0: http://localhost:5610
+      Cors__AllowedOrigins__1: http://frontend:5610
     ports:
-      - "${BACKEND_PORT:-5610}:5610"
+      - "${BACKEND_PORT:-5611}:5611"
     depends_on:
       mysql:
         condition: service_healthy
@@ -135,7 +135,7 @@ services:
     container_name: qmai-frontend
     restart: unless-stopped
     ports:
-      - "${FRONTEND_PORT:-5611}:5611"
+      - "${FRONTEND_PORT:-5610}:5610"
     depends_on:
       - backend
     networks:
