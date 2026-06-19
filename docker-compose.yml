@@ -29,7 +29,7 @@ services:
     volumes:
       - mysql-data:/var/lib/mysql
     ports:
-      - "${MYSQL_PORT:-3306}:3306"
+      - "${MYSQL_PORT:-3316}:3316"
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD:-qmai_root_2024}"]
       interval: 10s
@@ -60,17 +60,17 @@ services:
     image: minio/minio
     container_name: qmai-minio
     restart: unless-stopped
-    command: server /data --console-address ":9001"
+    command: server /data --address ":19000" --console-address ":19001"
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:-qmai_admin}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-qmai_minio_2024}
     volumes:
       - minio-data:/data
     ports:
-      - "${MINIO_API_PORT:-9000}:9000"
-      - "${MINIO_CONSOLE_PORT:-9001}:9001"
+      - "${MINIO_API_PORT:-19000}:19000"
+      - "${MINIO_CONSOLE_PORT:-19001}:19001"
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      test: ["CMD", "curl", "-f", "http://localhost:19000/minio/health/live"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -107,9 +107,9 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Production
       ASPNETCORE_URLS: http://+:5611
-      ConnectionStrings__DefaultConnection: "Server=mysql;Port=3306;Database=${MYSQL_DATABASE:-qmai};User=${MYSQL_USER:-qmai};Password=${MYSQL_PASSWORD:-qmai_123};Charset=utf8mb4"
+      ConnectionStrings__DefaultConnection: "Server=mysql;Port=3316;Database=${MYSQL_DATABASE:-qmai};User=${MYSQL_USER:-qmai};Password=${MYSQL_PASSWORD:-qmai_123};Charset=utf8mb4"
       Redis__Connection: redis:6379
-      MinIO__Endpoint: minio:9000
+      MinIO__Endpoint: minio:19000
       MinIO__AccessKey: ${MINIO_ROOT_USER:-qmai_admin}
       MinIO__SecretKey: ${MINIO_ROOT_PASSWORD:-qmai_minio_2024}
       Jwt__Secret: ${JWT_SECRET:-QM-AI-SuperSecretKey-2024-MustBeAtLeast32CharactersLong!}
