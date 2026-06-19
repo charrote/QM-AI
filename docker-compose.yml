@@ -1,0 +1,175 @@
+# =============================================================================
+# QM-AI 工业AI质量决策平台 — 全栈容器化编排
+# =============================================================================
+# 构建加速配置（建议写入 shell profile）:
+#   export DOCKER_BUILDKIT=1
+#   export COMPOSE_DOCKER_CLI_BUILD=1
+#
+# 首次构建（较慢，需下载基础镜像 + 依赖包）:
+#   docker compose build --parallel
+#
+# 日常快速启动（不重新构建）:
+#   docker compose up -d
+#
+# 单独构建某个服务:
+#   docker compose build --parallel backend
+# =============================================================================
+
+services:
+  # ─── 基础设施（纯拉取，不构建）─────────────────────────────────────
+  mysql:
+    image: mysql:8.0
+    container_name: qmai-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-qmai_root_2024}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-qmai}
+      MYSQL_USER: ${MYSQL_USER:-qmai}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-qmai_123}
+    volumes:
+      - mysql-data:/var/lib/mysql
+    ports:
+      - "${MYSQL_PORT:-3306}:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD:-qmai_root_2024}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - qmai-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: qmai-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-qmai_redis}
+    volumes:
+      - redis-data:/data
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-qmai_redis}", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks:
+      - qmai-network
+
+  minio:
+    image: minio/minio
+    container_name: qmai-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-qmai_admin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-qmai_minio_2024}
+    volumes:
+      - minio-data:/data
+    ports:
+      - "${MINIO_API_PORT:-9000}:9000"
+      - "${MINIO_CONSOLE_PORT:-9001}:9001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - qmai-network
+
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: qmai-rabbitmq
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-qmai}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-qmai_rabbit}
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    ports:
+      - "${RABBITMQ_PORT:-5672}:5672"
+      - "${RABBITMQ_MGMT_PORT:-15672}:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "check_port_connectivity"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+    networks:
+      - qmai-network
+
+  # ─── 后端 (.NET 9 Web API) ──────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: qmai-backend
+    restart: unless-stopped
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://+:5610
+      ConnectionStrings__DefaultConnection: "Server=mysql;Port=3306;Database=${MYSQL_DATABASE:-qmai};User=${MYSQL_USER:-qmai};Password=${MYSQL_PASSWORD:-qmai_123};Charset=utf8mb4"
+      Redis__Connection: redis:6379
+      MinIO__Endpoint: minio:9000
+      MinIO__AccessKey: ${MINIO_ROOT_USER:-qmai_admin}
+      MinIO__SecretKey: ${MINIO_ROOT_PASSWORD:-qmai_minio_2024}
+      Jwt__Secret: ${JWT_SECRET:-QM-AI-SuperSecretKey-2024-MustBeAtLeast32CharactersLong!}
+      Cors__AllowedOrigins__0: http://localhost:5611
+      Cors__AllowedOrigins__1: http://frontend:5611
+    ports:
+      - "${BACKEND_PORT:-5610}:5610"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - qmai-network
+
+  # ─── 前端 (Vue 3 + Nginx) ──────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: qmai-frontend
+    restart: unless-stopped
+    ports:
+      - "${FRONTEND_PORT:-5611}:5611"
+    depends_on:
+      - backend
+    networks:
+      - qmai-network
+
+  # ─── AI 服务 (Python FastAPI) ──────────────────────────────────
+  ai-service:
+    build:
+      context: ./ai-service
+      dockerfile: Dockerfile
+    container_name: qmai-ai
+    restart: unless-stopped
+    environment:
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-qmai_redis}
+      MILVUS_HOST: milvus
+      MILVUS_PORT: 19530
+    ports:
+      - "${AI_PORT:-8000}:8000"
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - qmai-network
+
+# ─── 持久卷 ──────────────────────────────────────────────────────
+volumes:
+  mysql-data:
+  redis-data:
+  minio-data:
+  rabbitmq-data:
+
+# ─── 网络 ────────────────────────────────────────────────────────
+networks:
+  qmai-network:
+    driver: bridge

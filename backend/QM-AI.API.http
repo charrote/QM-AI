@@ -1,0 +1,6 @@
+@QM_AI.API_HostAddress = http://localhost:5024
+
+GET {{QM_AI.API_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
