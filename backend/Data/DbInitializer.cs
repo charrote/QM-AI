@@ -18,6 +18,7 @@ public static class DbInitializer
         "Products", "Boms", "Processes", "Routings",
         "InspectionStandards", "DefectCodes",
         "Equipment", "Tools", "Suppliers", "Customers",
+        "ParamGroups", "DynamicParams", "ClosureRules", "ParamRealtimeValues",
     ];
 
     public static async Task Initialize(AppDbContext context)
@@ -266,6 +267,42 @@ public static class DbInitializer
             new() { Code = "CUST-003", Name = "华南汽车零部件有限公司", Address = "广东省广州市黄埔区", ContactPerson = "林经理", ContactPhone = "020-55563456", Email = "lin@huanan.com" },
         };
         context.Customers.AddRange(customers);
+        await context.SaveChangesAsync();
+        #endregion
+
+        #region M02.5 动态参数配置种子数据
+        var paramGroups = new List<Models.M02_5.ParamGroup>
+        {
+            new() { Name = "热力学参数组", Code = "thermo_params", Description = "温度、热量相关工艺参数", SortOrder = 1, CreatedBy = 1 },
+            new() { Name = "力学参数组", Code = "mech_params", Description = "压力、力值、扭矩等参数", SortOrder = 2, CreatedBy = 1 },
+            new() { Name = "尺寸参数组", Code = "dim_params", Description = "长度、直径、公差等尺寸参数", SortOrder = 3, CreatedBy = 1 },
+            new() { Name = "外观参数组", Code = "visual_params", Description = "外观、表面质量相关参数", SortOrder = 4, CreatedBy = 1 },
+        };
+        context.Set<Models.M02_5.ParamGroup>().AddRange(paramGroups);
+        await context.SaveChangesAsync();
+
+        var dynamicParams = new List<Models.M02_5.DynamicParam>
+        {
+            new() { GroupId = paramGroups[0].Id, Name = "温度-精加工", Code = "temp_finishing", DataType = "numeric", Unit = "℃", TargetValue = 450m, Usl = 455m, Lsl = 445m, Precision = 0.1m, AiStrategy = "{\"id\":\"normal_distribution\"}", SortOrder = 1, CreatedBy = 1 },
+            new() { GroupId = paramGroups[0].Id, Name = "温度-热处理", Code = "temp_heat_treat", DataType = "numeric", Unit = "℃", TargetValue = 850m, Usl = 860m, Lsl = 840m, Precision = 1m, AiStrategy = "{\"id\":\"trend_analysis\"}", SortOrder = 2, CreatedBy = 1 },
+            new() { GroupId = paramGroups[1].Id, Name = "切削压力", Code = "cutting_pressure", DataType = "numeric", Unit = "MPa", TargetValue = 12.5m, Usl = 13.5m, Lsl = 11.5m, Precision = 0.1m, AiStrategy = "{\"id\":\"outlier_detection\"}", SortOrder = 1, CreatedBy = 1 },
+            new() { GroupId = paramGroups[1].Id, Name = "主轴扭矩", Code = "spindle_torque", DataType = "numeric", Unit = "N·m", TargetValue = 25m, Usl = 28m, Lsl = 22m, Precision = 0.5m, SortOrder = 2, CreatedBy = 1 },
+            new() { GroupId = paramGroups[2].Id, Name = "外径公差", Code = "od_tolerance", DataType = "numeric", Unit = "mm", TargetValue = 50m, Usl = 50.05m, Lsl = 49.95m, Precision = 0.01m, AiStrategy = "{\"id\":\"cpk_monitoring\"}", SortOrder = 1, CreatedBy = 1 },
+            new() { GroupId = paramGroups[2].Id, Name = "内径公差", Code = "id_tolerance", DataType = "numeric", Unit = "mm", TargetValue = 25m, Usl = 25.03m, Lsl = 24.97m, Precision = 0.01m, SortOrder = 2, CreatedBy = 1 },
+            new() { GroupId = paramGroups[3].Id, Name = "表面粗糙度", Code = "surface_roughness", DataType = "numeric", Unit = "μm", TargetValue = 0.8m, Usl = 1.6m, Lsl = 0m, Precision = 0.1m, AiStrategy = "{\"id\":\"normal_distribution\"}", SortOrder = 1, CreatedBy = 1 },
+            new() { GroupId = paramGroups[3].Id, Name = "表面缺陷", Code = "surface_defect", DataType = "categorical", Unit = "", Precision = 1m, AiStrategy = "{\"id\":\"pareto_analysis\"}", SortOrder = 2, CreatedBy = 1 },
+            new() { GroupId = paramGroups[3].Id, Name = "防锈处理", Code = "rust_prevention", DataType = "boolean", Precision = 1m, SortOrder = 3, CreatedBy = 1 },
+        };
+        context.Set<Models.M02_5.DynamicParam>().AddRange(dynamicParams);
+        await context.SaveChangesAsync();
+
+        var closureRules = new List<Models.M02_5.ClosureRule>
+        {
+            new() { Name = "连续10件合格放行", Code = "consecutive_10_ok", ConditionJson = "[{\"type\":\"consecutive_ok\",\"paramCode\":\"\",\"threshold\":10.0,\"operator\":\">=\"}]", Logic = "AND", Description = "连续 10 件检验合格自动关单", CreatedBy = 1 },
+            new() { Name = "Cpk+合格率双重验证", Code = "cpk_and_rate", ConditionJson = "[{\"type\":\"spk_cpk\",\"paramCode\":\"\",\"threshold\":1.33,\"operator\":\">\"},{\"type\":\"sampling_rate\",\"paramCode\":\"\",\"threshold\":98.0,\"operator\":\">=\"}]", Logic = "AND", Description = "Cpk > 1.33 且抽检合格率 ≥ 98%", CreatedBy = 1 },
+            new() { Name = "低风险快速放行", Code = "low_risk_release", ConditionJson = "[{\"type\":\"ai_risk_score\",\"paramCode\":\"\",\"threshold\":40.0,\"operator\":\"<\"},{\"type\":\"sampling_rate\",\"paramCode\":\"\",\"threshold\":99.0,\"operator\":\">=\"}]", Logic = "AND", Description = "AI 风险评分 < 40 且合格率 ≥ 99%", CreatedBy = 1 },
+        };
+        context.Set<Models.M02_5.ClosureRule>().AddRange(closureRules);
         await context.SaveChangesAsync();
         #endregion
     }

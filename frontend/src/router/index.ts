@@ -96,9 +96,44 @@ const routes: RouteRecordRaw[] = [
       },
       {
         path: 'iqc',
-        name: 'IQC',
-        component: () => import('@/views/IQC.vue'),
-        meta: { title: 'IQC来料检验', keepAlive: true, requiresAuth: true },
+        redirect: '/iqc/params',
+        meta: { title: 'IQC来料检验', requiresAuth: true },
+      },
+      {
+        path: 'iqc/params',
+        name: 'IqcParams',
+        component: () => import('@/views/iqc/IqcParams.vue'),
+        meta: { title: '动态参数配置', keepAlive: true, requiresAuth: true },
+      },
+      {
+        path: 'iqc/receipts',
+        name: 'IqcReceipts',
+        component: () => import('@/views/iqc/IqcReceiptsPage.vue'),
+        meta: { title: '来料登记', keepAlive: true, requiresAuth: true },
+      },
+      {
+        path: 'iqc/inspections',
+        name: 'IqcInspections',
+        component: () => import('@/views/iqc/IqcInspectionsPage.vue'),
+        meta: { title: '检验单', keepAlive: true, requiresAuth: true },
+      },
+      {
+        path: 'iqc/anomalies',
+        name: 'IqcAnomalies',
+        component: () => import('@/views/iqc/IqcAnomaliesPage.vue'),
+        meta: { title: '来料异常', keepAlive: true, requiresAuth: true },
+      },
+      {
+        path: 'iqc/suppliers',
+        name: 'IqcSuppliers',
+        component: () => import('@/views/iqc/IqcSuppliersPage.vue'),
+        meta: { title: '供应商评分', keepAlive: true, requiresAuth: true },
+      },
+      {
+        path: 'iqc/trace',
+        name: 'IqcTrace',
+        component: () => import('@/views/iqc/IqcTracePage.vue'),
+        meta: { title: '批次追溯', keepAlive: true, requiresAuth: true },
       },
       {
         path: 'ipqc',
@@ -173,6 +208,12 @@ const routes: RouteRecordRaw[] = [
         meta: { title: '系统管理', keepAlive: true, requiresAuth: true },
       },
     ],
+  },
+  {
+    path: '/pda/iqc',
+    name: 'PdaIqc',
+    component: () => import('@/views/iqc/PdaIqcScan.vue'),
+    meta: { title: 'PDA扫码录入', requiresAuth: true },
   },
   {
     path: '/:pathMatch(.*)*',

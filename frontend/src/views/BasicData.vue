@@ -1,4 +1,6 @@
 <script setup lang="ts">
+defineOptions({ name: 'BasicData' })
+
 import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'

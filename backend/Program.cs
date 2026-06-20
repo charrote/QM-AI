@@ -117,6 +117,9 @@ builder.Services.AddControllers();
 
 // Services
 builder.Services.AddScoped<AuthService>();
+builder.Services.AddSingleton<ClosureRuleEngine>();
+builder.Services.AddSingleton<SamplingPlanCalculator>();
+builder.Services.AddScoped<IqcService>();
 
 var app = builder.Build();
 

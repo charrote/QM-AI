@@ -1,11 +1,29 @@
 <script setup lang="ts">
+import { onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+
 defineOptions({ name: 'IQC' })
+
+const router = useRouter()
+
+onMounted(() => {
+  router.replace('/iqc/params')
+})
 </script>
 
 <template>
-  <div class="placeholder-view">
-    <el-icon class="placeholder-icon" :size="64" color="#e6a23c"><Goods /></el-icon>
-    <h2>IQC来料检验</h2>
-    <p>Incoming Quality Control - 来料检验管理</p>
+  <div class="redirect-hint">
+    <p>正在跳转到动态参数配置...</p>
   </div>
 </template>
+
+<style scoped>
+.redirect-hint {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 200px;
+  color: var(--el-text-color-secondary);
+  font-size: 14px;
+}
+</style>

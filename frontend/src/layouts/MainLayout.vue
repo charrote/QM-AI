@@ -25,6 +25,9 @@ const contextMenuY = ref(0)
 const contextMenuTabId = ref('')
 const contextMenuClosable = ref(false)
 
+// Refresh mechanism: toggle this to force KeepAlive to remount current component
+const keepAliveEnabled = ref(true)
+
 // 计算需要默认展开的父菜单
 const defaultOpenedMenus = computed(() => {
   for (const menu of menuConfigs) {
@@ -47,7 +50,12 @@ const componentNameMap: Record<string, string> = {
   'basic-tool': 'BasicData',
   'basic-supplier': 'BasicData',
   'basic-customer': 'BasicData',
-  iqc: 'IQC',
+  'iqc-params': 'IqcParams',
+  'iqc-receipts': 'IqcReceiptsPage',
+  'iqc-inspections': 'IqcInspectionsPage',
+  'iqc-anomalies': 'IqcAnomaliesPage',
+  'iqc-suppliers': 'IqcSuppliersPage',
+  'iqc-trace': 'IqcTracePage',
   ipqc: 'IPQC',
   fqc: 'FQC',
   spc: 'SPC',
@@ -178,7 +186,11 @@ function handleCloseAll() {
 }
 
 function handleRefresh() {
-  tabStore.refreshTab()
+  // Toggle KeepAlive off then on to force current component remount
+  keepAliveEnabled.value = false
+  nextTick(() => {
+    keepAliveEnabled.value = true
+  })
   closeContextMenu()
 }
 
@@ -342,11 +354,8 @@ function getIconComponent(iconName?: string) {
 
         <el-main class="content-area">
           <RouterView v-slot="{ Component }">
-            <KeepAlive :include="keepAliveIncludes">
-              <component
-                :is="Component"
-                :key="tabStore.refreshKey"
-              />
+            <KeepAlive :include="keepAliveIncludes" v-if="keepAliveEnabled">
+              <component :is="Component" />
             </KeepAlive>
           </RouterView>
         </el-main>

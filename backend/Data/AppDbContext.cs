@@ -1,5 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using QM_AI.API.Models;
+using QM_AI.API.Models.M02_5;
+using QM_AI.API.Models.M03;
 
 namespace QM_AI.API.Data;
 
@@ -25,6 +27,19 @@ public class AppDbContext : DbContext
     public DbSet<Tool> Tools { get; set; } = null!;
     public DbSet<Supplier> Suppliers { get; set; } = null!;
     public DbSet<Customer> Customers { get; set; } = null!;
+
+    // M02.5 动态参数配置
+    public DbSet<ParamGroup> ParamGroups { get; set; } = null!;
+    public DbSet<DynamicParam> DynamicParams { get; set; } = null!;
+    public DbSet<ClosureRule> ClosureRules { get; set; } = null!;
+    public DbSet<ParamRealtimeValue> ParamRealtimeValues { get; set; } = null!;
+
+    // M03 IQC 来料检验
+    public DbSet<IqcReceipt> IqcReceipts { get; set; } = null!;
+    public DbSet<IqcInspection> IqcInspections { get; set; } = null!;
+    public DbSet<IqcInspectionItem> IqcInspectionItems { get; set; } = null!;
+    public DbSet<IqcAnomaly> IqcAnomalies { get; set; } = null!;
+    public DbSet<SupplierScore> SupplierScores { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -118,6 +133,104 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<Customer>(entity =>
         {
             entity.HasIndex(c => c.Code).IsUnique();
+        });
+
+        // ── M02.5 动态参数配置 ──
+        modelBuilder.Entity<ParamGroup>(entity =>
+        {
+            entity.HasIndex(g => g.Code).IsUnique();
+            entity.HasMany(g => g.DynamicParams)
+                  .WithOne(p => p.Group)
+                  .HasForeignKey(p => p.GroupId)
+                  .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<DynamicParam>(entity =>
+        {
+            entity.HasIndex(p => p.Code).IsUnique();
+            entity.Property(p => p.DataType)
+                  .HasConversion<string>()
+                  .HasMaxLength(20);
+        });
+
+        modelBuilder.Entity<ClosureRule>(entity =>
+        {
+            entity.HasIndex(r => r.Code).IsUnique();
+        });
+
+        modelBuilder.Entity<ParamRealtimeValue>(entity =>
+        {
+            entity.HasIndex(v => new { v.ParamCode, v.Timestamp });
+            entity.HasIndex(v => new { v.EquipmentId, v.Timestamp });
+            entity.Property(v => v.QualityResult)
+                  .HasMaxLength(10);
+        });
+
+        // ── M03 IQC 来料检验 ──
+        modelBuilder.Entity<IqcReceipt>(entity =>
+        {
+            entity.HasIndex(r => r.ReceiptNo).IsUnique();
+            entity.Property(r => r.Status).HasMaxLength(20);
+            entity.HasOne(r => r.Supplier)
+                  .WithMany()
+                  .HasForeignKey(r => r.SupplierId)
+                  .OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(r => r.Product)
+                  .WithMany()
+                  .HasForeignKey(r => r.ProductId)
+                  .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<IqcInspection>(entity =>
+        {
+            entity.HasIndex(i => i.InspectionNo).IsUnique();
+            entity.Property(i => i.Result).HasMaxLength(10);
+            entity.Property(i => i.SamplingLevel).HasMaxLength(10);
+            entity.HasOne(i => i.Receipt)
+                  .WithMany(r => r.Inspections)
+                  .HasForeignKey(i => i.ReceiptId)
+                  .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(i => i.Standard)
+                  .WithMany()
+                  .HasForeignKey(i => i.StandardId)
+                  .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<IqcInspectionItem>(entity =>
+        {
+            entity.Property(i => i.Result).HasMaxLength(10);
+            entity.HasOne(i => i.Inspection)
+                  .WithMany(ins => ins.Items)
+                  .HasForeignKey(i => i.InspectionId)
+                  .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(i => i.DefectCode)
+                  .WithMany()
+                  .HasForeignKey(i => i.DefectCodeId)
+                  .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<IqcAnomaly>(entity =>
+        {
+            entity.HasIndex(a => a.AnomalyNo).IsUnique();
+            entity.Property(a => a.AnomalyType).HasMaxLength(20);
+            entity.Property(a => a.Severity).HasMaxLength(10);
+            entity.Property(a => a.Status).HasMaxLength(20);
+            entity.HasOne(a => a.Receipt)
+                  .WithMany(r => r.Anomalies)
+                  .HasForeignKey(a => a.ReceiptId)
+                  .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(a => a.Inspection)
+                  .WithMany()
+                  .HasForeignKey(a => a.InspectionId)
+                  .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<SupplierScore>(entity =>
+        {
+            entity.HasOne(s => s.Supplier)
+                  .WithMany()
+                  .HasForeignKey(s => s.SupplierId)
+                  .OnDelete(DeleteBehavior.Cascade);
         });
     }
 }

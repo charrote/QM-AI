@@ -191,53 +191,68 @@ CREATE TABLE customers (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================================================
--- M02.5 – Dynamic Parameters
+-- M02.5 – Dynamic Parameters (行业解耦核心)
 -- ============================================================================
 
+-- 参数组
 CREATE TABLE param_groups (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    group_name VARCHAR(100) NOT NULL,
-    group_code VARCHAR(50) UNIQUE NOT NULL,
-    description TEXT,
-    sort_order INT DEFAULT 0,
-    is_active BOOLEAN DEFAULT TRUE
+    id              BIGINT AUTO_INCREMENT PRIMARY KEY,
+    name            VARCHAR(100) NOT NULL COMMENT '组名',
+    code            VARCHAR(50) UNIQUE NOT NULL COMMENT '组编码',
+    description     TEXT COMMENT '描述',
+    sort_order      INT DEFAULT 0 COMMENT '排序号',
+    created_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    created_by      BIGINT NOT NULL DEFAULT 1 COMMENT '创建人ID'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- 自定义参数定义
 CREATE TABLE dynamic_params (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    param_code VARCHAR(50) NOT NULL,
-    param_name VARCHAR(200) NOT NULL,
-    param_group_id BIGINT,
-    data_type ENUM('number','text','boolean','enum','range') DEFAULT 'number',
-    unit VARCHAR(20),
-    precision INT DEFAULT 2,
-    upper_limit DECIMAL(12,4),
-    lower_limit DECIMAL(12,4),
-    target_value DECIMAL(12,4),
-    enum_values JSON,
-    is_active BOOLEAN DEFAULT TRUE,
-    sort_order INT DEFAULT 0,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (param_group_id) REFERENCES param_groups(id)
+    id              BIGINT AUTO_INCREMENT PRIMARY KEY,
+    group_id        BIGINT NOT NULL COMMENT '所属参数组ID',
+    name            VARCHAR(100) NOT NULL COMMENT '参数名',
+    code            VARCHAR(50) NOT NULL COMMENT '参数编码(唯一)',
+    data_type       VARCHAR(20) NOT NULL DEFAULT 'numeric' COMMENT '数据类型: numeric/categorical/boolean',
+    unit            VARCHAR(20) COMMENT '单位',
+    target_value    DECIMAL(15,6) COMMENT '目标值',
+    usl             DECIMAL(15,6) COMMENT '上规格限',
+    lsl             DECIMAL(15,6) COMMENT '下规格限',
+    precision       DECIMAL(10,2) DEFAULT 1.0 COMMENT '精度/小数位数',
+    ai_strategy     JSON COMMENT 'AI策略预置配置',
+    sort_order      INT DEFAULT 0 COMMENT '排序号',
+    is_active       TINYINT(1) DEFAULT 1 COMMENT '是否启用',
+    created_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    created_by      BIGINT NOT NULL DEFAULT 1 COMMENT '创建人ID',
+    FOREIGN KEY (group_id) REFERENCES param_groups(id) ON DELETE CASCADE,
+    UNIQUE KEY uk_code (code)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- 关单策略模板
 CREATE TABLE closure_rules (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    rule_name VARCHAR(200) NOT NULL,
-    rule_type ENUM('spc','param','time','manual') DEFAULT 'manual',
-    conditions JSON,
-    action VARCHAR(50),
-    is_active BOOLEAN DEFAULT TRUE
+    id              BIGINT AUTO_INCREMENT PRIMARY KEY,
+    name            VARCHAR(100) NOT NULL COMMENT '规则名称',
+    code            VARCHAR(50) UNIQUE NOT NULL COMMENT '规则编码',
+    condition_json  JSON NOT NULL COMMENT '条件表达式JSON',
+    logic           VARCHAR(5) DEFAULT 'AND' COMMENT '逻辑运算符 AND/OR',
+    description     TEXT COMMENT '描述',
+    is_active       TINYINT(1) DEFAULT 1 COMMENT '是否启用',
+    created_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    created_by      BIGINT NOT NULL DEFAULT 1 COMMENT '创建人ID'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE ai_strategies (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    strategy_name VARCHAR(200),
-    param_id BIGINT,
-    strategy_type ENUM('rule','ml','hybrid') DEFAULT 'rule',
-    config JSON,
-    is_active BOOLEAN DEFAULT TRUE,
-    FOREIGN KEY (param_id) REFERENCES dynamic_params(id)
+-- 实时参数值（高频写入，按参数编码+时间索引）
+CREATE TABLE param_realtime_values (
+    id              BIGINT AUTO_INCREMENT PRIMARY KEY,
+    param_code      VARCHAR(50) NOT NULL COMMENT '参数编码',
+    equipment_id    BIGINT COMMENT '设备ID',
+    value           DECIMAL(15,6) COMMENT '数值(数值型)',
+    value_raw       VARCHAR(100) COMMENT '原始值(枚举型/布尔型)',
+    timestamp       DATETIME NOT NULL COMMENT '采集时间',
+    quality_result  VARCHAR(10) DEFAULT 'UNKNOWN' COMMENT '质量结果 OK/NG/UNKNOWN',
+    INDEX idx_param_time (param_code, timestamp),
+    INDEX idx_equip_time (equipment_id, timestamp)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================================================
@@ -280,7 +295,7 @@ CREATE TABLE iqc_inspections (
 CREATE TABLE iqc_inspection_items (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     inspection_id BIGINT,
-    param_id BIGINT,
+    param_id BIGINT COMMENT '关联dynamic_params.id',
     measured_value DECIMAL(12,4),
     result ENUM('pass','fail'),
     defect_code_id BIGINT,
@@ -684,9 +699,11 @@ CREATE INDEX idx_suppliers_status ON suppliers(status);
 CREATE INDEX idx_customers_active ON customers(is_active);
 
 -- Dynamic Parameters
-CREATE INDEX idx_dynamic_params_group_id ON dynamic_params(param_group_id);
-CREATE INDEX idx_dynamic_params_code ON dynamic_params(param_code);
-CREATE INDEX idx_ai_strategies_param_id ON ai_strategies(param_id);
+CREATE INDEX idx_dynamic_params_group_id ON dynamic_params(group_id);
+CREATE INDEX idx_dynamic_params_code ON dynamic_params(code);
+CREATE INDEX idx_dynamic_params_active ON dynamic_params(is_active);
+CREATE INDEX idx_param_realtime_values_param ON param_realtime_values(param_code, timestamp);
+CREATE INDEX idx_param_realtime_values_equip ON param_realtime_values(equipment_id, timestamp);
 
 -- IQC
 CREATE INDEX idx_iqc_receipts_supplier ON iqc_receipts(supplier_id);

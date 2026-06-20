@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1.4
 # ---- Build stage ----
-FROM mcr.microsoft.com/dotnet/sdk:9.0-alpine AS build
+FROM mcr.azk8s.cn/dotnet/sdk:9.0-alpine AS build
 WORKDIR /src
 
 # 先复制 .csproj，利用 layer 缓存（不改依赖时跳过 restore）
@@ -14,7 +14,7 @@ RUN --mount=type=cache,target=/root/.nuget/packages \
     dotnet publish -c Release -o /app/publish
 
 # ---- Runtime stage ----
-FROM mcr.microsoft.com/dotnet/aspnet:9.0-alpine AS runtime
+FROM mcr.azk8s.cn/dotnet/aspnet:9.0-alpine AS runtime
 WORKDIR /app
 
 RUN addgroup -S qmai && adduser -S -G qmai qmai
