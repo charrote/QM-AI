@@ -14,7 +14,15 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddDbContext<AppDbContext>(options =>
 {
     var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-    options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString));
+    try
+    {
+        var serverVersion = ServerVersion.AutoDetect(connectionString);
+        options.UseMySql(connectionString, serverVersion);
+    }
+    catch
+    {
+        options.UseMySql(connectionString, ServerVersion.Parse("8.0.0"));
+    }
 });
 
 // JWT Authentication

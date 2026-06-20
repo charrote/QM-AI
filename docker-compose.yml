@@ -29,7 +29,7 @@ services:
     volumes:
       - mysql-data:/var/lib/mysql
     ports:
-      - "${MYSQL_PORT:-3316}:3316"
+      - "${MYSQL_PORT:-3316}:3306"
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD:-qmai_root_2024}"]
       interval: 10s
@@ -107,7 +107,7 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Production
       ASPNETCORE_URLS: http://+:5611
-      ConnectionStrings__DefaultConnection: "Server=mysql;Port=3316;Database=${MYSQL_DATABASE:-qmai};User=${MYSQL_USER:-qmai};Password=${MYSQL_PASSWORD:-qmai_123};Charset=utf8mb4"
+      ConnectionStrings__DefaultConnection: "Server=mysql;Port=3306;Database=${MYSQL_DATABASE:-qmai};User=${MYSQL_USER:-qmai};Password=${MYSQL_PASSWORD:-qmai_123};Charset=utf8mb4"
       Redis__Connection: redis:6379
       MinIO__Endpoint: minio:19000
       MinIO__AccessKey: ${MINIO_ROOT_USER:-qmai_admin}
