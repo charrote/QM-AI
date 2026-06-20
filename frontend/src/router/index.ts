@@ -187,6 +187,13 @@ const router = createRouter({
   routes,
 })
 
+const BASE_TITLE = '工业AI质量决策平台'
+
+router.afterEach((to) => {
+  const pageTitle = to.meta.title as string | undefined
+  document.title = pageTitle ? `${pageTitle} | ${BASE_TITLE}` : BASE_TITLE
+})
+
 router.beforeEach((to, _from, next) => {
   const authStore = useAuthStore()
   // authStore.initFromStorage()  // called on app mount instead
