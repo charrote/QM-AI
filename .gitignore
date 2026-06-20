@@ -33,3 +33,7 @@ Thumbs.db
 dist/
 build/
 *.tsbuildinfo
+
+# .NET build artifacts
+backend/bin/
+backend/obj/

@@ -1,5 +1,6 @@
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
@@ -118,6 +119,29 @@ builder.Services.AddControllers();
 builder.Services.AddScoped<AuthService>();
 
 var app = builder.Build();
+
+// ─── 全局异常处理中间件 ─────────────────────────────────────────
+app.UseExceptionHandler(appError =>
+{
+    appError.Run(async context =>
+    {
+        context.Response.StatusCode = 500;
+        context.Response.ContentType = "application/json";
+
+        var contextFeature = context.Features.Get<IExceptionHandlerFeature>();
+        if (contextFeature != null)
+        {
+            var logger = context.RequestServices.GetRequiredService<ILogger<Program>>();
+            logger.LogError(contextFeature.Error, "Unhandled exception: {Message}", contextFeature.Error.Message);
+
+            await context.Response.WriteAsJsonAsync(new
+            {
+                message = "服务器内部错误",
+                detail = app.Environment.IsDevelopment() ? contextFeature.Error.Message : null,
+            });
+        }
+    });
+});
 
 // 启动时自动初始化种子数据
 using (var scope = app.Services.CreateScope())

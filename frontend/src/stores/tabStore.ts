@@ -7,7 +7,17 @@ const STORAGE_KEY = 'qm-ai-tabs'
 const STORAGE_ACTIVE_KEY = 'qm-ai-active-tab'
 
 function findMenuByPath(path: string): TabItem | undefined {
-  return menuConfigs.find(m => m.path === path)
+  // 先查顶层菜单
+  const top = menuConfigs.find(m => m.path === path)
+  if (top) return top
+  // 再查子菜单
+  for (const menu of menuConfigs) {
+    if (menu.children) {
+      const child = menu.children.find(c => c.path === path)
+      if (child) return child
+    }
+  }
+  return undefined
 }
 
 export const useTabStore = defineStore('tab', () => {

@@ -25,8 +25,28 @@ const contextMenuY = ref(0)
 const contextMenuTabId = ref('')
 const contextMenuClosable = ref(false)
 
+// 计算需要默认展开的父菜单
+const defaultOpenedMenus = computed(() => {
+  for (const menu of menuConfigs) {
+    if (menu.children && menu.children.some(c => c.path === route.path)) {
+      return [menu.path]
+    }
+  }
+  return []
+})
+
 const componentNameMap: Record<string, string> = {
   dashboard: 'Dashboard',
+  'basic-product': 'BasicData',
+  'basic-process': 'BasicData',
+  'basic-routing': 'BasicData',
+  'basic-bom': 'BasicData',
+  'basic-standard': 'BasicData',
+  'basic-defect': 'BasicData',
+  'basic-equipment': 'BasicData',
+  'basic-tool': 'BasicData',
+  'basic-supplier': 'BasicData',
+  'basic-customer': 'BasicData',
   iqc: 'IQC',
   ipqc: 'IPQC',
   fqc: 'FQC',
@@ -54,8 +74,17 @@ const sortedTabs = computed(() => {
 
 const currentRouteTabId = computed(() => {
   const path = route.path
-  const menu = menuConfigs.find(m => m.path === path)
-  return menu?.id || ''
+  // 查顶层
+  const top = menuConfigs.find(m => m.path === path)
+  if (top) return top.id
+  // 查子菜单
+  for (const menu of menuConfigs) {
+    if (menu.children) {
+      const child = menu.children.find(c => c.path === path)
+      if (child) return child.id
+    }
+  }
+  return ''
 })
 
 onMounted(() => {
@@ -220,6 +249,7 @@ function getIconComponent(iconName?: string) {
       <el-aside :width="sidebarWidth" class="layout-sidebar">
         <el-menu
           :default-active="route.path"
+          :default-openeds="defaultOpenedMenus"
           :collapse="appStore.sidebarCollapsed"
           :collapse-transition="false"
           :router="false"
@@ -227,18 +257,38 @@ function getIconComponent(iconName?: string) {
           class="sidebar-menu"
           @select="handleMenuSelect"
         >
-          <el-menu-item
-            v-for="item in menuConfigs"
-            :key="item.id"
-            :index="item.path"
-          >
-            <el-icon>
-              <component :is="getIconComponent(item.icon)" />
-            </el-icon>
-            <template #title>
-              <span>{{ item.name }}</span>
-            </template>
-          </el-menu-item>
+          <template v-for="item in menuConfigs" :key="item.id">
+            <!-- 有子菜单 -->
+            <el-sub-menu v-if="item.children && item.children.length > 0" :index="item.path">
+              <template #title>
+                <el-icon>
+                  <component :is="getIconComponent(item.icon)" />
+                </el-icon>
+                <span>{{ item.name }}</span>
+              </template>
+              <el-menu-item
+                v-for="child in item.children"
+                :key="child.id"
+                :index="child.path"
+              >
+                <el-icon>
+                  <component :is="getIconComponent(child.icon)" />
+                </el-icon>
+                <template #title>
+                  <span>{{ child.name }}</span>
+                </template>
+              </el-menu-item>
+            </el-sub-menu>
+            <!-- 无子菜单 -->
+            <el-menu-item v-else :index="item.path">
+              <el-icon>
+                <component :is="getIconComponent(item.icon)" />
+              </el-icon>
+              <template #title>
+                <span>{{ item.name }}</span>
+              </template>
+            </el-menu-item>
+          </template>
         </el-menu>
       </el-aside>
 
@@ -446,20 +496,48 @@ function getIconComponent(iconName?: string) {
   width: 220px;
 }
 
-:deep(.sidebar-menu .el-menu-item) {
+:deep(.sidebar-menu .el-menu-item),
+:deep(.sidebar-menu .el-sub-menu__title) {
   color: var(--sidebar-text, #bfcbd9);
   background: transparent;
   height: 44px;
   line-height: 44px;
 }
 
-:deep(.sidebar-menu .el-menu-item:hover) {
+:deep(.sidebar-menu .el-menu-item:hover),
+:deep(.sidebar-menu .el-sub-menu__title:hover) {
   background: rgba(255, 255, 255, 0.08);
 }
 
 :deep(.sidebar-menu .el-menu-item.is-active) {
   color: var(--sidebar-text-active, #ffffff);
   background: var(--sidebar-bg-active, #409eff);
+}
+
+/* 子菜单容器 — 与侧边栏同色系，略亮一点以体现层级 */
+:deep(.sidebar-menu .el-sub-menu .el-menu) {
+  background: rgba(0, 0, 0, 0.15);
+}
+
+/* 子菜单缩进 */
+:deep(.sidebar-menu .el-sub-menu .el-menu .el-menu-item) {
+  padding-left: 48px !important;
+}
+
+/* 子菜单悬停 */
+:deep(.sidebar-menu .el-sub-menu .el-menu .el-menu-item:hover) {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* 子菜单激活 */
+:deep(.sidebar-menu .el-sub-menu .el-menu .el-menu-item.is-active) {
+  color: var(--sidebar-text-active, #ffffff);
+  background: var(--sidebar-bg-active, #409eff);
+}
+
+/* 展开箭头颜色 */
+:deep(.sidebar-menu .el-sub-menu__title .el-sub-menu__icon-arrow) {
+  color: var(--sidebar-text, #bfcbd9);
 }
 
 .layout-content-area {
@@ -538,8 +616,10 @@ function getIconComponent(iconName?: string) {
 
 .tab-item.active {
   color: var(--tab-item-active-color, #409eff);
-  background: var(--tab-item-active-bg, #f0f2f5);
-  border-color: var(--tab-item-active-color, #409eff);
+  background: var(--tab-item-active-bg, #e8f0fe);
+  border-color: var(--primary-color, #409eff);
+  border-bottom: 2px solid var(--primary-color, #409eff);
+  font-weight: 600;
 }
 
 .tab-icon {

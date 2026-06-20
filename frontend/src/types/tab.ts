@@ -9,4 +9,5 @@ export interface TabItem {
 
 export interface MenuConfig extends TabItem {
   module: string
+  children?: MenuConfig[]
 }
