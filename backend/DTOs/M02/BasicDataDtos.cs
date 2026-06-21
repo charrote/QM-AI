@@ -191,6 +191,12 @@ public class EquipmentListDto
     public string? EquipmentType { get; set; }
     public bool HasMqttConnection { get; set; }
     public bool IsActive { get; set; }
+    // 组织层级
+    public int? OrgId { get; set; }
+    public int? WorkshopId { get; set; }
+    public int? LineId { get; set; }
+    public string? WorkshopName { get; set; }
+    public string? LineName { get; set; }
 }
 
 public class CreateEquipmentDto
@@ -203,6 +209,10 @@ public class CreateEquipmentDto
     public string? EquipmentType { get; set; }
     public bool HasMqttConnection { get; set; } = false;
     public string? MqttTopicPrefix { get; set; }
+    // 组织层级
+    public int? OrgId { get; set; }
+    public int? WorkshopId { get; set; }
+    public int? LineId { get; set; }
 }
 
 public class UpdateEquipmentDto : CreateEquipmentDto

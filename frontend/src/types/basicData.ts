@@ -28,6 +28,7 @@ export interface Product {
   defaultAql?: number
   isActive: boolean
   createdAt: string
+  orgId?: number
 }
 
 export interface CreateProduct {
@@ -38,6 +39,7 @@ export interface CreateProduct {
   category?: string
   defaultInspectionLevel?: string
   defaultAql?: number
+  orgId?: number
 }
 
 // ─── Bom ─────────────────────────────────────────────
@@ -71,6 +73,7 @@ export interface Process {
   processType?: string
   department?: string
   isActive: boolean
+  orgId?: number
 }
 
 export interface CreateProcess {
@@ -79,6 +82,7 @@ export interface CreateProcess {
   description?: string
   processType?: string
   department?: string
+  orgId?: number
 }
 
 // ─── Routing ─────────────────────────────────────────
@@ -166,6 +170,11 @@ export interface Equipment {
   equipmentType?: string
   hasMqttConnection: boolean
   isActive: boolean
+  orgId?: number
+  workshopId?: number
+  lineId?: number
+  workshopName?: string
+  lineName?: string
 }
 
 export interface CreateEquipment {
@@ -177,6 +186,9 @@ export interface CreateEquipment {
   equipmentType?: string
   hasMqttConnection?: boolean
   mqttTopicPrefix?: string
+  orgId?: number
+  workshopId?: number
+  lineId?: number
 }
 
 // ─── Tool ────────────────────────────────────────────

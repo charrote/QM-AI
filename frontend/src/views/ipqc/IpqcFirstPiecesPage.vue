@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { firstPieceApi } from '@/api/ipqc'
+import { inspectionPlanApi } from '@/api/inspectionPlan'
 import { processApi, equipmentApi } from '@/api/basicData'
-import type { IpqcFirstPiece, IpqcFirstPieceDetail, CreateIpqcFirstPiece, SubmitIpqcFirstPiece, IpqcFirstPieceItem } from '@/types/ipqc'
+import type { IpqcFirstPiece, IpqcFirstPieceDetail, CreateIpqcFirstPiece, CreateIpqcFirstPieceItem, SubmitIpqcFirstPiece, IpqcFirstPieceItem } from '@/types/ipqc'
 import {
   IPQC_FIRST_PIECE_CONCLUSION_OPTIONS,
   IPQC_FIRST_PIECE_REASON_OPTIONS,
@@ -45,6 +46,48 @@ const submitForm = reactive<SubmitIpqcFirstPiece>({
   conclusion: 'pending',
   allowedToProduce: false,
   items: [],
+})
+
+const loadingPlanItems = ref(false)
+
+// ─── Auto-load plans ──────────────────────────
+watch([() => form.processId, () => form.equipmentId], async ([processId, equipmentId]) => {
+  if (isSubmit.value) return        // only auto-load in create mode
+  if (!processId || processId <= 0) return
+
+  loadingPlanItems.value = true
+  try {
+    const plans = await inspectionPlanApi.getByContext({
+      inspectionType: 'IPQC_FIRST_PIECE',
+      processId,
+      equipmentId: equipmentId > 0 ? equipmentId : undefined,
+    })
+    if (plans.length > 0) {
+      const allItems = plans.flatMap(p => p.items)
+      const seen = new Set<number>()
+      const newItems: CreateIpqcFirstPieceItem[] = []
+      for (const item of allItems) {
+        if (!seen.has(item.inspectionItemId)) {
+          seen.add(item.inspectionItemId)
+          newItems.push({
+            inspectionItemId: item.inspectionItemId,
+            itemName: item.inspectionItemName,
+            dataType: item.dataType,
+            usl: item.usl ?? undefined,
+            lsl: item.lsl ?? undefined,
+            result: 'pending',
+          })
+        }
+      }
+      if (newItems.length > 0) {
+        form.items = newItems
+      }
+    }
+  } catch (e) {
+    console.error('加载检验计划失败', e)
+  } finally {
+    loadingPlanItems.value = false
+  }
 })
 
 // ─── Helpers ────────────────────────────────────
@@ -273,13 +316,15 @@ onMounted(async () => {
           </el-form-item>
           <el-form-item label="检验项">
             <div style="width:100%">
+              <div v-if="loadingPlanItems" style="color:#909399;padding:8px 0;">⏳ 正在加载检验计划...</div>
               <div v-for="(item, idx) in form.items" :key="idx" style="display:flex;gap:8px;margin-bottom:8px;align-items:center">
-                <el-input v-model="item.itemName" placeholder="项目名称" style="width:140px" />
-                <el-select v-model="item.dataType" style="width:100px">
+                <el-input v-model="item.itemName" placeholder="项目名称" style="width:140px" :readonly="!!item.inspectionItemId" />
+                <el-select v-model="item.dataType" style="width:100px" :disabled="!!item.inspectionItemId">
                   <el-option v-for="o in DATA_TYPE_OPTIONS" :key="o.value" :label="o.label" :value="o.value" />
                 </el-select>
-                <el-input-number v-model="item.usl" placeholder="USL" :precision="4" :step="0.1" style="width:110px" controls-position="right" />
-                <el-input-number v-model="item.lsl" placeholder="LSL" :precision="4" :step="0.1" style="width:110px" controls-position="right" />
+                <el-input-number v-model="item.usl" placeholder="USL" :precision="4" :step="0.1" style="width:110px" controls-position="right" :disabled="!!item.inspectionItemId" />
+                <el-input-number v-model="item.lsl" placeholder="LSL" :precision="4" :step="0.1" style="width:110px" controls-position="right" :disabled="!!item.inspectionItemId" />
+                <el-tag v-if="item.inspectionItemId" size="small" type="info">计划</el-tag>
                 <el-button link type="danger" @click="removeItem(idx)" :disabled="form.items.length <= 1">✕</el-button>
               </div>
               <el-button size="small" @click="addItem">+ 添加项目</el-button>

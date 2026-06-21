@@ -1,9 +1,11 @@
 using Microsoft.EntityFrameworkCore;
 using QM_AI.API.Models;
 using QM_AI.API.Models.M02_5;
+using QM_AI.API.Models.M02_Inspection;
 using QM_AI.API.Models.M03;
 using QM_AI.API.Models.M04;
 using QM_AI.API.Models.M05;
+using QM_AI.API.Models.M06;
 
 namespace QM_AI.API.Data;
 
@@ -29,6 +31,11 @@ public class AppDbContext : DbContext
     public DbSet<Tool> Tools { get; set; } = null!;
     public DbSet<Supplier> Suppliers { get; set; } = null!;
     public DbSet<Customer> Customers { get; set; } = null!;
+
+    // M02.1 检验项目主数据（贯通S3/S4/S5/S6的核心）
+    public DbSet<InspectionItem> InspectionItems { get; set; } = null!;
+    public DbSet<InspectionPlan> InspectionPlans { get; set; } = null!;
+    public DbSet<InspectionPlanItem> InspectionPlanItems { get; set; } = null!;
 
     // M02.5 动态参数配置
     public DbSet<ParamGroup> ParamGroups { get; set; } = null!;
@@ -58,6 +65,20 @@ public class AppDbContext : DbContext
     public DbSet<FqcInspectionItem> FqcInspectionItems { get; set; } = null!;
     public DbSet<OqcRelease> OqcReleases { get; set; } = null!;
     public DbSet<PackagingConfirmation> PackagingConfirmations { get; set; } = null!;
+
+    // M15 系统管理 - 企业层级 & 字典
+    public DbSet<Organization> Organizations { get; set; } = null!;
+    public DbSet<SysDictType> SysDictTypes { get; set; } = null!;
+    public DbSet<SysDictItem> SysDictItems { get; set; } = null!;
+
+    // M06 SPC 统计分析
+    public DbSet<SpcControlChart> SpcControlCharts { get; set; } = null!;
+    public DbSet<SpcDataPoint> SpcDataPoints { get; set; } = null!;
+    public DbSet<SpcAnalysisResult> SpcAnalysisResults { get; set; } = null!;
+    public DbSet<SpcAlertRule> SpcAlertRules { get; set; } = null!;
+    public DbSet<SpcAlertTrigger> SpcAlertTriggers { get; set; } = null!;
+    public DbSet<SpcAnovaResult> SpcAnovaResults { get; set; } = null!;
+    public DbSet<SpcDataSource> SpcDataSources { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -151,6 +172,65 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<Customer>(entity =>
         {
             entity.HasIndex(c => c.Code).IsUnique();
+        });
+
+        // ── M02.1 检验项目主数据 ──
+        modelBuilder.Entity<InspectionItem>(entity =>
+        {
+            entity.HasIndex(e => e.ItemCode).IsUnique();
+            entity.HasIndex(e => e.IsActive);
+            entity.Property(e => e.DataType).HasMaxLength(20);
+            entity.Property(e => e.ChartType).HasMaxLength(20);
+            entity.HasOne(e => e.Creator)
+                  .WithMany()
+                  .HasForeignKey(e => e.CreatedBy)
+                  .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<InspectionPlan>(entity =>
+        {
+            entity.HasIndex(e => e.PlanCode).IsUnique();
+            entity.Property(e => e.InspectionType).HasMaxLength(10);
+            entity.HasOne(e => e.Product)
+                  .WithMany()
+                  .HasForeignKey(e => e.ProductId)
+                  .OnDelete(DeleteBehavior.SetNull);
+            entity.HasOne(e => e.Material)
+                  .WithMany()
+                  .HasForeignKey(e => e.MaterialId)
+                  .OnDelete(DeleteBehavior.SetNull);
+            entity.HasOne(e => e.Supplier)
+                  .WithMany()
+                  .HasForeignKey(e => e.SupplierId)
+                  .OnDelete(DeleteBehavior.SetNull);
+            entity.HasOne(e => e.Customer)
+                  .WithMany()
+                  .HasForeignKey(e => e.CustomerId)
+                  .OnDelete(DeleteBehavior.SetNull);
+            entity.HasOne(e => e.Process)
+                  .WithMany()
+                  .HasForeignKey(e => e.ProcessId)
+                  .OnDelete(DeleteBehavior.SetNull);
+            entity.HasOne(e => e.Equipment)
+                  .WithMany()
+                  .HasForeignKey(e => e.EquipmentId)
+                  .OnDelete(DeleteBehavior.SetNull);
+            entity.HasOne(e => e.Creator)
+                  .WithMany()
+                  .HasForeignKey(e => e.CreatedBy)
+                  .OnDelete(DeleteBehavior.Restrict);
+            entity.HasMany(e => e.Items)
+                  .WithOne(i => i.Plan)
+                  .HasForeignKey(i => i.PlanId)
+                  .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<InspectionPlanItem>(entity =>
+        {
+            entity.HasOne(i => i.InspectionItem)
+                  .WithMany()
+                  .HasForeignKey(i => i.InspectionItemId)
+                  .OnDelete(DeleteBehavior.Cascade);
         });
 
         // ── M02.5 动态参数配置 ──
@@ -365,6 +445,100 @@ public class AppDbContext : DbContext
                   .WithMany(b => b.PackagingConfirmations)
                   .HasForeignKey(p => p.BatchId)
                   .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // ── M15 企业组织层级 ──
+        modelBuilder.Entity<Organization>(entity =>
+        {
+            entity.HasIndex(o => o.Code).IsUnique();
+            entity.HasIndex(o => o.ParentId);
+            entity.HasIndex(o => o.Level);
+            entity.HasOne(o => o.Parent)
+                  .WithMany(o => o.Children)
+                  .HasForeignKey(o => o.ParentId)
+                  .OnDelete(DeleteBehavior.SetNull);
+            entity.Property(o => o.Level).HasMaxLength(20);
+        });
+
+        // ── M15 系统字典 ──
+        modelBuilder.Entity<SysDictType>(entity =>
+        {
+            entity.HasIndex(t => t.TypeCode).IsUnique();
+            entity.HasMany(t => t.Items)
+                  .WithOne(i => i.DictType)
+                  .HasForeignKey(i => i.TypeCode)
+                  .HasPrincipalKey(t => t.TypeCode)
+                  .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<SysDictItem>(entity =>
+        {
+            entity.HasIndex(i => new { i.TypeCode, i.SortOrder });
+            entity.Property(i => i.TypeCode).HasMaxLength(50);
+        });
+
+        // ── M06 SPC 统计分析 ──
+        modelBuilder.Entity<SpcControlChart>(entity =>
+        {
+            entity.HasIndex(c => c.Name);
+            entity.HasIndex(c => c.ParameterCode);
+            entity.Property(c => c.ChartType).HasMaxLength(10);
+            entity.HasMany(c => c.DataPoints)
+                  .WithOne(p => p.Chart)
+                  .HasForeignKey(p => p.ChartId)
+                  .OnDelete(DeleteBehavior.Cascade);
+            entity.HasMany(c => c.AnalysisResults)
+                  .WithOne(r => r.Chart)
+                  .HasForeignKey(r => r.ChartId)
+                  .OnDelete(DeleteBehavior.Cascade);
+            entity.HasMany(c => c.AlertRules)
+                  .WithOne(r => r.Chart)
+                  .HasForeignKey(r => r.ChartId)
+                  .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<SpcDataPoint>(entity =>
+        {
+            entity.HasIndex(p => new { p.ChartId, p.SubgroupIndex });
+            entity.Property(p => p.IndividualValues).HasColumnType("json");
+        });
+
+        modelBuilder.Entity<SpcAnalysisResult>(entity =>
+        {
+            entity.Property(r => r.AnalysisType).HasMaxLength(20);
+        });
+
+        modelBuilder.Entity<SpcAlertRule>(entity =>
+        {
+            entity.Property(r => r.RuleName).HasMaxLength(200);
+            entity.HasMany(r => r.Triggers)
+                  .WithOne(t => t.Rule)
+                  .HasForeignKey(t => t.RuleId)
+                  .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<SpcAlertTrigger>(entity =>
+        {
+            entity.HasIndex(t => new { t.ChartId, t.TriggeredAt });
+            entity.Property(t => t.Detail).HasColumnType("json");
+        });
+
+        modelBuilder.Entity<SpcAnovaResult>(entity =>
+        {
+            entity.Property(r => r.Source).HasMaxLength(20);
+        });
+
+        modelBuilder.Entity<SpcDataSource>(entity =>
+        {
+            entity.Property(s => s.SourceType).HasMaxLength(10);
+            entity.HasOne(s => s.Chart)
+                  .WithMany(c => c.DataSources)
+                  .HasForeignKey(s => s.ChartId)
+                  .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(s => s.InspectionItem)
+                  .WithMany()
+                  .HasForeignKey(s => s.InspectionItemId)
+                  .OnDelete(DeleteBehavior.SetNull);
         });
     }
 }

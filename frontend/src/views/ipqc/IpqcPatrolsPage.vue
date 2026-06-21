@@ -2,6 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { patrolApi } from '@/api/ipqc'
+import { inspectionPlanApi } from '@/api/inspectionPlan'
 import type { IpqcPatrol, IpqcPatrolDetail, SubmitIpqcPatrol, IpqcPatrolItemSubmit } from '@/types/ipqc'
 import {
   IPQC_PATROL_STATUS_OPTIONS,
@@ -82,6 +83,7 @@ async function openSubmit(id: number) {
       remarks: detail.remarks || '',
       items: (detail.items || []).map(i => ({
         id: i.id,
+        inspectionItemId: i.inspectionItemId,
         itemName: i.itemName,
         itemCode: i.itemCode,
         usl: i.usl,
@@ -92,9 +94,42 @@ async function openSubmit(id: number) {
         imageUrls: i.imageUrls,
       })),
     }
-    // If no items yet, add a default one
+    // Auto-load from plans if no items
     if (!submitForm.value.items || submitForm.value.items.length === 0) {
-      submitForm.value.items = [{ itemName: '外观检查', dataType: 'visual', result: 'pending' }]
+      try {
+        const plans = await inspectionPlanApi.getByContext({
+          inspectionType: 'IPQC_PATROL',
+          processId: detail.processId,
+          equipmentId: detail.equipmentId,
+        })
+        if (plans.length > 0) {
+          const allItems = plans.flatMap(p => p.items)
+          const seen = new Set<number>()
+          const newItems: IpqcPatrolItemSubmit[] = []
+          for (const item of allItems) {
+            if (!seen.has(item.inspectionItemId)) {
+              seen.add(item.inspectionItemId)
+              newItems.push({
+                inspectionItemId: item.inspectionItemId,
+                itemName: item.inspectionItemName,
+                dataType: item.dataType,
+                usl: item.usl ?? undefined,
+                lsl: item.lsl ?? undefined,
+                result: 'pending',
+              })
+            }
+          }
+          if (newItems.length > 0) {
+            submitForm.value.items = newItems
+          }
+        }
+      } catch (e) {
+        console.error('加载检验计划失败', e)
+      }
+      // Fallback default item
+      if (!submitForm.value.items || submitForm.value.items.length === 0) {
+        submitForm.value.items = [{ itemName: '外观检查', dataType: 'visual', result: 'pending' }]
+      }
     }
     ;(window as any).__submitPatrolId = id
     dialogVisible.value = true

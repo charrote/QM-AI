@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using QM_AI.API.Models.M02_Inspection;
 
 namespace QM_AI.API.Models.M04;
 
@@ -15,6 +16,9 @@ public class IpqcPatrolItem
 
     /// <summary>关联巡检记录</summary>
     public long PatrolId { get; set; }
+
+    /// <summary>关联检验项目主数据</summary>
+    public long? InspectionItemId { get; set; }
 
     /// <summary>检验项目名称</summary>
     [Required]
@@ -50,4 +54,7 @@ public class IpqcPatrolItem
     // Navigation
     [ForeignKey(nameof(PatrolId))]
     public IpqcPatrol? Patrol { get; set; }
+
+    [ForeignKey(nameof(InspectionItemId))]
+    public InspectionItem? InspectionItem { get; set; }
 }

@@ -122,6 +122,14 @@ builder.Services.AddSingleton<SamplingPlanCalculator>();
 builder.Services.AddScoped<IqcService>();
 builder.Services.AddScoped<IpqcService>();
 builder.Services.AddScoped<FqcService>();
+builder.Services.AddScoped<SpcService>();
+builder.Services.AddSingleton<SpcAlgorithmService>();
+builder.Services.AddSingleton<AnovaService>();
+builder.Services.AddScoped<BusinessDataService>();
+
+// M02.1 检验项目主数据 & 检验计划
+builder.Services.AddScoped<InspectionItemService>();
+builder.Services.AddScoped<InspectionPlanService>();
 
 var app = builder.Build();
 
@@ -152,6 +160,66 @@ app.UseExceptionHandler(appError =>
 using (var scope = app.Services.CreateScope())
 {
     var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+    // 自动创建新增的表（organizations, sys_dict_types, sys_dict_items）
+    // 使用 EF Core 的默认 PascalCase 列命名
+    await context.Database.ExecuteSqlRawAsync(@"
+        CREATE TABLE IF NOT EXISTS organizations (
+            Id BIGINT AUTO_INCREMENT PRIMARY KEY,
+            Code VARCHAR(50) NOT NULL,
+            Name VARCHAR(200) NOT NULL,
+            Level VARCHAR(20) NOT NULL,
+            ParentId BIGINT,
+            SortOrder INT DEFAULT 0,
+            IsActive TINYINT(1) DEFAULT 1,
+            Location VARCHAR(500),
+            Contact JSON,
+            Description TEXT,
+            CreatedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            UpdatedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            CreatedBy BIGINT,
+            UNIQUE KEY uk_org_code (Code),
+            INDEX idx_org_parent (ParentId),
+            INDEX idx_org_level (Level)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+
+    await context.Database.ExecuteSqlRawAsync(@"
+        CREATE TABLE IF NOT EXISTS sys_dict_types (
+            Id BIGINT AUTO_INCREMENT PRIMARY KEY,
+            TypeCode VARCHAR(50) UNIQUE NOT NULL,
+            TypeName VARCHAR(200) NOT NULL,
+            IsSystem TINYINT(1) DEFAULT 0,
+            Status TINYINT(1) DEFAULT 1,
+            Remark TEXT,
+            CreatedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+
+    await context.Database.ExecuteSqlRawAsync(@"
+        CREATE TABLE IF NOT EXISTS sys_dict_items (
+            Id BIGINT AUTO_INCREMENT PRIMARY KEY,
+            TypeCode VARCHAR(50) NOT NULL,
+            ItemLabel VARCHAR(200) NOT NULL,
+            ItemValue VARCHAR(100) NOT NULL,
+            SortOrder INT DEFAULT 0,
+            Color VARCHAR(20),
+            IsDefault TINYINT(1) DEFAULT 0,
+            Status TINYINT(1) DEFAULT 1,
+            Remark TEXT,
+            CreatedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            INDEX idx_dict_items_type (TypeCode),
+            INDEX idx_dict_items_sort (TypeCode, SortOrder)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+
+    // 如果 organizations 表是新创建的，添加外键约束
+    try
+    {
+        await context.Database.ExecuteSqlRawAsync(@"
+            ALTER TABLE organizations
+            ADD CONSTRAINT fk_org_parent
+            FOREIGN KEY (ParentId) REFERENCES organizations(Id) ON DELETE SET NULL");
+    }
+    catch { /* 约束可能已存在 */ }
+
     await DbInitializer.Initialize(context);
 }
 

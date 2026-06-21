@@ -97,6 +97,7 @@ public class IqcInspectionItemSubmitDto
 {
     public long? Id { get; set; }
     public long? ParamId { get; set; }
+    public long? InspectionItemId { get; set; }
     public string? ItemName { get; set; }
     public decimal? MeasuredValue { get; set; }
     public decimal? Usl { get; set; }

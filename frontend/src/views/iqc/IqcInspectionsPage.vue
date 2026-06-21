@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { inspectionApi, samplingPlanApi } from '@/api/iqc'
-import { ScaleToOriginal } from '@element-plus/icons-vue'
+import { inspectionApi, receiptApi, samplingPlanApi } from '@/api/iqc'
+import { inspectionPlanApi } from '@/api/inspectionPlan'
+import { ScaleToOriginal, Loading } from '@element-plus/icons-vue'
 import type {
   IqcInspection, IqcInspectionDetail, CreateIqcInspection, SubmitIqcInspection,
   SamplingPlan, SamplingPlanRequest,
@@ -24,12 +25,13 @@ const inspectionDetailVisible = ref(false)
 
 // Submit
 const submitItems = ref<Array<{
-  paramId?: number; itemName?: string; measuredValue?: number;
+  inspectionItemId?: number; paramId?: number; itemName?: string; measuredValue?: number;
   usl?: number; lsl?: number; result: string; defectCodeId?: number; remark?: string
 }>>([])
 const submitInspector = ref('')
 const submitInspectionId = ref<number>(0)
 const submitDialogVisible = ref(false)
+const loadingPlanItems = ref(false)
 
 // Sampling
 const samplingPlanResult = ref<SamplingPlan | null>(null)
@@ -79,18 +81,65 @@ async function viewInspectionDetail(row: IqcInspection) {
   }
 }
 
-function openSubmitInspection(row: IqcInspection) {
+async function openSubmitInspection(row: IqcInspection) {
   if (row.result !== 'pending') {
     ElMessage.warning('该检验单已提交')
     return
   }
   submitInspectionId.value = row.id
   submitInspector.value = ''
-  submitItems.value = [{
-    itemName: '外观检查', result: 'pending', measuredValue: undefined,
-    usl: undefined, lsl: undefined
-  }]
+  submitItems.value = []
+  loadingPlanItems.value = true
   submitDialogVisible.value = true
+
+  try {
+    // 1. 获取来料登记的 productId + supplierId
+    const receipt = await receiptApi.get(row.receiptId)
+
+    // 2. 根据业务上下文匹配检验计划
+    const plans = await inspectionPlanApi.getByContext({
+      inspectionType: 'IQC',
+      productId: receipt.productId,
+      supplierId: receipt.supplierId,
+    })
+
+    // 3. 从匹配的计划中提取检验项目
+    if (plans.length > 0) {
+      const allItems = plans.flatMap(p => p.items)
+      // 去重（同一项目出现在多个计划时只保留一次）
+      const seen = new Set<number>()
+      for (const item of allItems) {
+        if (!seen.has(item.inspectionItemId)) {
+          seen.add(item.inspectionItemId)
+          submitItems.value.push({
+            inspectionItemId: item.inspectionItemId,
+            itemName: `${item.inspectionItemCode} - ${item.inspectionItemName}`,
+            usl: item.usl ?? undefined,
+            lsl: item.lsl ?? undefined,
+            measuredValue: undefined,
+            result: 'pending',
+          })
+        }
+      }
+    }
+
+    // 4. 没有匹配计划时，给一个默认项
+    if (submitItems.value.length === 0) {
+      submitItems.value.push({
+        itemName: '外观检查', result: 'pending',
+        measuredValue: undefined, usl: undefined, lsl: undefined,
+      })
+    }
+  } catch (e) {
+    console.error('加载检验计划失败', e)
+    ElMessage.warning('未能加载检验计划，请手动添加检验项目')
+    submitItems.value = [{
+      itemName: '外观检查', result: 'pending',
+      measuredValue: undefined, usl: undefined, lsl: undefined,
+    }]
+  } finally {
+    loadingPlanItems.value = false
+  }
 }
 
 function addSubmitItem() {
@@ -281,7 +330,7 @@ onMounted(async () => {
     <el-dialog
       v-model="submitDialogVisible"
       title="提交检验结果"
-      width="600px"
+      width="720px"
       :close-on-click-modal="false"
     >
       <el-form label-width="100px" size="small">
@@ -289,32 +338,41 @@ onMounted(async () => {
           <el-input v-model="submitInspector" placeholder="检验员姓名" style="width: 200px" />
         </el-form-item>
         <el-form-item label="检验项目">
-          <div class="submit-items">
+          <div v-if="loadingPlanItems" class="text-center py-4">
+            <el-icon class="is-loading" :size="20"><Loading /></el-icon>
+            <span class="ml-2 text-gray-400">正在根据检验计划加载项目...</span>
+          </div>
+          <div v-else class="submit-items">
             <div v-for="(item, index) in submitItems" :key="index" class="submit-item-row">
-              <el-input v-model="item.itemName" placeholder="项目名称" size="small" style="width: 150px" />
+              <el-input v-model="item.itemName" placeholder="项目名称" size="small" style="width: 160px" />
+              <el-tooltip v-if="item.usl != null || item.lsl != null" :content="`规格: [${item.lsl ?? '-'}, ${item.usl ?? '-'}]`">
+                <el-tag size="small" type="info" effect="plain" style="min-width: 80px; text-align: center">
+                  {{ item.lsl ?? '-' }} ~ {{ item.usl ?? '-' }}
+                </el-tag>
+              </el-tooltip>
               <el-input-number
                 v-model="item.measuredValue"
                 :precision="4"
                 :step="0.1"
                 size="small"
-                style="width: 140px"
+                style="width: 130px"
                 placeholder="实测值"
               />
-              <el-select v-model="item.result" size="small" style="width: 100px">
+              <el-select v-model="item.result" size="small" style="width: 90px">
                 <el-option label="合格" value="pass" />
                 <el-option label="不合格" value="fail" />
                 <el-option label="待定" value="pending" />
               </el-select>
-              <el-input v-model="item.remark" placeholder="备注" size="small" style="width: 120px" />
+              <el-input v-model="item.remark" placeholder="备注" size="small" style="width: 110px" />
               <el-button link size="small" type="danger" @click="removeSubmitItem(index)">删除</el-button>
             </div>
           </div>
-          <el-button size="small" @click="addSubmitItem" style="margin-top: 8px">+ 添加项目</el-button>
+          <el-button size="small" @click="addSubmitItem" style="margin-top: 8px" :disabled="loadingPlanItems">+ 添加项目</el-button>
         </el-form-item>
       </el-form>
       <template #footer>
         <el-button @click="submitDialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="submitInspection">提交判定</el-button>
+        <el-button type="primary" @click="submitInspection" :loading="loadingPlanItems">提交判定</el-button>
       </template>
     </el-dialog>
   </div>
@@ -328,4 +386,8 @@ onMounted(async () => {
 .sampling-result { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .submit-items { display: flex; flex-direction: column; gap: 8px; }
 .submit-item-row { display: flex; align-items: center; gap: 6px; }
+.text-center { text-align: center; }
+.py-4 { padding-top: 16px; padding-bottom: 16px; }
+.ml-2 { margin-left: 8px; }
+.text-gray-400 { color: #909399; }
 </style>

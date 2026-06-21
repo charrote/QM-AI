@@ -125,6 +125,7 @@ public class IpqcService
         {
             entity.Items = dto.Items.Select(i => new IpqcFirstPieceItem
             {
+                InspectionItemId = i.InspectionItemId,
                 ItemName = i.ItemName,
                 ItemCode = i.ItemCode,
                 Usl = i.Usl,
@@ -487,6 +488,7 @@ public class IpqcService
                     entity.Items.Add(new IpqcPatrolItem
                     {
                         PatrolId = id,
+                        InspectionItemId = itemDto.InspectionItemId,
                         ItemName = itemDto.ItemName,
                         ItemCode = itemDto.ItemCode,
                         Usl = itemDto.Usl,

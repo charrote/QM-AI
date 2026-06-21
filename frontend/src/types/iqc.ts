@@ -84,6 +84,7 @@ export interface SubmitIqcInspection {
 export interface IqcInspectionItemSubmit {
   id?: number
   paramId?: number
+  inspectionItemId?: number
   itemName?: string
   measuredValue?: number
   usl?: number

@@ -52,6 +52,7 @@ export interface FqcInspection {
 }
 
 export interface FqcInspectionDetail extends FqcInspection {
+  productId: number
   productName: string
   batchQuantity: number
   items?: FqcInspectionItem[]
@@ -78,6 +79,7 @@ export interface SubmitFqcInspection {
 
 export interface FqcInspectionItemSubmit {
   id?: number
+  inspectionItemId?: number
   itemName?: string
   itemCode?: string
   usl?: number
@@ -92,6 +94,7 @@ export interface FqcInspectionItemSubmit {
 export interface FqcInspectionItem {
   id: number
   inspectionId: number
+  inspectionItemId?: number
   itemName: string
   itemCode?: string
   usl?: number

@@ -9,46 +9,21 @@ namespace QM_AI.API.Data;
 /// </summary>
 public static class DbInitializer
 {
-    /// <summary>
-    /// EF Core 模型期望的所有表名
-    /// </summary>
-    private static readonly HashSet<string> ModelTableNames =
-    [
-        "Users", "Roles", "Permissions",
-        "Products", "Boms", "Processes", "Routings",
-        "InspectionStandards", "DefectCodes",
-        "Equipment", "Tools", "Suppliers", "Customers",
-        "ParamGroups", "DynamicParams", "ClosureRules", "ParamRealtimeValues",
-        "IpqcFirstPieces", "IpqcFirstPieceItems",
-        "IpqcPatrolPlans", "IpqcPatrols", "IpqcPatrolItems",
-        "IpqcAiRiskScores", "IpqcClosureStatuses",
-        "ProductBatches", "FqcInspections", "FqcInspectionItems",
-        "OqcReleases", "PackagingConfirmations",
-    ];
-
     public static async Task Initialize(AppDbContext context)
     {
-        // 检查所有模型表是否存在，避免 EnsureCreatedAsync() 的"数据库已存在则跳过"问题
-        var existingTables = await GetExistingTableNames(context);
-        var missingTables = ModelTableNames.Except(existingTables).ToList();
+        // 确保表已创建（Program.cs 已调用 EnsureCreatedAsync，此处为防御性）
+        try { await context.Database.EnsureCreatedAsync(); } catch { /* ignore */ }
 
-        if (missingTables.Count > 0)
-        {
-            // 有表缺失 → 删库重建（开发阶段安全操作）
-            await context.Database.EnsureDeletedAsync();
-            await context.Database.EnsureCreatedAsync();
-        }
-        else
-        {
-            // 所有表已存在，仍需 EnsureCreatedAsync() 确保数据库存在（首次无操作）
-            await context.Database.EnsureCreatedAsync();
-        }
+        // 跳过已有完整数据的初始化（仅检查 Users 和 Organizations 两个代表性表）
+        var hasUsers = false;
+        var hasOrgs = false;
+        try { hasUsers = await context.Users.AnyAsync(); } catch { /* ignore */ }
+        try { hasOrgs = await context.Organizations.AnyAsync(); } catch { /* ignore */ }
+        var hasDicts = false;
+        try { hasDicts = await context.SysDictTypes.AnyAsync(); } catch { /* ignore */ }
 
-        // 已有数据则跳过
-        if (await context.Users.AnyAsync())
-            return;
-
-        // ─── 角色 ────────────────────────────────────────────────
+        // ─── 角色（只在无用户时创建） ────────────────────────────
+        if (!hasUsers) {
         var adminRole = new Role
         {
             Name = "Administrator",
@@ -274,8 +249,119 @@ public static class DbInitializer
         context.Customers.AddRange(customers);
         await context.SaveChangesAsync();
         #endregion
+        } // end if (!hasUsers) — 以上为首次运行的完整种子数据
+
+        #region M15 企业组织层级种子数据
+        // 只有没有组织数据时才创建
+        if (!await context.Organizations.AnyAsync())
+        {
+            var hq = new Organization { Code = "HQ", Name = "集团总部", Level = "group", SortOrder = 1 };
+            context.Organizations.Add(hq);
+            await context.SaveChangesAsync();
+
+            var f1 = new Organization { Code = "FACTORY_1", Name = "第一工厂", Level = "company", ParentId = hq.Id, SortOrder = 1 };
+            var f2 = new Organization { Code = "FACTORY_2", Name = "第二工厂", Level = "company", ParentId = hq.Id, SortOrder = 2 };
+            context.Organizations.AddRange(f1, f2);
+            await context.SaveChangesAsync();
+
+            var ws1 = new Organization { Code = "WS_MACHINING", Name = "机加车间", Level = "workshop", ParentId = f1.Id, SortOrder = 1 };
+            var ws2 = new Organization { Code = "WS_HEAT_TREAT", Name = "热处理车间", Level = "workshop", ParentId = f1.Id, SortOrder = 2 };
+            var ws3 = new Organization { Code = "WS_ASSEMBLY", Name = "装配车间", Level = "workshop", ParentId = f2.Id, SortOrder = 1 };
+            var ws4 = new Organization { Code = "WS_QUALITY", Name = "质量中心", Level = "workshop", ParentId = f2.Id, SortOrder = 2 };
+            context.Organizations.AddRange(ws1, ws2, ws3, ws4);
+            await context.SaveChangesAsync();
+
+            var lines = new List<Organization>
+            {
+                new() { Code = "LINE_A", Name = "A线", Level = "line", ParentId = ws1.Id, SortOrder = 1 },
+                new() { Code = "LINE_B", Name = "B线", Level = "line", ParentId = ws1.Id, SortOrder = 2 },
+                new() { Code = "LINE_C", Name = "C线", Level = "line", ParentId = ws2.Id, SortOrder = 1 },
+                new() { Code = "LINE_HEAT", Name = "热处理线", Level = "line", ParentId = ws2.Id, SortOrder = 2 },
+                new() { Code = "LINE_ASSY_1", Name = "装配1线", Level = "line", ParentId = ws3.Id, SortOrder = 1 },
+                new() { Code = "LINE_ASSY_2", Name = "装配2线", Level = "line", ParentId = ws3.Id, SortOrder = 2 },
+                new() { Code = "LINE_QC", Name = "质量检测线", Level = "line", ParentId = ws4.Id, SortOrder = 1 },
+            };
+            context.Organizations.AddRange(lines);
+            await context.SaveChangesAsync();
+        }
+        #endregion
+
+        #region M15 系统字典种子数据
+        if (!await context.SysDictTypes.AnyAsync())
+        {
+            var dictTypes = new List<SysDictType>
+            {
+                new() { TypeCode = "equipment_type", TypeName = "设备类型", IsSystem = true },
+                new() { TypeCode = "process_type", TypeName = "工序类型", IsSystem = true },
+                new() { TypeCode = "defect_category", TypeName = "不良分类", IsSystem = true },
+                new() { TypeCode = "severity", TypeName = "严重等级", IsSystem = true },
+                new() { TypeCode = "inspection_type", TypeName = "检验类型", IsSystem = true },
+                new() { TypeCode = "product_category", TypeName = "产品类别", IsSystem = true },
+                new() { TypeCode = "tool_type", TypeName = "刀具类型", IsSystem = true },
+                new() { TypeCode = "supply_category", TypeName = "供应类别", IsSystem = true },
+                new() { TypeCode = "material_unit", TypeName = "物料单位", IsSystem = true },
+            };
+            context.SysDictTypes.AddRange(dictTypes);
+            await context.SaveChangesAsync();
+
+            var dictItems = new List<SysDictItem>
+            {
+                new() { TypeCode = "equipment_type", ItemLabel = "CNC加工中心", ItemValue = "CNC", SortOrder = 1 },
+                new() { TypeCode = "equipment_type", ItemLabel = "PLC设备", ItemValue = "PLC", SortOrder = 2 },
+                new() { TypeCode = "equipment_type", ItemLabel = "检测设备", ItemValue = "检测设备", SortOrder = 3 },
+                new() { TypeCode = "equipment_type", ItemLabel = "机器人", ItemValue = "机器人", SortOrder = 4 },
+                new() { TypeCode = "equipment_type", ItemLabel = "其他", ItemValue = "其他", SortOrder = 99 },
+                new() { TypeCode = "process_type", ItemLabel = "加工", ItemValue = "加工", SortOrder = 1 },
+                new() { TypeCode = "process_type", ItemLabel = "检验", ItemValue = "检验", SortOrder = 2 },
+                new() { TypeCode = "process_type", ItemLabel = "装配", ItemValue = "装配", SortOrder = 3 },
+                new() { TypeCode = "process_type", ItemLabel = "包装", ItemValue = "包装", SortOrder = 4 },
+                new() { TypeCode = "process_type", ItemLabel = "热处理", ItemValue = "热处理", SortOrder = 5 },
+                new() { TypeCode = "process_type", ItemLabel = "表面处理", ItemValue = "表面处理", SortOrder = 6 },
+                new() { TypeCode = "defect_category", ItemLabel = "外观", ItemValue = "外观", SortOrder = 1 },
+                new() { TypeCode = "defect_category", ItemLabel = "尺寸", ItemValue = "尺寸", SortOrder = 2 },
+                new() { TypeCode = "defect_category", ItemLabel = "功能", ItemValue = "功能", SortOrder = 3 },
+                new() { TypeCode = "defect_category", ItemLabel = "材料", ItemValue = "材料", SortOrder = 4 },
+                new() { TypeCode = "defect_category", ItemLabel = "性能", ItemValue = "性能", SortOrder = 5 },
+                new() { TypeCode = "defect_category", ItemLabel = "其他", ItemValue = "其他", SortOrder = 99 },
+                new() { TypeCode = "severity", ItemLabel = "CR - 严重", ItemValue = "CR", SortOrder = 1, Color = "#F56C6C" },
+                new() { TypeCode = "severity", ItemLabel = "MA - 主要", ItemValue = "MA", SortOrder = 2, Color = "#E6A23C" },
+                new() { TypeCode = "severity", ItemLabel = "MI - 次要", ItemValue = "MI", SortOrder = 3, Color = "#909399" },
+                new() { TypeCode = "inspection_type", ItemLabel = "IQC来料检验", ItemValue = "IQC", SortOrder = 1 },
+                new() { TypeCode = "inspection_type", ItemLabel = "IPQC过程检验", ItemValue = "IPQC", SortOrder = 2 },
+                new() { TypeCode = "inspection_type", ItemLabel = "FQC成品检验", ItemValue = "FQC", SortOrder = 3 },
+                new() { TypeCode = "inspection_type", ItemLabel = "OQC出货检验", ItemValue = "OQC", SortOrder = 4 },
+                new() { TypeCode = "product_category", ItemLabel = "成品", ItemValue = "成品", SortOrder = 1 },
+                new() { TypeCode = "product_category", ItemLabel = "半成品", ItemValue = "半成品", SortOrder = 2 },
+                new() { TypeCode = "product_category", ItemLabel = "原材料", ItemValue = "原材料", SortOrder = 3 },
+                new() { TypeCode = "product_category", ItemLabel = "辅料", ItemValue = "辅料", SortOrder = 4 },
+                new() { TypeCode = "tool_type", ItemLabel = "车刀", ItemValue = "车刀", SortOrder = 1 },
+                new() { TypeCode = "tool_type", ItemLabel = "铣刀", ItemValue = "铣刀", SortOrder = 2 },
+                new() { TypeCode = "tool_type", ItemLabel = "钻头", ItemValue = "钻头", SortOrder = 3 },
+                new() { TypeCode = "tool_type", ItemLabel = "磨具", ItemValue = "磨具", SortOrder = 4 },
+                new() { TypeCode = "tool_type", ItemLabel = "丝锥", ItemValue = "丝锥", SortOrder = 5 },
+                new() { TypeCode = "tool_type", ItemLabel = "其他", ItemValue = "其他", SortOrder = 99 },
+                new() { TypeCode = "supply_category", ItemLabel = "原材料", ItemValue = "原材料", SortOrder = 1 },
+                new() { TypeCode = "supply_category", ItemLabel = "零部件", ItemValue = "零部件", SortOrder = 2 },
+                new() { TypeCode = "supply_category", ItemLabel = "包材", ItemValue = "包材", SortOrder = 3 },
+                new() { TypeCode = "supply_category", ItemLabel = "设备", ItemValue = "设备", SortOrder = 4 },
+                new() { TypeCode = "supply_category", ItemLabel = "服务", ItemValue = "服务", SortOrder = 5 },
+                new() { TypeCode = "material_unit", ItemLabel = "个", ItemValue = "个", SortOrder = 1 },
+                new() { TypeCode = "material_unit", ItemLabel = "件", ItemValue = "件", SortOrder = 2 },
+                new() { TypeCode = "material_unit", ItemLabel = "套", ItemValue = "套", SortOrder = 3 },
+                new() { TypeCode = "material_unit", ItemLabel = "kg", ItemValue = "kg", SortOrder = 4 },
+                new() { TypeCode = "material_unit", ItemLabel = "g", ItemValue = "g", SortOrder = 5 },
+                new() { TypeCode = "material_unit", ItemLabel = "m", ItemValue = "m", SortOrder = 6 },
+                new() { TypeCode = "material_unit", ItemLabel = "L", ItemValue = "L", SortOrder = 7 },
+                new() { TypeCode = "material_unit", ItemLabel = "pcs", ItemValue = "pcs", SortOrder = 8 },
+            };
+            context.SysDictItems.AddRange(dictItems);
+            await context.SaveChangesAsync();
+        }
+        #endregion
 
         #region M02.5 动态参数配置种子数据
+        if (!await context.Set<Models.M02_5.ParamGroup>().AnyAsync())
+        {
         var paramGroups = new List<Models.M02_5.ParamGroup>
         {
             new() { Name = "热力学参数组", Code = "thermo_params", Description = "温度、热量相关工艺参数", SortOrder = 1, CreatedBy = 1 },
@@ -309,30 +395,8 @@ public static class DbInitializer
         };
         context.Set<Models.M02_5.ClosureRule>().AddRange(closureRules);
         await context.SaveChangesAsync();
+        } // end if (!hasM02_5)
         #endregion
     }
 
-    /// <summary>
-    /// 获取数据库中现有的所有表名（含视图）
-    /// </summary>
-    private static async Task<HashSet<string>> GetExistingTableNames(AppDbContext context)
-    {
-        try
-        {
-            var tables = await context.Database
-                .SqlQuery<string>($"""
-                    SELECT TABLE_NAME
-                    FROM information_schema.tables
-                    WHERE table_schema = DATABASE()
-                      AND table_type = 'BASE TABLE'
-                    """)
-                .ToListAsync();
-            return [.. tables];
-        }
-        catch
-        {
-            // 数据库还不存在则返回空集
-            return [];
-        }
-    }
 }

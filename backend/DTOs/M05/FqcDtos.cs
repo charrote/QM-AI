@@ -63,6 +63,7 @@ public class FqcInspectionListDto
 
 public class FqcInspectionDetailDto : FqcInspectionListDto
 {
+    public int ProductId { get; set; }
     public string ProductName { get; set; } = string.Empty;
     public decimal BatchQuantity { get; set; }
     public List<FqcInspectionItemDto>? Items { get; set; }
@@ -92,6 +93,7 @@ public class SubmitFqcInspectionDto
 public class FqcInspectionItemSubmitDto
 {
     public long? Id { get; set; }
+    public long? InspectionItemId { get; set; }
     public string? ItemName { get; set; }
     public string? ItemCode { get; set; }
     public decimal? Usl { get; set; }
@@ -108,6 +110,7 @@ public class FqcInspectionItemDto
 {
     public long Id { get; set; }
     public long InspectionId { get; set; }
+    public long? InspectionItemId { get; set; }
     public string ItemName { get; set; } = string.Empty;
     public string? ItemCode { get; set; }
     public decimal? Usl { get; set; }

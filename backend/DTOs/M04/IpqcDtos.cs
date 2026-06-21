@@ -32,6 +32,7 @@ public class IpqcFirstPieceItemDto
 {
     public long Id { get; set; }
     public long FirstPieceId { get; set; }
+    public long? InspectionItemId { get; set; }
     public string ItemName { get; set; } = string.Empty;
     public string? ItemCode { get; set; }
     public decimal? Usl { get; set; }
@@ -58,6 +59,7 @@ public class CreateIpqcFirstPieceDto
 
 public class CreateIpqcFirstPieceItemDto
 {
+    public long? InspectionItemId { get; set; }
     public string ItemName { get; set; } = string.Empty;
     public string? ItemCode { get; set; }
     public decimal? Usl { get; set; }
@@ -146,6 +148,7 @@ public class IpqcPatrolItemDto
 {
     public long Id { get; set; }
     public long PatrolId { get; set; }
+    public long? InspectionItemId { get; set; }
     public string ItemName { get; set; } = string.Empty;
     public string? ItemCode { get; set; }
     public decimal? Usl { get; set; }
@@ -167,6 +170,7 @@ public class SubmitIpqcPatrolDto
 public class IpqcPatrolItemSubmitDto
 {
     public long? Id { get; set; }
+    public long? InspectionItemId { get; set; }
     public string ItemName { get; set; } = string.Empty;
     public string? ItemCode { get; set; }
     public decimal? Usl { get; set; }

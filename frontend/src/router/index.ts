@@ -95,6 +95,18 @@ const routes: RouteRecordRaw[] = [
         meta: { title: '客户管理', keepAlive: true, requiresAuth: true },
       },
       {
+        path: 'basic-data/inspection-items',
+        name: 'InspectionItems',
+        component: () => import('@/views/inspection/InspectionItemsPage.vue'),
+        meta: { title: '检验项目管理', keepAlive: true, requiresAuth: true },
+      },
+      {
+        path: 'basic-data/inspection-plans',
+        name: 'InspectionPlans',
+        component: () => import('@/views/inspection/InspectionPlansPage.vue'),
+        meta: { title: '检验计划管理', keepAlive: true, requiresAuth: true },
+      },
+      {
         path: 'iqc',
         redirect: '/iqc/params',
         meta: { title: 'IQC来料检验', requiresAuth: true },
@@ -246,6 +258,12 @@ const routes: RouteRecordRaw[] = [
         name: 'Reports',
         component: () => import('@/views/Reports.vue'),
         meta: { title: '报表中心', keepAlive: true, requiresAuth: true },
+      },
+      {
+        path: 'organizations',
+        name: 'Organizations',
+        component: () => import('@/views/OrganizationPage.vue'),
+        meta: { title: '企业层级', keepAlive: true, requiresAuth: true },
       },
       {
         path: 'settings',

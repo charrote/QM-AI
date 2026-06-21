@@ -2,6 +2,7 @@
 import { ref, onMounted, reactive } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { inspectionApi, batchApi } from '@/api/fqc'
+import { inspectionPlanApi } from '@/api/inspectionPlan'
 import type { FqcInspection, FqcInspectionDetail, CreateFqcInspection, SubmitFqcInspection, FqcInspectionItemSubmit } from '@/types/fqc'
 import type { ProductBatch } from '@/types/fqc'
 import type { PagedRequest, PagedResult } from '@/types/basicData'
@@ -95,6 +96,7 @@ async function openSubmit(id: number) {
     submitForm.totalFail = res.totalFail
     submitForm.items = (res.items || []).map(it => ({
       id: it.id,
+      inspectionItemId: it.inspectionItemId,
       itemName: it.itemName,
       itemCode: it.itemCode,
       usl: it.usl,
@@ -104,6 +106,47 @@ async function openSubmit(id: number) {
       result: it.result,
       imageUrls: it.imageUrls,
     }))
+
+    // Auto-load from plans if no items exist yet
+    if (!submitForm.items || submitForm.items.length === 0) {
+      try {
+        const plans = await inspectionPlanApi.getByContext({
+          inspectionType: 'FQC',
+          productId: res.productId,
+        })
+        if (plans.length > 0) {
+          const allItems = plans.flatMap(p => p.items)
+          const seen = new Set<number>()
+          const newItems: FqcInspectionItemSubmit[] = []
+          for (const item of allItems) {
+            if (!seen.has(item.inspectionItemId)) {
+              seen.add(item.inspectionItemId)
+              newItems.push({
+                inspectionItemId: item.inspectionItemId,
+                itemName: item.inspectionItemName,
+                dataType: item.dataType,
+                usl: item.usl ?? undefined,
+                lsl: item.lsl ?? undefined,
+                result: 'pending',
+              })
+            }
+          }
+          if (newItems.length > 0) {
+            submitForm.items = newItems
+          }
+        }
+      } catch (e) {
+        console.error('加载检验计划失败', e)
+      }
+      // Fallback default item
+      if (!submitForm.items || submitForm.items.length === 0) {
+        submitForm.items.push({
+          itemName: '外观检查',
+          dataType: 'visual',
+          result: 'pending',
+        })
+      }
+    }
   } catch { return }
   submitVisible.value = true
 }

@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using QM_AI.API.Models.M02_Inspection;
 
 namespace QM_AI.API.Models.M05;
 
@@ -15,6 +16,9 @@ public class FqcInspectionItem
 
     /// <summary>关联检验单</summary>
     public long InspectionId { get; set; }
+
+    /// <summary>关联检验项目主数据</summary>
+    public long? InspectionItemId { get; set; }
 
     /// <summary>检验项目名称</summary>
     [Required]
@@ -50,4 +54,7 @@ public class FqcInspectionItem
     // Navigation
     [ForeignKey(nameof(InspectionId))]
     public FqcInspection? Inspection { get; set; }
+
+    [ForeignKey(nameof(InspectionItemId))]
+    public InspectionItem? InspectionItem { get; set; }
 }

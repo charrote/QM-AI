@@ -29,6 +29,8 @@ export const menuConfigs: MenuConfig[] = [
       { id: 'basic-tool', name: '刀具管理', icon: 'Setting', path: '/basic-data/tool', closable: true, order: 8, module: 'basic-data' },
       { id: 'basic-supplier', name: '供应商管理', icon: 'Van', path: '/basic-data/supplier', closable: true, order: 9, module: 'basic-data' },
       { id: 'basic-customer', name: '客户管理', icon: 'User', path: '/basic-data/customer', closable: true, order: 10, module: 'basic-data' },
+      { id: 'basic-inspection-items', name: '检验项目管理', icon: 'List', path: '/basic-data/inspection-items', closable: true, order: 11, module: 'basic-data' },
+      { id: 'basic-inspection-plans', name: '检验计划管理', icon: 'Calendar', path: '/basic-data/inspection-plans', closable: true, order: 12, module: 'basic-data' },
     ],
   },
   {
@@ -158,6 +160,15 @@ export const menuConfigs: MenuConfig[] = [
     closable: true,
     order: 12,
     module: 'reports',
+  },
+  {
+    id: 'organizations',
+    name: '企业层级',
+    icon: 'Connection',
+    path: '/organizations',
+    closable: true,
+    order: 12,
+    module: 'system',
   },
   {
     id: 'settings',

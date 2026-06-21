@@ -254,12 +254,14 @@ public class FqcService
                 Conclusion = i.Conclusion,
                 CheckedAt = i.CheckedAt,
                 CreatedAt = i.CreatedAt,
+                ProductId = i.Batch.ProductId,
                 ProductName = i.Batch.Product!.Name,
                 BatchQuantity = i.Batch.Quantity,
                 Items = i.Items!.Select(it => new FqcInspectionItemDto
                 {
                     Id = it.Id,
                     InspectionId = it.InspectionId,
+                    InspectionItemId = it.InspectionItemId,
                     ItemName = it.ItemName,
                     ItemCode = it.ItemCode,
                     Usl = it.Usl,
@@ -339,6 +341,7 @@ public class FqcService
                     inspection.Items?.Add(new FqcInspectionItem
                     {
                         InspectionId = id,
+                        InspectionItemId = itemDto.InspectionItemId,
                         ItemName = itemDto.ItemName ?? "",
                         ItemCode = itemDto.ItemCode,
                         Usl = itemDto.Usl,

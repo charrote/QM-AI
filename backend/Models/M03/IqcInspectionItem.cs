@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using QM_AI.API.Models.M02_Inspection;
 
 namespace QM_AI.API.Models.M03;
 
@@ -18,6 +19,9 @@ public class IqcInspectionItem
 
     /// <summary>关联动态参数</summary>
     public long? ParamId { get; set; }
+
+    /// <summary>关联检验项目主数据（贯通核心）</summary>
+    public long? InspectionItemId { get; set; }
 
     /// <summary>检验项目名称（冗余）</summary>
     [MaxLength(200)]
@@ -49,4 +53,7 @@ public class IqcInspectionItem
 
     [ForeignKey(nameof(DefectCodeId))]
     public DefectCode? DefectCode { get; set; }
+
+    [ForeignKey(nameof(InspectionItemId))]
+    public InspectionItem? InspectionItem { get; set; }
 }

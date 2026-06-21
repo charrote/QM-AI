@@ -25,6 +25,7 @@ export interface IpqcFirstPieceDetail extends IpqcFirstPiece {
 export interface IpqcFirstPieceItem {
   id: number
   firstPieceId: number
+  inspectionItemId?: number
   itemName: string
   itemCode?: string
   usl?: number
@@ -49,6 +50,7 @@ export interface CreateIpqcFirstPiece {
 }
 
 export interface CreateIpqcFirstPieceItem {
+  inspectionItemId?: number
   itemName: string
   itemCode?: string
   usl?: number
@@ -128,6 +130,7 @@ export interface IpqcPatrolDetail extends IpqcPatrol {
 export interface IpqcPatrolItem {
   id: number
   patrolId: number
+  inspectionItemId?: number
   itemName: string
   itemCode?: string
   usl?: number
@@ -147,6 +150,7 @@ export interface SubmitIpqcPatrol {
 
 export interface IpqcPatrolItemSubmit {
   id?: number
+  inspectionItemId?: number
   itemName: string
   itemCode?: string
   usl?: number

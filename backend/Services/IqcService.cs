@@ -346,6 +346,7 @@ public class IqcService
                 {
                     InspectionId = id,
                     ParamId = itemDto.ParamId,
+                    InspectionItemId = itemDto.InspectionItemId,
                     ItemName = itemDto.ItemName,
                     MeasuredValue = itemDto.MeasuredValue,
                     Usl = itemDto.Usl,
