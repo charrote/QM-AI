@@ -2,6 +2,8 @@ using Microsoft.EntityFrameworkCore;
 using QM_AI.API.Models;
 using QM_AI.API.Models.M02_5;
 using QM_AI.API.Models.M03;
+using QM_AI.API.Models.M04;
+using QM_AI.API.Models.M05;
 
 namespace QM_AI.API.Data;
 
@@ -40,6 +42,22 @@ public class AppDbContext : DbContext
     public DbSet<IqcInspectionItem> IqcInspectionItems { get; set; } = null!;
     public DbSet<IqcAnomaly> IqcAnomalies { get; set; } = null!;
     public DbSet<SupplierScore> SupplierScores { get; set; } = null!;
+
+    // M04 IPQC 过程检验
+    public DbSet<IpqcFirstPiece> IpqcFirstPieces { get; set; } = null!;
+    public DbSet<IpqcFirstPieceItem> IpqcFirstPieceItems { get; set; } = null!;
+    public DbSet<IpqcPatrolPlan> IpqcPatrolPlans { get; set; } = null!;
+    public DbSet<IpqcPatrol> IpqcPatrols { get; set; } = null!;
+    public DbSet<IpqcPatrolItem> IpqcPatrolItems { get; set; } = null!;
+    public DbSet<IpqcAiRiskScore> IpqcAiRiskScores { get; set; } = null!;
+    public DbSet<IpqcClosureStatus> IpqcClosureStatuses { get; set; } = null!;
+
+    // M05 FQC/OQC 成品检验
+    public DbSet<ProductBatch> ProductBatches { get; set; } = null!;
+    public DbSet<FqcInspection> FqcInspections { get; set; } = null!;
+    public DbSet<FqcInspectionItem> FqcInspectionItems { get; set; } = null!;
+    public DbSet<OqcRelease> OqcReleases { get; set; } = null!;
+    public DbSet<PackagingConfirmation> PackagingConfirmations { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -230,6 +248,122 @@ public class AppDbContext : DbContext
             entity.HasOne(s => s.Supplier)
                   .WithMany()
                   .HasForeignKey(s => s.SupplierId)
+                  .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // ── M04 IPQC 过程检验 ──
+        modelBuilder.Entity<IpqcFirstPiece>(entity =>
+        {
+            entity.HasIndex(f => f.FpNo).IsUnique();
+            entity.Property(f => f.Conclusion).HasMaxLength(20);
+            entity.Property(f => f.Reason).HasMaxLength(20);
+            entity.Property(f => f.Shift).HasMaxLength(20);
+            entity.HasMany(f => f.Items)
+                  .WithOne(i => i.FirstPiece)
+                  .HasForeignKey(i => i.FirstPieceId)
+                  .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<IpqcFirstPieceItem>(entity =>
+        {
+            entity.Property(i => i.Result).HasMaxLength(10);
+            entity.Property(i => i.DataType).HasMaxLength(20);
+        });
+
+        modelBuilder.Entity<IpqcPatrolPlan>(entity =>
+        {
+            entity.HasIndex(p => p.PlanNo).IsUnique();
+            entity.Property(p => p.Status).HasMaxLength(20);
+            entity.HasMany(p => p.Patrols)
+                  .WithOne(pa => pa.PatrolPlan)
+                  .HasForeignKey(pa => pa.PatrolPlanId)
+                  .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<IpqcPatrol>(entity =>
+        {
+            entity.HasIndex(p => p.PatrolNo).IsUnique();
+            entity.Property(p => p.Conclusion).HasMaxLength(20);
+            entity.Property(p => p.Status).HasMaxLength(20);
+            entity.HasMany(p => p.Items)
+                  .WithOne(i => i.Patrol)
+                  .HasForeignKey(i => i.PatrolId)
+                  .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<IpqcPatrolItem>(entity =>
+        {
+            entity.Property(i => i.Result).HasMaxLength(10);
+            entity.Property(i => i.DataType).HasMaxLength(20);
+        });
+
+        modelBuilder.Entity<IpqcAiRiskScore>(entity =>
+        {
+            entity.HasIndex(r => new { r.EquipmentId, r.CreatedAt });
+            entity.Property(r => r.RiskLevel).HasMaxLength(20);
+            entity.Property(r => r.TrendDirection).HasMaxLength(10);
+        });
+
+        modelBuilder.Entity<IpqcClosureStatus>(entity =>
+        {
+            entity.Property(c => c.Status).HasMaxLength(10);
+        });
+
+        // ── M05 FQC/OQC 成品检验 ──
+        modelBuilder.Entity<ProductBatch>(entity =>
+        {
+            entity.HasIndex(b => b.BatchCode).IsUnique();
+            entity.Property(b => b.Source).HasMaxLength(20);
+            entity.HasOne(b => b.Product)
+                  .WithMany()
+                  .HasForeignKey(b => b.ProductId)
+                  .OnDelete(DeleteBehavior.Restrict);
+            entity.HasMany(b => b.Inspections)
+                  .WithOne(i => i.Batch)
+                  .HasForeignKey(i => i.BatchId)
+                  .OnDelete(DeleteBehavior.Cascade);
+            entity.HasMany(b => b.Releases)
+                  .WithOne(r => r.Batch)
+                  .HasForeignKey(r => r.BatchId)
+                  .OnDelete(DeleteBehavior.Cascade);
+            entity.HasMany(b => b.PackagingConfirmations)
+                  .WithOne(p => p.Batch)
+                  .HasForeignKey(p => p.BatchId)
+                  .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<FqcInspection>(entity =>
+        {
+            entity.HasIndex(i => i.InspectionNo).IsUnique();
+            entity.Property(i => i.InspectionType).HasMaxLength(10);
+            entity.Property(i => i.Conclusion).HasMaxLength(20);
+            entity.HasMany(i => i.Items)
+                  .WithOne(it => it.Inspection)
+                  .HasForeignKey(it => it.InspectionId)
+                  .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<FqcInspectionItem>(entity =>
+        {
+            entity.Property(i => i.DataType).HasMaxLength(20);
+            entity.Property(i => i.Result).HasMaxLength(10);
+        });
+
+        modelBuilder.Entity<OqcRelease>(entity =>
+        {
+            entity.HasIndex(r => r.ReleaseNumber).IsUnique();
+            entity.Property(r => r.Status).HasMaxLength(20);
+            entity.HasOne(r => r.Customer)
+                  .WithMany()
+                  .HasForeignKey(r => r.CustomerId)
+                  .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<PackagingConfirmation>(entity =>
+        {
+            entity.HasOne(p => p.Batch)
+                  .WithMany(b => b.PackagingConfirmations)
+                  .HasForeignKey(p => p.BatchId)
                   .OnDelete(DeleteBehavior.Cascade);
         });
     }

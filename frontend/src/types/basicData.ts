@@ -3,6 +3,7 @@ export interface PagedRequest {
   page?: number
   pageSize?: number
   keyword?: string
+  status?: string
   sortBy?: string
   sortOrder?: string
 }

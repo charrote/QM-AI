@@ -19,6 +19,11 @@ public static class DbInitializer
         "InspectionStandards", "DefectCodes",
         "Equipment", "Tools", "Suppliers", "Customers",
         "ParamGroups", "DynamicParams", "ClosureRules", "ParamRealtimeValues",
+        "IpqcFirstPieces", "IpqcFirstPieceItems",
+        "IpqcPatrolPlans", "IpqcPatrols", "IpqcPatrolItems",
+        "IpqcAiRiskScores", "IpqcClosureStatuses",
+        "ProductBatches", "FqcInspections", "FqcInspectionItems",
+        "OqcReleases", "PackagingConfirmations",
     ];
 
     public static async Task Initialize(AppDbContext context)

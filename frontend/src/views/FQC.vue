@@ -1,11 +1,15 @@
 <script setup lang="ts">
+import { onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+
 defineOptions({ name: 'FQC' })
+
+const router = useRouter()
+onMounted(() => {
+  router.replace('/fqc/inspections')
+})
 </script>
 
 <template>
-  <div class="placeholder-view">
-    <el-icon class="placeholder-icon" :size="64" color="#909399"><Finished /></el-icon>
-    <h2>FQC/OQC成品检验</h2>
-    <p>Final Quality Control - 成品检验管理</p>
-  </div>
+  <div />
 </template>

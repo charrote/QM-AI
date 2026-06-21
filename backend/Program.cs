@@ -120,6 +120,8 @@ builder.Services.AddScoped<AuthService>();
 builder.Services.AddSingleton<ClosureRuleEngine>();
 builder.Services.AddSingleton<SamplingPlanCalculator>();
 builder.Services.AddScoped<IqcService>();
+builder.Services.AddScoped<IpqcService>();
+builder.Services.AddScoped<FqcService>();
 
 var app = builder.Build();
 
