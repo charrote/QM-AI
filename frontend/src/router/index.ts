@@ -95,6 +95,18 @@ const routes: RouteRecordRaw[] = [
         meta: { title: '客户管理', keepAlive: true, requiresAuth: true },
       },
       {
+        path: 'basic-data/inspection-items',
+        name: 'InspectionItems',
+        component: () => import('@/views/inspection/InspectionItemsPage.vue'),
+        meta: { title: '检验项目管理', keepAlive: true, requiresAuth: true },
+      },
+      {
+        path: 'basic-data/inspection-plans',
+        name: 'InspectionPlans',
+        component: () => import('@/views/inspection/InspectionPlansPage.vue'),
+        meta: { title: '检验计划管理', keepAlive: true, requiresAuth: true },
+      },
+      {
         path: 'iqc',
         redirect: '/iqc/params',
         meta: { title: 'IQC来料检验', requiresAuth: true },
@@ -137,15 +149,61 @@ const routes: RouteRecordRaw[] = [
       },
       {
         path: 'ipqc',
-        name: 'IPQC',
-        component: () => import('@/views/IPQC.vue'),
-        meta: { title: 'IPQC过程检验', keepAlive: true, requiresAuth: true },
+        redirect: '/ipqc/first-pieces',
+        meta: { title: 'IPQC过程检验', requiresAuth: true },
+      },
+      {
+        path: 'ipqc/first-pieces',
+        name: 'IpqcFirstPieces',
+        component: () => import('@/views/ipqc/IpqcFirstPiecesPage.vue'),
+        meta: { title: '首件检验', keepAlive: true, requiresAuth: true },
+      },
+      {
+        path: 'ipqc/patrols',
+        name: 'IpqcPatrols',
+        component: () => import('@/views/ipqc/IpqcPatrolsPage.vue'),
+        meta: { title: '巡检记录', keepAlive: true, requiresAuth: true },
+      },
+      {
+        path: 'ipqc/plans',
+        name: 'IpqcPlans',
+        component: () => import('@/views/ipqc/IpqcPlansPage.vue'),
+        meta: { title: '巡检计划', keepAlive: true, requiresAuth: true },
+      },
+      {
+        path: 'ipqc/risk',
+        name: 'IpqcRisk',
+        component: () => import('@/views/ipqc/IpqcRiskDashboard.vue'),
+        meta: { title: 'AI风险仪表盘', keepAlive: true, requiresAuth: true },
       },
       {
         path: 'fqc',
-        name: 'FQC',
-        component: () => import('@/views/FQC.vue'),
-        meta: { title: 'FQC/OQC成品检验', keepAlive: true, requiresAuth: true },
+        redirect: '/fqc/inspections',
+        meta: { title: 'FQC/OQC成品检验', requiresAuth: true },
+      },
+      {
+        path: 'fqc/inspections',
+        name: 'FqcInspections',
+        component: () => import('@/views/fqc/FqcInspectionsPage.vue'),
+        meta: { title: '成品检验', keepAlive: true, requiresAuth: true },
+      },
+      {
+        path: 'fqc/batches',
+        name: 'FqcBatches',
+        component: () => import('@/views/fqc/FqcBatchesPage.vue'),
+        meta: { title: '批次管理', keepAlive: true, requiresAuth: true },
+      },
+      {
+        path: 'fqc/releases',
+        name: 'FqcReleases',
+        component: () => import('@/views/fqc/FqcOqcReleasesPage.vue'),
+        meta: { title: '出货放行', keepAlive: true, requiresAuth: true },
+      },
+      {
+        path: 'fqc/packaging',
+        name: 'FqcPackaging',
+        component: () => import('@/views/fqc/FqcPackagingPage.vue'),
+        meta: { title: '包装确认', keepAlive: true, requiresAuth: true },
       },
       {
         path: 'spc',
@@ -202,6 +260,12 @@ const routes: RouteRecordRaw[] = [
         meta: { title: '报表中心', keepAlive: true, requiresAuth: true },
       },
       {
+        path: 'organizations',
+        name: 'Organizations',
+        component: () => import('@/views/OrganizationPage.vue'),
+        meta: { title: '企业层级', keepAlive: true, requiresAuth: true },
+      },
+      {
         path: 'settings',
         name: 'Settings',
         component: () => import('@/views/Settings.vue'),
@@ -214,6 +278,12 @@ const routes: RouteRecordRaw[] = [
     name: 'PdaIqc',
     component: () => import('@/views/iqc/PdaIqcScan.vue'),
     meta: { title: 'PDA扫码录入', requiresAuth: true },
+  },
+  {
+    path: '/pda/ipqc',
+    name: 'PdaIpqc',
+    component: () => import('@/views/ipqc/PdaIpqcScan.vue'),
+    meta: { title: 'PDA巡检执行', requiresAuth: true },
   },
   {
     path: '/:pathMatch(.*)*',

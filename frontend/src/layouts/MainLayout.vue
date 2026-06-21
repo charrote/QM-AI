@@ -6,6 +6,7 @@ import { useAuthStore } from '@/stores/authStore'
 import { useAppStore } from '@/stores/appStore'
 import { menuConfigs } from '@/config/menu.config'
 import ContextMenu from '@/components/ContextMenu.vue'
+import { useOrgStore } from '@/stores/orgStore'
 import * as Icons from '@element-plus/icons-vue'
 import type { TabItem } from '@/types/tab'
 
@@ -14,6 +15,7 @@ const route = useRoute()
 const tabStore = useTabStore()
 const authStore = useAuthStore()
 const appStore = useAppStore()
+const orgStore = useOrgStore()
 
 const tabContainerRef = ref<HTMLElement>()
 const showScrollLeft = ref(false)
@@ -56,8 +58,14 @@ const componentNameMap: Record<string, string> = {
   'iqc-anomalies': 'IqcAnomaliesPage',
   'iqc-suppliers': 'IqcSuppliersPage',
   'iqc-trace': 'IqcTracePage',
-  ipqc: 'IPQC',
-  fqc: 'FQC',
+  'ipqc-first-pieces': 'IpqcFirstPiecesPage',
+  'ipqc-patrols': 'IpqcPatrolsPage',
+  'ipqc-plans': 'IpqcPlansPage',
+  'ipqc-risk': 'IpqcRiskDashboard',
+  'fqc-inspections': 'FqcInspectionsPage',
+  'fqc-batches': 'FqcBatchesPage',
+  'fqc-releases': 'FqcOqcReleasesPage',
+  'fqc-packaging': 'FqcPackagingPage',
   spc: 'SPC',
   defects: 'Defects',
   trace: 'Trace',
@@ -67,6 +75,7 @@ const componentNameMap: Record<string, string> = {
   documents: 'Documents',
   audits: 'Audits',
   reports: 'Reports',
+  organizations: 'OrganizationPage',
   settings: 'Settings',
 }
 
@@ -101,6 +110,10 @@ onMounted(() => {
     tabStore.addOrActivateTab(route.path)
   }
   checkScrollArrows()
+  // 加载组织树（供组织选择器使用），仅在已登录时
+  if (authStore.isAuthenticated) {
+    orgStore.loadOrgTree()
+  }
 })
 
 watch(() => route.path, (newPath) => {
@@ -205,6 +218,23 @@ function handleLogout() {
   router.push('/login')
 }
 
+// ─── 组织选择器辅助 ──────────────────────────────────────
+const LEVEL_PADDING: Record<string, number> = {
+  group: 0, company: 12, workshop: 24, line: 36,
+}
+
+const LEVEL_COLORS: Record<string, string> = {
+  group: '#8B5CF6', company: '#409EFF', workshop: '#E6A23C', line: '#67C23A',
+}
+
+function getLevelPadding(level: string): number {
+  return LEVEL_PADDING[level] || 0
+}
+
+function getOrgLevelColor(level: string): string {
+  return LEVEL_COLORS[level] || '#909399'
+}
+
 function getIconComponent(iconName?: string) {
   if (!iconName) return null
   return (Icons as Record<string, any>)[iconName]
@@ -227,6 +257,48 @@ function getIconComponent(iconName?: string) {
         </div>
       </div>
       <div class="header-right">
+        <!-- 组织选择器 -->
+        <el-dropdown
+          trigger="click"
+          @visible-change="(v: boolean) => { if (v) orgStore.loadOrgTree() }"
+          class="org-selector"
+        >
+          <span class="org-selector-trigger">
+            <el-icon :size="16"><Connection /></el-icon>
+            <span class="org-name">{{ orgStore.selectedOrgName || '全企业' }}</span>
+            <el-icon :size="12"><ArrowDown /></el-icon>
+          </span>
+          <template #dropdown>
+            <el-dropdown-menu class="org-dropdown-menu">
+              <el-dropdown-item @click="orgStore.clearSelection()">
+                <el-icon><RefreshLeft /></el-icon>
+                全企业（不限）
+              </el-dropdown-item>
+              <el-dropdown-item divided disabled style="font-size: 12px; color: #909399; cursor: default;">
+                选择组织
+              </el-dropdown-item>
+              <template v-for="org in orgStore.orgList" :key="org.id">
+                <el-dropdown-item
+                  @click="orgStore.selectOrg(org.id, org.name)"
+                  :class="{ 'is-active': orgStore.selectedOrgId === org.id }"
+                >
+                  <span :style="{ paddingLeft: getLevelPadding(org.level) + 'px' }">
+                    <el-tag
+                      :color="getOrgLevelColor(org.level)"
+                      size="small"
+                      effect="dark"
+                      style="margin-right: 4px;"
+                    >
+                      {{ org.levelLabel }}
+                    </el-tag>
+                    {{ org.name }}
+                  </span>
+                </el-dropdown-item>
+              </template>
+            </el-dropdown-menu>
+          </template>
+        </el-dropdown>
+
         <div class="theme-toggle" @click="appStore.toggleTheme()">
           <el-icon :size="18">
             <Moon v-if="appStore.theme === 'light'" />
@@ -661,5 +733,40 @@ function getIconComponent(iconName?: string) {
   background: var(--bg-content, #f0f2f5);
   overflow-y: auto;
   padding: 16px;
+}
+
+/* ── 组织选择器 ── */
+.org-selector {
+  cursor: pointer;
+  margin: 0 8px;
+}
+
+.org-selector-trigger {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  transition: background var(--transition-fast, 0.2s);
+  color: var(--text-regular, #606266);
+  font-size: 13px;
+}
+
+.org-selector-trigger:hover {
+  background: var(--tab-item-hover-bg, #ecf5ff);
+  color: var(--primary-color, #409eff);
+}
+
+.org-name {
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.org-dropdown-menu .is-active {
+  background: #ecf5ff;
+  color: #409eff;
+  font-weight: 600;
 }
 </style>

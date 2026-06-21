@@ -25,9 +25,12 @@ public class Process
     [MaxLength(50)]
     public string? ProcessType { get; set; }
 
-    /// <summary>所属部门/车间</summary>
+    /// <summary>所属部门/车间（显示冗余）</summary>
     [MaxLength(100)]
     public string? Department { get; set; }
+
+    /// <summary>所属组织ID</summary>
+    public int? OrgId { get; set; }
 
     public bool IsActive { get; set; } = true;
 

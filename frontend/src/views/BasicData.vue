@@ -9,6 +9,11 @@ import {
   inspectionStandardApi, defectCodeApi, equipmentApi,
   toolApi, supplierApi, customerApi,
 } from '@/api/basicData'
+import { sysDictApi } from '@/api/sysDict'
+import { organizationApi } from '@/api/organization'
+import type { SysDictItem } from '@/types/sysDict'
+import type { OrganizationTreeNode } from '@/types/organization'
+import { LEVEL_CONFIG } from '@/types/organization'
 import type {
   Product, Process, Equipment, Tool, Supplier, Customer,
   Bom, Routing, InspectionStandard, DefectCode,
@@ -294,6 +299,31 @@ const formData = reactive<any>({})
 const lookupProducts = ref<Product[]>([])
 const lookupProcesses = ref<Process[]>([])
 
+// ─── 字典下拉数据 ──────────────────────────────────────
+const dictData = ref<Record<string, SysDictItem[]>>({})
+const orgTree = ref<OrganizationTreeNode[]>([])
+const orgWorkshops = ref<{ id: number; name: string; code: string }[]>([])
+const orgLines = ref<{ id: number; name: string; code: string }[]>([])
+
+// 组织层级选项（用于树下拉选择）
+const orgOptions = computed(() => {
+  const result: { id: number; name: string; level: string; levelLabel: string; padding: number }[] = []
+  function walk(nodes: OrganizationTreeNode[], depth: number) {
+    for (const n of nodes) {
+      result.push({
+        id: n.id,
+        name: n.name,
+        level: n.level,
+        levelLabel: LEVEL_CONFIG[n.level]?.label || n.level,
+        padding: depth * 20,
+      })
+      if (n.children?.length) walk(n.children, depth + 1)
+    }
+  }
+  walk(orgTree.value, 0)
+  return result
+})
+
 // ─── 数据加载 ──────────────────────────────────────────
 async function loadData() {
   loading.value = true
@@ -312,13 +342,38 @@ async function loadData() {
 
 async function loadLookups() {
   try {
-    const [prodRes, procRes] = await Promise.all([
+    const [prodRes, procRes, dictRes, orgTreeRes] = await Promise.all([
       productApi.list({ page: 1, pageSize: 999 }),
       processApi.list({ page: 1, pageSize: 999 }),
+      sysDictApi.getBatch([
+        'equipment_type', 'process_type', 'defect_category', 'severity',
+        'inspection_type', 'product_category', 'tool_type', 'supply_category',
+        'material_unit',
+      ]),
+      organizationApi.tree(),
     ])
     lookupProducts.value = prodRes.items
     lookupProcesses.value = procRes.items
+    dictData.value = dictRes
+    orgTree.value = orgTreeRes
+
+    // 提取车间和产线
+    function collectByLevel(nodes: OrganizationTreeNode[], level: string) {
+      const result: { id: number; name: string; code: string }[] = []
+      for (const n of nodes) {
+        if (n.level === level) result.push({ id: n.id, name: n.name, code: n.code })
+        if (n.children?.length) result.push(...collectByLevel(n.children, level))
+      }
+      return result
+    }
+    orgWorkshops.value = collectByLevel(orgTreeRes, 'workshop')
+    orgLines.value = collectByLevel(orgTreeRes, 'line')
   } catch { /* ignore */ }
+}
+
+// ─── 字典辅助函数 ──────────────────────────────────────
+function getDictOptions(typeCode: string): SysDictItem[] {
+  return dictData.value[typeCode] || []
 }
 
 // ─── 搜索 ──────────────────────────────────────────────
@@ -482,10 +537,24 @@ onMounted(() => {
             <el-input v-model="formData.name" />
           </el-form-item>
           <el-form-item label="产品类别" prop="category">
-            <el-input v-model="formData.category" />
+            <el-select v-model="formData.category" filterable clearable style="width: 100%">
+              <el-option
+                v-for="opt in getDictOptions('product_category')"
+                :key="opt.itemValue"
+                :label="opt.itemLabel"
+                :value="opt.itemValue"
+              />
+            </el-select>
           </el-form-item>
           <el-form-item label="单位" prop="unit">
-            <el-input v-model="formData.unit" />
+            <el-select v-model="formData.unit" filterable clearable style="width: 100%">
+              <el-option
+                v-for="opt in getDictOptions('material_unit')"
+                :key="opt.itemValue"
+                :label="opt.itemLabel"
+                :value="opt.itemValue"
+              />
+            </el-select>
           </el-form-item>
           <el-form-item label="描述" prop="description">
             <el-input v-model="formData.description" type="textarea" :rows="2" />
@@ -504,6 +573,16 @@ onMounted(() => {
           <el-form-item label="AQL值" prop="defaultAql">
             <el-input-number v-model="formData.defaultAql" :min="0" :max="100" :step="0.01" style="width: 100%" />
           </el-form-item>
+          <el-form-item label="所属组织" prop="orgId">
+            <el-select v-model="formData.orgId" filterable clearable placeholder="选择组织" style="width: 100%">
+              <el-option
+                v-for="org in orgOptions"
+                :key="org.id"
+                :label="`${'  '.repeat(org.padding / 20)}[${org.levelLabel}] ${org.name}`"
+                :value="org.id"
+              />
+            </el-select>
+          </el-form-item>
           <el-form-item label="启用" prop="isActive" class="full-width" v-if="isEdit">
             <el-switch v-model="formData.isActive" />
           </el-form-item>
@@ -517,11 +596,23 @@ onMounted(() => {
             <el-input v-model="formData.name" />
           </el-form-item>
           <el-form-item label="工序类型" prop="processType">
-            <el-select v-model="formData.processType" style="width: 100%">
-              <el-option label="加工" value="加工" />
-              <el-option label="检验" value="检验" />
-              <el-option label="装配" value="装配" />
-              <el-option label="包装" value="包装" />
+            <el-select v-model="formData.processType" filterable style="width: 100%">
+              <el-option
+                v-for="opt in getDictOptions('process_type')"
+                :key="opt.itemValue"
+                :label="opt.itemLabel"
+                :value="opt.itemValue"
+              />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="所属车间" prop="orgId">
+            <el-select v-model="formData.orgId" filterable clearable placeholder="选择车间" style="width: 100%">
+              <el-option
+                v-for="ws in orgWorkshops"
+                :key="ws.id"
+                :label="`[${ws.code}] ${ws.name}`"
+                :value="ws.id"
+              />
             </el-select>
           </el-form-item>
           <el-form-item label="所属部门" prop="department">
@@ -576,7 +667,14 @@ onMounted(() => {
             <el-input-number v-model="formData.quantity" :min="0.01" :step="0.1" style="width: 100%" />
           </el-form-item>
           <el-form-item label="单位" prop="unit">
-            <el-input v-model="formData.unit" />
+            <el-select v-model="formData.unit" filterable clearable style="width: 100%">
+              <el-option
+                v-for="opt in getDictOptions('material_unit')"
+                :key="opt.itemValue"
+                :label="opt.itemLabel"
+                :value="opt.itemValue"
+              />
+            </el-select>
           </el-form-item>
           <el-form-item label="层级" prop="level">
             <el-input-number v-model="formData.level" :min="0" style="width: 100%" />
@@ -653,19 +751,23 @@ onMounted(() => {
             <el-input v-model="formData.name" />
           </el-form-item>
           <el-form-item label="不良类别" prop="defectType">
-            <el-select v-model="formData.defectType" style="width: 100%">
-              <el-option label="外观" value="外观" />
-              <el-option label="尺寸" value="尺寸" />
-              <el-option label="功能" value="功能" />
-              <el-option label="材料" value="材料" />
-              <el-option label="其他" value="其他" />
+            <el-select v-model="formData.defectType" filterable style="width: 100%">
+              <el-option
+                v-for="opt in getDictOptions('defect_category')"
+                :key="opt.itemValue"
+                :label="opt.itemLabel"
+                :value="opt.itemValue"
+              />
             </el-select>
           </el-form-item>
           <el-form-item label="严重等级" prop="severity">
             <el-select v-model="formData.severity" style="width: 100%">
-              <el-option label="CR (严重)" value="CR" />
-              <el-option label="MA (主要)" value="MA" />
-              <el-option label="MI (次要)" value="MI" />
+              <el-option
+                v-for="opt in getDictOptions('severity')"
+                :key="opt.itemValue"
+                :label="opt.itemLabel"
+                :value="opt.itemValue"
+              />
             </el-select>
           </el-form-item>
           <el-form-item label="可返工" prop="isReworkable" class="full-width">
@@ -690,18 +792,45 @@ onMounted(() => {
             <el-input v-model="formData.model" />
           </el-form-item>
           <el-form-item label="设备类型" prop="equipmentType">
-            <el-select v-model="formData.equipmentType" style="width: 100%">
-              <el-option label="CNC" value="CNC" />
-              <el-option label="PLC" value="PLC" />
-              <el-option label="检测设备" value="检测设备" />
-              <el-option label="其他" value="其他" />
+            <el-select v-model="formData.equipmentType" filterable style="width: 100%">
+              <el-option
+                v-for="opt in getDictOptions('equipment_type')"
+                :key="opt.itemValue"
+                :label="opt.itemLabel"
+                :value="opt.itemValue"
+              />
             </el-select>
           </el-form-item>
-          <el-form-item label="产线" prop="productionLine">
-            <el-input v-model="formData.productionLine" />
+          <el-form-item label="产线" prop="lineId">
+            <el-select v-model="formData.lineId" filterable clearable placeholder="选择产线" style="width: 100%">
+              <el-option
+                v-for="line in orgLines"
+                :key="line.id"
+                :label="`[${line.code}] ${line.name}`"
+                :value="line.id"
+              />
+            </el-select>
           </el-form-item>
-          <el-form-item label="车间" prop="workshop">
-            <el-input v-model="formData.workshop" />
+          <el-form-item label="车间" prop="workshopId">
+            <el-select v-model="formData.workshopId" filterable clearable placeholder="选择车间" style="width: 100%"
+              @change="(val: number) => { formData.lineId = undefined; orgLines.filter(l => l.id === val) }">
+              <el-option
+                v-for="ws in orgWorkshops"
+                :key="ws.id"
+                :label="`[${ws.code}] ${ws.name}`"
+                :value="ws.id"
+              />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="所属组织" prop="orgId">
+            <el-select v-model="formData.orgId" filterable clearable placeholder="选择组织" style="width: 100%">
+              <el-option
+                v-for="org in orgOptions"
+                :key="org.id"
+                :label="`${'  '.repeat(org.padding / 20)}[${org.levelLabel}] ${org.name}`"
+                :value="org.id"
+              />
+            </el-select>
           </el-form-item>
           <el-form-item label="MQTT连接" prop="hasMqttConnection" class="full-width">
             <el-switch v-model="formData.hasMqttConnection" />
@@ -725,12 +854,13 @@ onMounted(() => {
             <el-input v-model="formData.model" />
           </el-form-item>
           <el-form-item label="刀具类型" prop="toolType">
-            <el-select v-model="formData.toolType" style="width: 100%">
-              <el-option label="车刀" value="车刀" />
-              <el-option label="铣刀" value="铣刀" />
-              <el-option label="钻头" value="钻头" />
-              <el-option label="磨具" value="磨具" />
-              <el-option label="其他" value="其他" />
+            <el-select v-model="formData.toolType" filterable style="width: 100%">
+              <el-option
+                v-for="opt in getDictOptions('tool_type')"
+                :key="opt.itemValue"
+                :label="opt.itemLabel"
+                :value="opt.itemValue"
+              />
             </el-select>
           </el-form-item>
           <el-form-item label="设计寿命" prop="designLife">
@@ -781,7 +911,14 @@ onMounted(() => {
             </el-select>
           </el-form-item>
           <el-form-item label="供应类别" prop="supplyCategory">
-            <el-input v-model="formData.supplyCategory" />
+            <el-select v-model="formData.supplyCategory" filterable clearable style="width: 100%">
+              <el-option
+                v-for="opt in getDictOptions('supply_category')"
+                :key="opt.itemValue"
+                :label="opt.itemLabel"
+                :value="opt.itemValue"
+              />
+            </el-select>
           </el-form-item>
           <el-form-item label="评分" prop="score" v-if="isEdit">
             <el-input-number v-model="formData.score" :min="0" :max="100" style="width: 100%" />

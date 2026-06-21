@@ -191,6 +191,90 @@ CREATE TABLE customers (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================================================
+-- M02.1 – Inspection Items Master Data (检验项目主数据)
+-- 贯通S3/S4/S5/S6的核心基础
+-- ============================================================================
+
+-- 检验项目主数据（品质部统一管理）
+CREATE TABLE inspection_items (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    item_code VARCHAR(50) UNIQUE NOT NULL COMMENT '检验项目编码',
+    item_name VARCHAR(200) NOT NULL COMMENT '检验项目名称',
+    description VARCHAR(500) COMMENT '描述',
+    data_type VARCHAR(20) NOT NULL DEFAULT 'numeric' COMMENT '数据类型: numeric/visual/attribute',
+    unit VARCHAR(50) COMMENT '单位',
+    -- 规格上下限
+    usl DECIMAL(15,6) COMMENT '规格上限 USL',
+    lsl DECIMAL(15,6) COMMENT '规格下限 LSL',
+    target_value DECIMAL(15,6) COMMENT '目标值',
+    -- 管理上下限（SPC控制图用）
+    ucl DECIMAL(15,6) COMMENT '管理上限 UCL',
+    lcl DECIMAL(15,6) COMMENT '管理下限 LCL',
+    -- 数采关联
+    data_collection_param_code VARCHAR(50) COMMENT '数采参数编码(关联dynamic_params.code)',
+    -- SPC控制图配置
+    chart_type VARCHAR(20) COMMENT '控制图类型: none/Xbar_R/Xbar_S/I_MR/P/U/C',
+    subgroup_size INT COMMENT '默认子组大小(SPC用)',
+    inspection_method VARCHAR(200) COMMENT '检验方法/工具',
+    sample_size INT COMMENT '默认抽样数量',
+    is_active BOOLEAN DEFAULT TRUE,
+    created_by BIGINT NOT NULL DEFAULT 1,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_inspection_items_active (is_active),
+    INDEX idx_inspection_items_param_code (data_collection_param_code)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 检验计划（桥接检验项目与业务模块）
+CREATE TABLE inspection_plans (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    plan_code VARCHAR(50) UNIQUE NOT NULL COMMENT '计划编码',
+    plan_name VARCHAR(200) NOT NULL COMMENT '计划名称',
+    inspection_type VARCHAR(10) NOT NULL COMMENT '检验类型: IQC/IPQC/FQC/OQC',
+    description VARCHAR(500) COMMENT '描述',
+    -- 业务维度（用于匹配业务上下文，均为可空）
+    product_id BIGINT COMMENT '产品',
+    material_id BIGINT COMMENT '材料(关联products表)',
+    supplier_id BIGINT COMMENT '供应商',
+    customer_id BIGINT COMMENT '客户',
+    process_id BIGINT COMMENT '工艺/工序',
+    equipment_id BIGINT COMMENT '设备',
+    is_active BOOLEAN DEFAULT TRUE,
+    created_by BIGINT NOT NULL DEFAULT 1,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE SET NULL,
+    FOREIGN KEY (material_id) REFERENCES products(id) ON DELETE SET NULL,
+    FOREIGN KEY (supplier_id) REFERENCES suppliers(id) ON DELETE SET NULL,
+    FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE SET NULL,
+    FOREIGN KEY (process_id) REFERENCES processes(id) ON DELETE SET NULL,
+    FOREIGN KEY (equipment_id) REFERENCES equipments(id) ON DELETE SET NULL,
+    INDEX idx_plans_type (inspection_type),
+    INDEX idx_plans_product (product_id),
+    INDEX idx_plans_supplier (supplier_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 检验计划明细
+CREATE TABLE inspection_plan_items (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    plan_id BIGINT NOT NULL COMMENT '关联计划',
+    inspection_item_id BIGINT NOT NULL COMMENT '关联检验项目',
+    sort_order INT DEFAULT 0 COMMENT '排序号',
+    -- 可覆盖主数据的规格
+    usl DECIMAL(15,6) COMMENT '规格上限(覆盖)',
+    lsl DECIMAL(15,6) COMMENT '规格下限(覆盖)',
+    target_value DECIMAL(15,6) COMMENT '目标值(覆盖)',
+    ucl DECIMAL(15,6) COMMENT '管理上限(覆盖)',
+    lcl DECIMAL(15,6) COMMENT '管理下限(覆盖)',
+    sample_size INT COMMENT '抽样数量(覆盖)',
+    is_required BOOLEAN DEFAULT TRUE COMMENT '是否必检',
+    FOREIGN KEY (plan_id) REFERENCES inspection_plans(id) ON DELETE CASCADE,
+    FOREIGN KEY (inspection_item_id) REFERENCES inspection_items(id) ON DELETE CASCADE,
+    INDEX idx_plan_items_plan (plan_id),
+    INDEX idx_plan_items_item (inspection_item_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ============================================================================
 -- M02.5 – Dynamic Parameters (行业解耦核心)
 -- ============================================================================
 
@@ -296,13 +380,19 @@ CREATE TABLE iqc_inspection_items (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     inspection_id BIGINT,
     param_id BIGINT COMMENT '关联dynamic_params.id',
+    inspection_item_id BIGINT COMMENT '关联检验项目主数据',
+    item_name VARCHAR(200) COMMENT '检验项目名称（冗余）',
     measured_value DECIMAL(12,4),
+    usl DECIMAL(12,4) COMMENT '规格上限',
+    lsl DECIMAL(12,4) COMMENT '规格下限',
     result ENUM('pass','fail'),
     defect_code_id BIGINT,
     remark TEXT,
     FOREIGN KEY (inspection_id) REFERENCES iqc_inspections(id),
     FOREIGN KEY (param_id) REFERENCES dynamic_params(id),
-    FOREIGN KEY (defect_code_id) REFERENCES defect_codes(id)
+    FOREIGN KEY (inspection_item_id) REFERENCES inspection_items(id) ON DELETE SET NULL,
+    FOREIGN KEY (defect_code_id) REFERENCES defect_codes(id),
+    INDEX idx_iqc_items_inspection_item (inspection_item_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE iqc_anomalies (
@@ -346,9 +436,28 @@ CREATE TABLE ipqc_first_pieces (
     inspector VARCHAR(100),
     result ENUM('pending','pass','fail') DEFAULT 'pending',
     checked_at DATETIME,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (product_id) REFERENCES products(id),
     FOREIGN KEY (process_id) REFERENCES processes(id),
     FOREIGN KEY (equipment_id) REFERENCES equipments(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE ipqc_first_piece_items (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    first_piece_id BIGINT NOT NULL,
+    inspection_item_id BIGINT COMMENT '关联检验项目主数据',
+    item_name VARCHAR(200) NOT NULL COMMENT '检验项目名称',
+    item_code VARCHAR(50) COMMENT '检验项目编码',
+    data_type VARCHAR(20) NOT NULL DEFAULT 'numeric',
+    usl DECIMAL(12,4) COMMENT '规格上限',
+    lsl DECIMAL(12,4) COMMENT '规格下限',
+    actual_value DECIMAL(12,4) COMMENT '实测值',
+    result ENUM('pass','fail','pending') DEFAULT 'pending',
+    image_urls TEXT COMMENT '图片URLs (JSON)',
+    remarks TEXT COMMENT '备注',
+    FOREIGN KEY (first_piece_id) REFERENCES ipqc_first_pieces(id) ON DELETE CASCADE,
+    FOREIGN KEY (inspection_item_id) REFERENCES inspection_items(id) ON DELETE SET NULL,
+    INDEX idx_fp_items_inspection_item (inspection_item_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE ipqc_patrol_plans (
@@ -388,6 +497,24 @@ CREATE TABLE ipqc_closure_status (
     FOREIGN KEY (rule_id) REFERENCES closure_rules(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- IPQC 巡检明细项
+CREATE TABLE ipqc_patrol_items (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    patrol_id BIGINT NOT NULL COMMENT '关联巡检记录',
+    inspection_item_id BIGINT COMMENT '关联检验项目主数据',
+    item_name VARCHAR(200) NOT NULL COMMENT '检验项目名称',
+    item_code VARCHAR(50) COMMENT '检验项目编码',
+    data_type VARCHAR(20) NOT NULL DEFAULT 'numeric' COMMENT '数据类型',
+    usl DECIMAL(12,4) COMMENT '规格上限',
+    lsl DECIMAL(12,4) COMMENT '规格下限',
+    actual_value DECIMAL(12,4) COMMENT '实测值',
+    result ENUM('pass','fail','pending') DEFAULT 'pending' COMMENT '结果',
+    image_urls TEXT COMMENT '图片URLs (JSON)',
+    FOREIGN KEY (patrol_id) REFERENCES ipqc_patrols(id) ON DELETE CASCADE,
+    FOREIGN KEY (inspection_item_id) REFERENCES inspection_items(id) ON DELETE SET NULL,
+    INDEX idx_patrol_items_inspection_item (inspection_item_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- ============================================================================
 -- M05 – FQC (Final Quality Control) & OQC (Outgoing Quality Control)
 -- ============================================================================
@@ -402,6 +529,7 @@ CREATE TABLE fqc_inspections (
     inspection_type ENUM('full','sampling'),
     result ENUM('pending','pass','fail') DEFAULT 'pending',
     inspector VARCHAR(100),
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (product_id) REFERENCES products(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -409,10 +537,19 @@ CREATE TABLE fqc_inspection_items (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     inspection_id BIGINT,
     param_id BIGINT,
+    inspection_item_id BIGINT COMMENT '关联检验项目主数据',
+    item_name VARCHAR(200) COMMENT '检验项目名称',
+    item_code VARCHAR(50) COMMENT '检验项目编码',
+    data_type VARCHAR(20) DEFAULT 'numeric' COMMENT '数据类型',
     measured_value DECIMAL(12,4),
-    result ENUM('pass','fail'),
+    usl DECIMAL(12,4) COMMENT '规格上限',
+    lsl DECIMAL(12,4) COMMENT '规格下限',
+    result ENUM('pass','fail') DEFAULT 'pending',
+    image_urls TEXT COMMENT '图片URLs (JSON)',
     FOREIGN KEY (inspection_id) REFERENCES fqc_inspections(id),
-    FOREIGN KEY (param_id) REFERENCES dynamic_params(id)
+    FOREIGN KEY (param_id) REFERENCES dynamic_params(id),
+    FOREIGN KEY (inspection_item_id) REFERENCES inspection_items(id) ON DELETE SET NULL,
+    INDEX idx_fqc_items_inspection_item (inspection_item_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE oqc_releases (
@@ -435,6 +572,124 @@ CREATE TABLE batches (
     expiry_date DATE,
     status ENUM('pending','released','blocked','scrapped'),
     FOREIGN KEY (product_id) REFERENCES products(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ============================================================================
+-- M06 – SPC (Statistical Process Control)
+-- ============================================================================
+
+CREATE TABLE spc_control_charts (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(200) NOT NULL,
+    process_id BIGINT NOT NULL,
+    parameter_code VARCHAR(50) NOT NULL,
+    chart_type ENUM('Xbar_R','Xbar_S','I_MR') NOT NULL,
+    subgroup_size INT NOT NULL DEFAULT 5,
+    usl DECIMAL(15,6),
+    lsl DECIMAL(15,6),
+    target_value DECIMAL(15,6),
+    cl DECIMAL(15,6) COMMENT 'Center Line',
+    ucl DECIMAL(15,6) COMMENT 'Upper Control Limit',
+    lcl DECIMAL(15,6) COMMENT 'Lower Control Limit',
+    created_at DATETIME NOT NULL DEFAULT NOW(),
+    updated_at DATETIME NOT NULL DEFAULT NOW(),
+    created_by BIGINT NOT NULL,
+    INDEX idx_spc_charts_name (name),
+    INDEX idx_spc_charts_param (parameter_code),
+    FOREIGN KEY (process_id) REFERENCES processes(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE spc_data_points (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    chart_id BIGINT NOT NULL,
+    subgroup_index INT NOT NULL COMMENT '子组编号',
+    individual_values JSON NOT NULL COMMENT '子组内原始值数组',
+    subgroup_mean DECIMAL(15,6) COMMENT 'X̄',
+    subgroup_range DECIMAL(15,6) COMMENT 'R (或 S)',
+    measured_at DATETIME NOT NULL,
+    created_at DATETIME NOT NULL DEFAULT NOW(),
+    INDEX idx_spc_dp_chart_subgroup (chart_id, subgroup_index),
+    FOREIGN KEY (chart_id) REFERENCES spc_control_charts(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE spc_analysis_results (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    chart_id BIGINT NOT NULL,
+    analysis_type ENUM('cpk','ppk','capability') NOT NULL,
+    cp DECIMAL(10,4),
+    cpk DECIMAL(10,4),
+    pp DECIMAL(10,4),
+    ppk DECIMAL(10,4),
+    sigma_within DECIMAL(15,6),
+    sigma_overall DECIMAL(15,6),
+    estimated_ppm DECIMAL(15,2) COMMENT 'Estimated DPMO',
+    data_points_used INT COMMENT '参与分析的数据点数量',
+    analysis_period_start DATE,
+    analysis_period_end DATE,
+    created_at DATETIME NOT NULL DEFAULT NOW(),
+    FOREIGN KEY (chart_id) REFERENCES spc_control_charts(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE spc_alert_rules (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    chart_id BIGINT NOT NULL,
+    rule_number INT NOT NULL COMMENT '1-8',
+    rule_name VARCHAR(200) NOT NULL,
+    rule_description TEXT,
+    enabled TINYINT(1) DEFAULT 1,
+    trigger_threshold INT DEFAULT 1 COMMENT '触发阈值(如连续N点)',
+    sigma_threshold DECIMAL(5,2) DEFAULT 2.0 COMMENT 'σ阈值',
+    created_at DATETIME NOT NULL DEFAULT NOW(),
+    updated_at DATETIME NOT NULL DEFAULT NOW(),
+    FOREIGN KEY (chart_id) REFERENCES spc_control_charts(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE spc_alert_triggers (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    chart_id BIGINT NOT NULL,
+    rule_id BIGINT NOT NULL,
+    rule_number INT NOT NULL,
+    triggered_at DATETIME NOT NULL DEFAULT NOW(),
+    violated_point_index INT NOT NULL COMMENT '触发点子组索引',
+    detail JSON COMMENT '触发详情',
+    resolved TINYINT(1) DEFAULT 0,
+    resolved_at DATETIME,
+    INDEX idx_spc_triggers_chart (chart_id, triggered_at),
+    FOREIGN KEY (chart_id) REFERENCES spc_control_charts(id),
+    FOREIGN KEY (rule_id) REFERENCES spc_alert_rules(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE spc_anova_results (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    chart_id BIGINT NOT NULL,
+    source ENUM('operator','machine','material','method','environment') NOT NULL,
+    sum_of_squares DECIMAL(20,4),
+    degrees_freedom INT,
+    mean_square DECIMAL(20,4),
+    f_ratio DECIMAL(10,4),
+    p_value DECIMAL(10,6),
+    significant TINYINT(1) DEFAULT 0,
+    analysis_date DATE NOT NULL,
+    created_at DATETIME NOT NULL DEFAULT NOW(),
+    FOREIGN KEY (chart_id) REFERENCES spc_control_charts(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- SPC 数据源配置（贯通S3/S4/S5业务数据到SPC的关键桥梁）
+-- 定义SPC控制图从哪个业务模块、哪个检验项目取数
+CREATE TABLE spc_data_sources (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    chart_id BIGINT NOT NULL COMMENT '关联控制图',
+    source_type VARCHAR(10) NOT NULL COMMENT '数据源类型: IQC/IPQC/FQC',
+    inspection_item_id BIGINT COMMENT '关联检验项目（null表示全部）',
+    product_id BIGINT COMMENT '过滤：产品',
+    process_id BIGINT COMMENT '过滤：工序',
+    supplier_id BIGINT COMMENT '过滤：供应商',
+    customer_id BIGINT COMMENT '过滤：客户',
+    equipment_id BIGINT COMMENT '过滤：设备',
+    created_at DATETIME NOT NULL DEFAULT NOW(),
+    FOREIGN KEY (chart_id) REFERENCES spc_control_charts(id) ON DELETE CASCADE,
+    FOREIGN KEY (inspection_item_id) REFERENCES inspection_items(id) ON DELETE SET NULL,
+    INDEX idx_spc_ds_chart (chart_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================================================
@@ -725,6 +980,14 @@ CREATE INDEX idx_ipqc_patrols_time ON ipqc_patrols(patrol_time);
 CREATE INDEX idx_ipqc_patrols_result ON ipqc_patrols(result);
 CREATE INDEX idx_ipqc_plans_equipment ON ipqc_patrol_plans(equipment_id);
 CREATE INDEX idx_ipqc_closure_wo ON ipqc_closure_status(work_order);
+
+-- SPC
+CREATE INDEX idx_spc_charts_name ON spc_control_charts(name);
+CREATE INDEX idx_spc_charts_param ON spc_control_charts(parameter_code);
+CREATE INDEX idx_spc_dp_chart_subgroup ON spc_data_points(chart_id, subgroup_index);
+CREATE INDEX idx_spc_triggers_rule ON spc_alert_triggers(rule_id);
+CREATE INDEX idx_spc_triggers_chart_time ON spc_alert_triggers(chart_id, triggered_at);
+CREATE INDEX idx_spc_anova_chart ON spc_anova_results(chart_id);
 
 -- FQC/OQC
 CREATE INDEX idx_fqc_inspections_product ON fqc_inspections(product_id);

@@ -22,6 +22,8 @@ public class EquipmentController : ControllerBase
         var query = _db.Equipment.AsQueryable();
         if (!string.IsNullOrWhiteSpace(req.Keyword))
             query = query.Where(e => e.Code.Contains(req.Keyword) || e.Name.Contains(req.Keyword));
+        if (req.OrgId.HasValue)
+            query = query.Where(e => e.OrgId == req.OrgId.Value);
 
         var total = await query.CountAsync();
         var items = await query
@@ -33,8 +35,29 @@ public class EquipmentController : ControllerBase
                 ProductionLine = e.ProductionLine, Workshop = e.Workshop,
                 Status = e.Status, EquipmentType = e.EquipmentType,
                 HasMqttConnection = e.HasMqttConnection, IsActive = e.IsActive,
+                OrgId = e.OrgId, WorkshopId = e.WorkshopId, LineId = e.LineId,
             })
             .ToListAsync();
+
+        // 丰富组织名称
+        var orgIds = items.Where(i => i.WorkshopId.HasValue || i.LineId.HasValue)
+            .SelectMany(i => new[] { i.WorkshopId, i.LineId })
+            .Where(id => id.HasValue)
+            .Select(id => id!.Value)
+            .Distinct()
+            .ToList();
+        var orgMap = orgIds.Any()
+            ? await _db.Organizations.Where(o => orgIds.Contains(o.Id)).ToDictionaryAsync(o => o.Id, o => o.Name)
+            : new Dictionary<int, string>();
+
+        foreach (var item in items)
+        {
+            if (item.WorkshopId.HasValue && orgMap.TryGetValue(item.WorkshopId.Value, out var wn))
+                item.WorkshopName = wn;
+            if (item.LineId.HasValue && orgMap.TryGetValue(item.LineId.Value, out var ln))
+                item.LineName = ln;
+        }
+
         return Ok(new PagedResult<EquipmentListDto> { Items = items, Total = total, Page = req.Page, PageSize = req.PageSize });
     }
 
@@ -58,6 +81,7 @@ public class EquipmentController : ControllerBase
             ProductionLine = dto.ProductionLine, Workshop = dto.Workshop,
             EquipmentType = dto.EquipmentType, HasMqttConnection = dto.HasMqttConnection,
             MqttTopicPrefix = dto.MqttTopicPrefix,
+            OrgId = dto.OrgId, WorkshopId = dto.WorkshopId, LineId = dto.LineId,
         };
         _db.Equipment.Add(entity);
         await _db.SaveChangesAsync();
@@ -77,6 +101,7 @@ public class EquipmentController : ControllerBase
         entity.Status = dto.Status; entity.EquipmentType = dto.EquipmentType;
         entity.HasMqttConnection = dto.HasMqttConnection; entity.MqttTopicPrefix = dto.MqttTopicPrefix;
         entity.IsActive = dto.IsActive; entity.UpdatedAt = DateTime.UtcNow;
+        entity.OrgId = dto.OrgId; entity.WorkshopId = dto.WorkshopId; entity.LineId = dto.LineId;
         await _db.SaveChangesAsync();
         return Ok(entity);
     }

@@ -35,6 +35,9 @@ public class Product
     /// <summary>默认AQL值</summary>
     public double? DefaultAql { get; set; }
 
+    /// <summary>所属组织ID</summary>
+    public int? OrgId { get; set; }
+
     public bool IsActive { get; set; } = true;
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

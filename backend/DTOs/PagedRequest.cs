@@ -11,6 +11,8 @@ public class PagedRequest
     public string? Status { get; set; }
     public string? SortBy { get; set; }
     public string? SortOrder { get; set; } = "asc";
+    /// <summary>所属组织ID（可选，用于数据权限过滤）</summary>
+    public int? OrgId { get; set; }
 }
 
 /// <summary>

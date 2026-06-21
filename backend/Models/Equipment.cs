@@ -22,13 +22,22 @@ public class Equipment
     [MaxLength(200)]
     public string? Model { get; set; }
 
-    /// <summary>所在产线</summary>
+    /// <summary>所在产线（显示冗余）</summary>
     [MaxLength(100)]
     public string? ProductionLine { get; set; }
 
-    /// <summary>所在车间</summary>
+    /// <summary>所在车间（显示冗余）</summary>
     [MaxLength(100)]
     public string? Workshop { get; set; }
+
+    /// <summary>所属组织ID</summary>
+    public int? OrgId { get; set; }
+
+    /// <summary>关联车间（组织ID，level=workshop）</summary>
+    public int? WorkshopId { get; set; }
+
+    /// <summary>关联产线（组织ID，level=line）</summary>
+    public int? LineId { get; set; }
 
     /// <summary>设备状态：running/idle/fault/maintenance</summary>
     [MaxLength(20)]
