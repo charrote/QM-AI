@@ -803,26 +803,80 @@ onMounted(async () => {
               <!-- Capability Cards -->
               <div v-if="analysisReport?.capability" class="cpk-cards">
                 <el-card class="cpk-card" :class="cpkGradeType(analysisReport.capability.grade)">
-                  <div class="cpk-label">Cpk</div>
+                  <div class="cpk-label">
+                    Cpk
+                    <el-tooltip placement="top" popper-class="cpk-tooltip">
+                      <template #content>
+                        <div class="tip-title">Cpk — 过程能力指数（考虑中心偏移）</div>
+                        <div class="tip-desc">衡量过程满足规格要求的实际能力，考虑了过程均值与目标值的偏移。</div>
+                        <div class="tip-formula">Cpk = min( (USL − μ) / 3σ, (μ − LSL) / 3σ )</div>
+                        <div class="tip-criteria">判断标准：Cpk ≥ 1.67 优秀 | ≥ 1.33 良好 | ≥ 1.0 临界 | < 1.0 不足</div>
+                      </template>
+                      <el-icon class="cpk-help-icon"><HelpFilled /></el-icon>
+                    </el-tooltip>
+                  </div>
                   <div class="cpk-value">{{ formatNumber(analysisReport.capability.cpk, 4) }}</div>
                   <el-tag :type="cpkGradeType(analysisReport.capability.grade)" size="small">
                     {{ analysisReport.capability.grade }}
                   </el-tag>
                 </el-card>
                 <el-card class="cpk-card">
-                  <div class="cpk-label">Cp</div>
+                  <div class="cpk-label">
+                    Cp
+                    <el-tooltip placement="top" popper-class="cpk-tooltip">
+                      <template #content>
+                        <div class="tip-title">Cp — 过程能力指数（无偏移）</div>
+                        <div class="tip-desc">衡量过程在规格范围内的潜在能力，仅考虑过程的固有变异，不考虑均值偏移。</div>
+                        <div class="tip-formula">Cp = (USL − LSL) / (6 × σ<sub>组内</sub>)</div>
+                        <div class="tip-criteria">判断标准：Cp ≥ 1.67 优秀 | ≥ 1.33 良好 | ≥ 1.0 临界 | < 1.0 不足</div>
+                      </template>
+                      <el-icon class="cpk-help-icon"><HelpFilled /></el-icon>
+                    </el-tooltip>
+                  </div>
                   <div class="cpk-value">{{ formatNumber(analysisReport.capability.cp, 4) }}</div>
                 </el-card>
                 <el-card class="cpk-card">
-                  <div class="cpk-label">Ppk</div>
+                  <div class="cpk-label">
+                    Ppk
+                    <el-tooltip placement="top" popper-class="cpk-tooltip">
+                      <template #content>
+                        <div class="tip-title">Ppk — 过程性能指数</div>
+                        <div class="tip-desc">衡量过程长期实际性能，使用总标准差（包含组间与组内全部变异），反映过程长期稳定性。</div>
+                        <div class="tip-formula">Ppk = min( (USL − μ) / 3σ<sub>总</sub>, (μ − LSL) / 3σ<sub>总</sub> )</div>
+                        <div class="tip-criteria">判断标准：Ppk ≥ 1.67 优秀 | ≥ 1.33 良好 | ≥ 1.0 临界 | < 1.0 不足</div>
+                      </template>
+                      <el-icon class="cpk-help-icon"><HelpFilled /></el-icon>
+                    </el-tooltip>
+                  </div>
                   <div class="cpk-value">{{ formatNumber(analysisReport.capability.ppk, 4) }}</div>
                 </el-card>
                 <el-card class="cpk-card">
-                  <div class="cpk-label">σ (组内)</div>
+                  <div class="cpk-label">
+                    σ (组内)
+                    <el-tooltip placement="top" popper-class="cpk-tooltip">
+                      <template #content>
+                        <div class="tip-title">σ<sub>组内</sub> — 组内标准差</div>
+                        <div class="tip-desc">反映过程短期变异（仅组内波动），是计算 Cp/Cpk 的基础。通过子组极差或标准差估计。</div>
+                        <div class="tip-formula">σ<sub>组内</sub> = R̄ / d₂ （极差法）<br>σ<sub>组内</sub> = S̄ / c₄ （标准差法）</div>
+                      </template>
+                      <el-icon class="cpk-help-icon"><HelpFilled /></el-icon>
+                    </el-tooltip>
+                  </div>
                   <div class="cpk-value">{{ formatNumber(analysisReport.capability.sigmaWithin, 6) }}</div>
                 </el-card>
                 <el-card class="cpk-card">
-                  <div class="cpk-label">DPMO</div>
+                  <div class="cpk-label">
+                    DPMO
+                    <el-tooltip placement="top" popper-class="cpk-tooltip">
+                      <template #content>
+                        <div class="tip-title">DPMO — 百万机会缺陷数</div>
+                        <div class="tip-desc">Defects Per Million Opportunities，每百万个产品/机会中的缺陷数。基于过程能力推算的长期预期值。</div>
+                        <div class="tip-formula">DPMO = (1 − Φ(3 × Cpk)) × 1,000,000</div>
+                        <div class="tip-criteria">σ 水平越高，DPMO 越低：<br>6σ ≈ 3.4 ppm | 5σ ≈ 233 ppm | 4σ ≈ 6,210 ppm | 3σ ≈ 66,807 ppm</div>
+                      </template>
+                      <el-icon class="cpk-help-icon"><HelpFilled /></el-icon>
+                    </el-tooltip>
+                  </div>
                   <div class="cpk-value">{{ formatNumber(analysisReport.capability.estimatedPpm, 0) }}</div>
                   <div class="cpk-unit">ppm</div>
                 </el-card>
@@ -1382,6 +1436,54 @@ onMounted(async () => {
   font-size: 11px;
   color: var(--el-text-color-secondary, #909399);
   margin-bottom: 4px;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.cpk-help-icon {
+  font-size: 12px;
+  color: var(--el-color-info, #909399);
+  cursor: help;
+  transition: color 0.2s;
+}
+
+.cpk-help-icon:hover {
+  color: var(--el-color-primary, #409eff);
+}
+
+/* ── 能力指标 tooltip 样式 ── */
+:global(.cpk-tooltip) {
+  max-width: 360px;
+  line-height: 1.6;
+  font-size: 12px;
+}
+
+:global(.cpk-tooltip .tip-title) {
+  font-weight: 600;
+  font-size: 13px;
+  color: #303133;
+  margin-bottom: 4px;
+}
+
+:global(.cpk-tooltip .tip-desc) {
+  color: #606266;
+  margin-bottom: 4px;
+}
+
+:global(.cpk-tooltip .tip-formula) {
+  color: #409eff;
+  font-family: 'Courier New', monospace;
+  background: #ecf5ff;
+  padding: 2px 6px;
+  border-radius: 3px;
+  margin-bottom: 4px;
+  font-size: 12px;
+}
+
+:global(.cpk-tooltip .tip-criteria) {
+  color: #909399;
+  font-size: 11px;
 }
 
 .cpk-value {

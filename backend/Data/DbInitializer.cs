@@ -1,6 +1,11 @@
 using Microsoft.EntityFrameworkCore;
 using QM_AI.API.Models;
 using QM_AI.API.Services;
+using QM_AI.API.Models.M02_Inspection;
+using QM_AI.API.Models.M03;
+using QM_AI.API.Models.M04;
+using QM_AI.API.Models.M05;
+using QM_AI.API.Models.M06;
 
 namespace QM_AI.API.Data;
 
@@ -397,6 +402,349 @@ public static class DbInitializer
         await context.SaveChangesAsync();
         } // end if (!hasM02_5)
         #endregion
+
+        #region M02.1 检验项目主数据种子 (inspection_items)
+        if (!await context.InspectionItems.AnyAsync())
+        {
+            var now = DateTime.UtcNow;
+
+            #region InspectionItems (12 个检验项目)
+            var inspectionItems = new List<InspectionItem>
+            {
+                new() { ItemCode = "II-001", ItemName = "外径", Description = "轴类零件外径尺寸检验", DataType = "numeric", Unit = "mm", Usl = 50.05m, Lsl = 49.95m, TargetValue = 50.00m, ChartType = "Xbar_R", SubgroupSize = 5, InspectionMethod = "千分尺", SampleSize = 5, IsActive = true, CreatedBy = 1 },
+                new() { ItemCode = "II-002", ItemName = "内径", Description = "孔类零件内径尺寸检验", DataType = "numeric", Unit = "mm", Usl = 25.03m, Lsl = 24.97m, TargetValue = 25.00m, ChartType = "Xbar_R", SubgroupSize = 5, InspectionMethod = "内径千分尺", SampleSize = 5, IsActive = true, CreatedBy = 1 },
+                new() { ItemCode = "II-003", ItemName = "长度", Description = "零件长度尺寸检验", DataType = "numeric", Unit = "mm", Usl = 100.10m, Lsl = 99.90m, TargetValue = 100.00m, ChartType = "Xbar_R", SubgroupSize = 5, InspectionMethod = "游标卡尺", SampleSize = 5, IsActive = true, CreatedBy = 1 },
+                new() { ItemCode = "II-004", ItemName = "表面粗糙度 Ra", Description = "加工表面粗糙度检验", DataType = "numeric", Unit = "μm", Usl = 1.60m, Lsl = 0.00m, TargetValue = 0.80m, ChartType = "I_MR", SubgroupSize = 1, InspectionMethod = "粗糙度仪", SampleSize = 3, IsActive = true, CreatedBy = 1 },
+                new() { ItemCode = "II-005", ItemName = "硬度 HRC", Description = "热处理后硬度检验", DataType = "numeric", Unit = "HRC", Usl = 58.0m, Lsl = 52.0m, TargetValue = 55.0m, ChartType = "I_MR", SubgroupSize = 1, InspectionMethod = "硬度计", SampleSize = 2, IsActive = true, CreatedBy = 1 },
+                new() { ItemCode = "II-006", ItemName = "外观检查", Description = "产品外观质量检查（划伤、锈蚀、毛刺等）", DataType = "visual", Unit = "-", InspectionMethod = "目视检查", IsActive = true, CreatedBy = 1 },
+                new() { ItemCode = "II-007", ItemName = "螺纹精度", Description = "螺纹尺寸及精度检验", DataType = "attribute", Unit = "-", InspectionMethod = "螺纹规", IsActive = true, CreatedBy = 1 },
+                new() { ItemCode = "II-008", ItemName = "直线度", Description = "轴类零件直线度检验", DataType = "numeric", Unit = "mm", Usl = 0.05m, Lsl = 0.00m, TargetValue = 0.02m, ChartType = "I_MR", SubgroupSize = 1, InspectionMethod = "百分表", SampleSize = 1, IsActive = true, CreatedBy = 1 },
+                new() { ItemCode = "II-009", ItemName = "圆度", Description = "圆形截面圆度检验", DataType = "numeric", Unit = "mm", Usl = 0.03m, Lsl = 0.00m, TargetValue = 0.015m, ChartType = "I_MR", SubgroupSize = 1, InspectionMethod = "圆度仪", SampleSize = 1, IsActive = true, CreatedBy = 1 },
+                new() { ItemCode = "II-010", ItemName = "化学成分 C%", Description = "钢材碳含量检验", DataType = "numeric", Unit = "%", Usl = 0.45m, Lsl = 0.42m, TargetValue = 0.43m, ChartType = "I_MR", SubgroupSize = 1, InspectionMethod = "光谱分析仪", SampleSize = 1, IsActive = true, CreatedBy = 1 },
+                new() { ItemCode = "II-011", ItemName = "密封性测试", Description = "产品密封性能检验", DataType = "attribute", Unit = "-", InspectionMethod = "气密测试仪", IsActive = true, CreatedBy = 1 },
+                new() { ItemCode = "II-012", ItemName = "包装完整性", Description = "出厂包装完整性检查", DataType = "visual", Unit = "-", InspectionMethod = "目视检查", IsActive = true, CreatedBy = 1 },
+            };
+            context.InspectionItems.AddRange(inspectionItems);
+            await context.SaveChangesAsync();
+            #endregion
+
+            #region InspectionPlans (6 个检验计划)
+            var plans = new List<InspectionPlan>
+            {
+                new() { PlanCode = "IP-IQC-001", PlanName = "精密转轴A100来料检验计划", InspectionType = "IQC", Description = "宝钢45#圆钢来料检验标准", ProductId = 1, SupplierId = 1, ProcessId = 1, IsActive = true, CreatedBy = 1 },
+                new() { PlanCode = "IP-IQC-002", PlanName = "PCB主板C300来料检验计划", InspectionType = "IQC", Description = "PCB基板来料检验标准", ProductId = 3, SupplierId = 3, ProcessId = 1, IsActive = true, CreatedBy = 1 },
+                new() { PlanCode = "IP-IPQC-001", PlanName = "精车工序首件检验计划", InspectionType = "IPQC", Description = "精密转轴精车工序首件检验项目", ProductId = 1, ProcessId = 3, EquipmentId = 1, IsActive = true, CreatedBy = 1 },
+                new() { PlanCode = "IP-IPQC-002", PlanName = "热处理工序巡检计划", InspectionType = "IPQC", Description = "精密转轴热处理工序巡检项目", ProductId = 1, ProcessId = 5, EquipmentId = 4, IsActive = true, CreatedBy = 1 },
+                new() { PlanCode = "IP-FQC-001", PlanName = "精密转轴A100成品检验计划", InspectionType = "FQC", Description = "精密转轴出厂成品检验标准", ProductId = 1, CustomerId = 1, ProcessId = 8, IsActive = true, CreatedBy = 1 },
+                new() { PlanCode = "IP-FQC-002", PlanName = "壳体B200成品检验计划", InspectionType = "FQC", Description = "壳体成品出厂检验标准", ProductId = 2, CustomerId = 2, ProcessId = 8, IsActive = true, CreatedBy = 1 },
+            };
+            context.InspectionPlans.AddRange(plans);
+            await context.SaveChangesAsync();
+            #endregion
+
+            #region InspectionPlanItems (18 个计划明细项)
+            // plan[0]=IP-IQC-001: items 1(外径),2(内径),3(长度),10(化学成分)
+            // plan[1]=IP-IQC-002: items 1(外径),3(长度),6(外观)
+            // plan[2]=IP-IPQC-001: items 1(外径),3(长度),4(粗糙度),8(直线度)
+            // plan[3]=IP-IPQC-002: items 5(硬度),9(圆度)
+            // plan[4]=IP-FQC-001: items 1(外径),4(粗糙度),6(外观)
+            // plan[5]=IP-FQC-002: items 3(长度),6(外观)
+
+            var planItems = new List<InspectionPlanItem>
+            {
+                // IP-IQC-001 精密转轴A100来料检验
+                new() { PlanId = plans[0].Id, InspectionItemId = inspectionItems[0].Id, SortOrder = 1, IsRequired = true },
+                new() { PlanId = plans[0].Id, InspectionItemId = inspectionItems[1].Id, SortOrder = 2, IsRequired = true },
+                new() { PlanId = plans[0].Id, InspectionItemId = inspectionItems[2].Id, SortOrder = 3, IsRequired = true },
+                new() { PlanId = plans[0].Id, InspectionItemId = inspectionItems[9].Id, SortOrder = 4, IsRequired = true },
+                // IP-IQC-002 PCB主板C300来料检验
+                new() { PlanId = plans[1].Id, InspectionItemId = inspectionItems[0].Id, SortOrder = 1, IsRequired = true },
+                new() { PlanId = plans[1].Id, InspectionItemId = inspectionItems[2].Id, SortOrder = 2, IsRequired = true },
+                new() { PlanId = plans[1].Id, InspectionItemId = inspectionItems[5].Id, SortOrder = 3, IsRequired = true },
+                // IP-IPQC-001 精车首件检验
+                new() { PlanId = plans[2].Id, InspectionItemId = inspectionItems[0].Id, SortOrder = 1, IsRequired = true },
+                new() { PlanId = plans[2].Id, InspectionItemId = inspectionItems[2].Id, SortOrder = 2, IsRequired = true },
+                new() { PlanId = plans[2].Id, InspectionItemId = inspectionItems[3].Id, SortOrder = 3, IsRequired = true },
+                new() { PlanId = plans[2].Id, InspectionItemId = inspectionItems[7].Id, SortOrder = 4, IsRequired = true },
+                // IP-IPQC-002 热处理巡检
+                new() { PlanId = plans[3].Id, InspectionItemId = inspectionItems[4].Id, SortOrder = 1, IsRequired = true },
+                new() { PlanId = plans[3].Id, InspectionItemId = inspectionItems[8].Id, SortOrder = 2, IsRequired = true },
+                // IP-FQC-001 精密转轴成品检验
+                new() { PlanId = plans[4].Id, InspectionItemId = inspectionItems[0].Id, SortOrder = 1, IsRequired = true },
+                new() { PlanId = plans[4].Id, InspectionItemId = inspectionItems[3].Id, SortOrder = 2, IsRequired = true },
+                new() { PlanId = plans[4].Id, InspectionItemId = inspectionItems[5].Id, SortOrder = 3, IsRequired = true },
+                // IP-FQC-002 壳体成品检验
+                new() { PlanId = plans[5].Id, InspectionItemId = inspectionItems[2].Id, SortOrder = 1, IsRequired = true },
+                new() { PlanId = plans[5].Id, InspectionItemId = inspectionItems[5].Id, SortOrder = 2, IsRequired = true },
+            };
+            context.InspectionPlanItems.AddRange(planItems);
+            await context.SaveChangesAsync();
+            #endregion
+
+            #region S3: IQC 来料检验 DEMO 数据
+            // 来料登记
+            var receipts = new List<IqcReceipt>
+            {
+                new() { ReceiptNo = "REC-20260601-001", SupplierId = 1, ProductId = 1, BatchNo = "BATCH-S1-001", Quantity = 500, Unit = "pcs", ReceiptDate = new DateTime(2026, 6, 1), Inspector = "张明", Status = "completed" },
+                new() { ReceiptNo = "REC-20260601-002", SupplierId = 3, ProductId = 3, BatchNo = "BATCH-S1-002", Quantity = 1000, Unit = "pcs", ReceiptDate = new DateTime(2026, 6, 1), Inspector = "张明", Status = "completed" },
+            };
+            context.IqcReceipts.AddRange(receipts);
+            await context.SaveChangesAsync();
+
+            // 检验单
+            var iqcInspections = new List<IqcInspection>
+            {
+                new() { InspectionNo = "IQC-20260601-001", ReceiptId = receipts[0].Id, SampleSize = 50, Ac = 7, Re = 8, DefectQty = 0, SamplingLevel = "II", AqlValue = 1.0, Result = "pass", Inspector = "张明", InspectedAt = new DateTime(2026, 6, 1, 10, 30, 0) },
+                new() { InspectionNo = "IQC-20260601-002", ReceiptId = receipts[1].Id, SampleSize = 80, Ac = 10, Re = 11, DefectQty = 1, SamplingLevel = "S-3", AqlValue = 0.25, Result = "pass", Inspector = "张明", InspectedAt = new DateTime(2026, 6, 1, 14, 0, 0) },
+            };
+            context.IqcInspections.AddRange(iqcInspections);
+            await context.SaveChangesAsync();
+
+            // 检验明细项（关联检验项目主数据）
+            var iqcItems = new List<IqcInspectionItem>
+            {
+                // IQC-001（精密转轴A100来料）
+                new() { InspectionId = iqcInspections[0].Id, InspectionItemId = inspectionItems[0].Id, ItemName = "外径", MeasuredValue = 50.02m, Usl = 50.05m, Lsl = 49.95m, Result = "pass" },
+                new() { InspectionId = iqcInspections[0].Id, InspectionItemId = inspectionItems[1].Id, ItemName = "内径", MeasuredValue = 25.01m, Usl = 25.03m, Lsl = 24.97m, Result = "pass" },
+                new() { InspectionId = iqcInspections[0].Id, InspectionItemId = inspectionItems[2].Id, ItemName = "长度", MeasuredValue = 100.03m, Usl = 100.10m, Lsl = 99.90m, Result = "pass" },
+                new() { InspectionId = iqcInspections[0].Id, InspectionItemId = inspectionItems[9].Id, ItemName = "化学成分 C%", MeasuredValue = 0.43m, Usl = 0.45m, Lsl = 0.42m, Result = "pass" },
+                // IQC-002（PCB主板C300来料）
+                new() { InspectionId = iqcInspections[1].Id, InspectionItemId = inspectionItems[0].Id, ItemName = "外径", MeasuredValue = 50.01m, Usl = 50.05m, Lsl = 49.95m, Result = "pass" },
+                new() { InspectionId = iqcInspections[1].Id, InspectionItemId = inspectionItems[2].Id, ItemName = "长度", MeasuredValue = 100.02m, Usl = 100.10m, Lsl = 99.90m, Result = "pass" },
+                new() { InspectionId = iqcInspections[1].Id, InspectionItemId = inspectionItems[5].Id, ItemName = "外观检查", Result = "pass" },
+            };
+            context.IqcInspectionItems.AddRange(iqcItems);
+            await context.SaveChangesAsync();
+            #endregion
+
+            #region S4: IPQC 过程检验 DEMO 数据
+            // 首件检验
+            var firstPieces = new List<IpqcFirstPiece>
+            {
+                new() { FpNo = "FP-20260601-001", WorkOrderId = 10001, ProcessId = 3, EquipmentId = 1, OperatorId = 2, Shift = "早班", Reason = "班次切换", Conclusion = "qualified", AllowedToProduce = true, InspectorId = 3, CheckedAt = new DateTime(2026, 6, 1, 8, 15, 0) },
+            };
+            context.IpqcFirstPieces.AddRange(firstPieces);
+            await context.SaveChangesAsync();
+
+            // 首件检验明细
+            var fpItems = new List<IpqcFirstPieceItem>
+            {
+                new() { FirstPieceId = firstPieces[0].Id, InspectionItemId = inspectionItems[0].Id, ItemName = "外径", ItemCode = "II-001", Usl = 50.05m, Lsl = 49.95m, DataType = "numeric", ActualValue = 49.98m, Result = "pass" },
+                new() { FirstPieceId = firstPieces[0].Id, InspectionItemId = inspectionItems[2].Id, ItemName = "长度", ItemCode = "II-003", Usl = 100.10m, Lsl = 99.90m, DataType = "numeric", ActualValue = 100.02m, Result = "pass" },
+                new() { FirstPieceId = firstPieces[0].Id, InspectionItemId = inspectionItems[3].Id, ItemName = "表面粗糙度 Ra", ItemCode = "II-004", Usl = 1.60m, Lsl = 0.00m, DataType = "numeric", ActualValue = 0.75m, Result = "pass" },
+                new() { FirstPieceId = firstPieces[0].Id, InspectionItemId = inspectionItems[7].Id, ItemName = "直线度", ItemCode = "II-008", Usl = 0.05m, Lsl = 0.00m, DataType = "numeric", ActualValue = 0.02m, Result = "pass" },
+            };
+            context.IpqcFirstPieceItems.AddRange(fpItems);
+            await context.SaveChangesAsync();
+
+            // 巡检计划
+            var patrolPlans = new List<IpqcPatrolPlan>
+            {
+                new() { PlanNo = "PP-001", ProcessId = 5, EquipmentId = 4, PatrolIntervalMin = 60, AutoGenerate = true, Status = "active", Inspector = "李强" },
+            };
+            context.IpqcPatrolPlans.AddRange(patrolPlans);
+            await context.SaveChangesAsync();
+
+            // 巡检记录
+            var patrols = new List<IpqcPatrol>
+            {
+                new() { PatrolNo = "PT-20260601-001", PatrolPlanId = patrolPlans[0].Id, WorkOrderId = 10001, ProcessId = 5, EquipmentId = 4, InspectorId = 3, ScheduledTime = new DateTime(2026, 6, 1, 9, 0, 0), ActualTime = new DateTime(2026, 6, 1, 9, 5, 0), TotalChecked = 2, TotalPass = 2, TotalFail = 0, Conclusion = "qualified", Status = "completed" },
+            };
+            context.IpqcPatrols.AddRange(patrols);
+            await context.SaveChangesAsync();
+
+            // 巡检明细
+            var patrolItems = new List<IpqcPatrolItem>
+            {
+                new() { PatrolId = patrols[0].Id, InspectionItemId = inspectionItems[4].Id, ItemName = "硬度 HRC", ItemCode = "II-005", Usl = 58.0m, Lsl = 52.0m, DataType = "numeric", ActualValue = 55.5m, Result = "pass" },
+                new() { PatrolId = patrols[0].Id, InspectionItemId = inspectionItems[8].Id, ItemName = "圆度", ItemCode = "II-009", Usl = 0.03m, Lsl = 0.00m, DataType = "numeric", ActualValue = 0.012m, Result = "pass" },
+            };
+            context.IpqcPatrolItems.AddRange(patrolItems);
+            await context.SaveChangesAsync();
+            #endregion
+
+            #region S5: FQC/OQC 成品检验 DEMO 数据
+            // 成品批次
+            var batches = new List<ProductBatch>
+            {
+                new() { BatchCode = "LOT-20260601-001", Source = "ipqc-auto", ProductId = 1, WorkOrderId = 10001, Quantity = 200, Status = "inspected" },
+                new() { BatchCode = "LOT-20260601-002", Source = "manual", ProductId = 2, Quantity = 100, Status = "inspected" },
+            };
+            context.ProductBatches.AddRange(batches);
+            await context.SaveChangesAsync();
+
+            // 成品检验单
+            var fqcInspections = new List<FqcInspection>
+            {
+                new() { InspectionNo = "FQC-20260601-001", BatchId = batches[0].Id, WorkOrderId = 10001, InspectionType = "sampling", AqlLevel = 1.0m, SampleSize = 20, TotalChecked = 20, TotalPass = 20, TotalFail = 0, Ac = 3, Re = 4, Conclusion = "qualified", InspectorId = 3, CheckedAt = new DateTime(2026, 6, 2, 9, 0, 0) },
+                new() { InspectionNo = "FQC-20260601-002", BatchId = batches[1].Id, InspectionType = "sampling", AqlLevel = 0.65m, SampleSize = 15, TotalChecked = 15, TotalPass = 15, TotalFail = 0, Ac = 2, Re = 3, Conclusion = "qualified", InspectorId = 3, CheckedAt = new DateTime(2026, 6, 2, 10, 0, 0) },
+            };
+            context.FqcInspections.AddRange(fqcInspections);
+            await context.SaveChangesAsync();
+
+            // 成品检验明细项
+            var fqcItems = new List<FqcInspectionItem>
+            {
+                // FQC-001（精密转轴A100）
+                new() { InspectionId = fqcInspections[0].Id, InspectionItemId = inspectionItems[0].Id, ItemName = "外径", ItemCode = "II-001", Usl = 50.05m, Lsl = 49.95m, DataType = "numeric", ActualValue = 50.01m, Result = "pass" },
+                new() { InspectionId = fqcInspections[0].Id, InspectionItemId = inspectionItems[3].Id, ItemName = "表面粗糙度 Ra", ItemCode = "II-004", Usl = 1.60m, Lsl = 0.00m, DataType = "numeric", ActualValue = 0.82m, Result = "pass" },
+                new() { InspectionId = fqcInspections[0].Id, InspectionItemId = inspectionItems[5].Id, ItemName = "外观检查", ItemCode = "II-006", DataType = "visual", Result = "pass" },
+                // FQC-002（壳体B200）
+                new() { InspectionId = fqcInspections[1].Id, InspectionItemId = inspectionItems[2].Id, ItemName = "长度", ItemCode = "II-003", Usl = 100.10m, Lsl = 99.90m, DataType = "numeric", ActualValue = 100.05m, Result = "pass" },
+                new() { InspectionId = fqcInspections[1].Id, InspectionItemId = inspectionItems[5].Id, ItemName = "外观检查", ItemCode = "II-006", DataType = "visual", Result = "pass" },
+            };
+            context.FqcInspectionItems.AddRange(fqcItems);
+            await context.SaveChangesAsync();
+            #endregion
+
+            #region S6: SPC 统计分析 DEMO 数据
+            // 控制图1: 精密转轴外径 Xbar-R 控制图
+            var chart1 = new SpcControlChart
+            {
+                Name = "精密转轴外径 Xbar-R 控制图",
+                ProcessId = 3,
+                ParameterCode = "od_tolerance",
+                ChartType = "Xbar_R",
+                SubgroupSize = 5,
+                Usl = 50.05m,
+                Lsl = 49.95m,
+                TargetValue = 50.00m,
+                Cl = 50.00m,
+                Ucl = 50.035m,
+                Lcl = 49.965m,
+                CreatedBy = 1
+            };
+            // 控制图2: 精密转轴粗糙度 I-MR 控制图
+            var chart2 = new SpcControlChart
+            {
+                Name = "精密转轴粗糙度 I-MR 控制图",
+                ProcessId = 8,
+                ParameterCode = "surface_roughness",
+                ChartType = "I_MR",
+                SubgroupSize = 1,
+                Usl = 1.60m,
+                Lsl = 0.00m,
+                TargetValue = 0.80m,
+                Cl = 0.80m,
+                Ucl = 1.42m,
+                Lcl = 0.18m,
+                CreatedBy = 1
+            };
+            context.SpcControlCharts.AddRange(chart1, chart2);
+            await context.SaveChangesAsync();
+
+            // 数据点(外径 Xbar-R: 10 subgroups)
+            var chart1Data = new (decimal[] values, decimal mean, decimal range)[]
+            {
+                (new[] { 49.98m, 50.01m, 50.02m, 50.00m, 49.99m }, 50.00m, 0.04m),
+                (new[] { 50.02m, 50.00m, 49.97m, 50.01m, 50.00m }, 50.00m, 0.05m),
+                (new[] { 49.99m, 50.03m, 50.01m, 49.98m, 50.00m }, 50.002m, 0.05m),
+                (new[] { 50.01m, 49.99m, 50.00m, 50.02m, 49.98m }, 50.00m, 0.04m),
+                (new[] { 49.97m, 50.00m, 50.01m, 50.02m, 49.99m }, 49.998m, 0.05m),
+                (new[] { 50.00m, 49.98m, 50.01m, 50.00m, 50.02m }, 50.002m, 0.04m),
+                (new[] { 49.99m, 50.02m, 49.98m, 50.00m, 50.01m }, 50.00m, 0.04m),
+                (new[] { 50.03m, 50.01m, 49.99m, 50.00m, 49.97m }, 50.00m, 0.06m),
+                (new[] { 50.00m, 49.99m, 50.02m, 49.98m, 50.01m }, 50.00m, 0.04m),
+                (new[] { 49.98m, 50.00m, 50.01m, 49.99m, 50.02m }, 50.00m, 0.04m),
+            };
+            var chart1Points = chart1Data.Select((d, i) => new SpcDataPoint
+            {
+                ChartId = chart1.Id,
+                SubgroupIndex = i + 1,
+                IndividualValues = System.Text.Json.JsonSerializer.Serialize(d.values),
+                SubgroupMean = d.mean,
+                SubgroupRange = d.range,
+                MeasuredAt = new DateTime(2026, 6, 1, 8, 0, 0).AddMinutes(i * 30)
+            }).ToList();
+
+            // 数据点(粗糙度 I-MR: 15 points)
+            var roughnessValues = new[] { 0.75m, 0.82m, 0.78m, 0.85m, 0.72m, 0.79m, 0.88m, 0.76m, 0.81m, 0.74m, 0.83m, 0.77m, 0.80m, 0.86m, 0.73m };
+            var chart2Points = roughnessValues.Select((v, i) => new SpcDataPoint
+            {
+                ChartId = chart2.Id,
+                SubgroupIndex = i + 1,
+                IndividualValues = $"[{v}]",
+                SubgroupMean = v,
+                MeasuredAt = new DateTime(2026, 6, 1, 8, 0, 0).AddMinutes(i * 20)
+            }).ToList();
+
+            context.SpcDataPoints.AddRange(chart1Points);
+            context.SpcDataPoints.AddRange(chart2Points);
+            await context.SaveChangesAsync();
+
+            // 数据源配置（贯通S3/S4/S5 → S6）
+            var dataSources = new List<SpcDataSource>
+            {
+                new() { ChartId = chart1.Id, SourceType = "IPQC", InspectionItemId = inspectionItems[0].Id, ProductId = 1, ProcessId = 3 },
+                new() { ChartId = chart2.Id, SourceType = "FQC", InspectionItemId = inspectionItems[3].Id, ProductId = 1, ProcessId = 8 },
+            };
+            context.SpcDataSources.AddRange(dataSources);
+            await context.SaveChangesAsync();
+
+            // 分析结果
+            var analysisResults = new List<SpcAnalysisResult>
+            {
+                new() { ChartId = chart1.Id, AnalysisType = "cpk", Cp = 1.33m, Cpk = 1.28m, Pp = 1.30m, Ppk = 1.25m, SigmaWithin = 0.0125m, EstimatedPpm = 180m, DataPointsUsed = 50, AnalysisPeriodStart = new DateTime(2026, 6, 1, 8, 0, 0), AnalysisPeriodEnd = new DateTime(2026, 6, 1, 12, 30, 0) },
+                new() { ChartId = chart2.Id, AnalysisType = "cpk", Cp = 1.45m, Cpk = 1.40m, Pp = 1.42m, Ppk = 1.38m, SigmaWithin = 0.18m, EstimatedPpm = 85m, DataPointsUsed = 15, AnalysisPeriodStart = new DateTime(2026, 6, 1, 8, 0, 0), AnalysisPeriodEnd = new DateTime(2026, 6, 1, 12, 40, 0) },
+            };
+            context.SpcAnalysisResults.AddRange(analysisResults);
+            await context.SaveChangesAsync();
+            #endregion
+        }
+        #endregion
+
+        #region SPC 判异规则 — EF Core 方式：为所有缺少规则的控制图补齐8大判异规则
+        try
+        {
+            // 获取数据库中缺少全部8条规则的控制图（有规则则跳过）
+            var chartsWithoutRules = await context.SpcControlCharts
+                .Where(c => !context.SpcAlertRules.Any(r => r.ChartId == c.Id))
+                .ToListAsync();
+
+            if (chartsWithoutRules.Count > 0)
+            {
+                var now = DateTime.UtcNow;
+                var rules = new List<SpcAlertRule>();
+                foreach (var chart in chartsWithoutRules)
+                {
+                    rules.AddRange(GetDefaultAlertRules(chart.Id, now));
+                }
+                context.SpcAlertRules.AddRange(rules);
+                await context.SaveChangesAsync();
+
+                Console.WriteLine($"[DbInitializer] 已为 {chartsWithoutRules.Count} 个控制图添加 SPC 判异规则");
+            }
+
+            // 清理因之前 SQL INSERT 未指定 CreatedAt/UpdatedAt 导致的零日期脏数据
+            var zeroDateRules = await context.SpcAlertRules
+                .Where(r => r.CreatedAt == default || r.UpdatedAt == default)
+                .ToListAsync();
+            if (zeroDateRules.Count > 0)
+            {
+                context.SpcAlertRules.RemoveRange(zeroDateRules);
+                await context.SaveChangesAsync();
+                Console.WriteLine($"[DbInitializer] 已清理 {zeroDateRules.Count} 条零日期 SPC 判异规则");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[DbInitializer] SPC 判异规则初始化失败（不阻断启动）: {ex.Message}");
+        }
+        #endregion
     }
 
+    private static List<SpcAlertRule> GetDefaultAlertRules(long chartId, DateTime now)
+    {
+        return new List<SpcAlertRule>
+        {
+            new() { ChartId = chartId, RuleNumber = 1, RuleName = "1点超出3σ控制限", RuleDescription = "任何数据点超出UCL或LCL", Enabled = true, TriggerThreshold = 1, SigmaThreshold = 3.0m, CreatedAt = now, UpdatedAt = now },
+            new() { ChartId = chartId, RuleNumber = 2, RuleName = "连续9点在CL同侧", RuleDescription = "连续9个点位于中心线同一侧", Enabled = true, TriggerThreshold = 9, SigmaThreshold = 0m, CreatedAt = now, UpdatedAt = now },
+            new() { ChartId = chartId, RuleNumber = 3, RuleName = "连续6点递增或递减", RuleDescription = "连续6个点单调上升或下降", Enabled = true, TriggerThreshold = 6, SigmaThreshold = 0m, CreatedAt = now, UpdatedAt = now },
+            new() { ChartId = chartId, RuleNumber = 4, RuleName = "连续14点上下交替", RuleDescription = "连续14个点呈现上下交替模式", Enabled = true, TriggerThreshold = 14, SigmaThreshold = 0m, CreatedAt = now, UpdatedAt = now },
+            new() { ChartId = chartId, RuleNumber = 5, RuleName = "连续3点中2点超出2σ", RuleDescription = "连续3点中有2点落在2σ和3σ之间（同一侧）", Enabled = true, TriggerThreshold = 2, SigmaThreshold = 2.0m, CreatedAt = now, UpdatedAt = now },
+            new() { ChartId = chartId, RuleNumber = 6, RuleName = "连续5点中4点超出1σ", RuleDescription = "连续5点中有4点落在1σ和2σ之间（同一侧）", Enabled = true, TriggerThreshold = 4, SigmaThreshold = 1.0m, CreatedAt = now, UpdatedAt = now },
+            new() { ChartId = chartId, RuleNumber = 7, RuleName = "连续15点在1σ内", RuleDescription = "连续15个点落在中心线1σ范围内（任一侧）", Enabled = true, TriggerThreshold = 15, SigmaThreshold = 1.0m, CreatedAt = now, UpdatedAt = now },
+            new() { ChartId = chartId, RuleNumber = 8, RuleName = "连续8点超出1σ", RuleDescription = "连续8个点落在1σ范围外（双侧）", Enabled = true, TriggerThreshold = 8, SigmaThreshold = 1.0m, CreatedAt = now, UpdatedAt = now },
+        };
+    }
 }
