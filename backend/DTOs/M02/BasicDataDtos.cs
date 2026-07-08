@@ -5,7 +5,7 @@ namespace QM_AI.API.DTOs.M02;
 // ─── Product ─────────────────────────────────────────────────
 public class ProductListDto
 {
-    public int Id { get; set; }
+    public long Id { get; set; }
     public string Code { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
     public string? Category { get; set; }
@@ -40,8 +40,8 @@ public class UpdateProductDto : CreateProductDto
 // ─── BOM ─────────────────────────────────────────────────────
 public class BomListDto
 {
-    public int Id { get; set; }
-    public int ProductId { get; set; }
+    public long Id { get; set; }
+    public long ProductId { get; set; }
     public string ProductName { get; set; } = string.Empty;
     public string MaterialCode { get; set; } = string.Empty;
     public string MaterialName { get; set; } = string.Empty;
@@ -52,7 +52,7 @@ public class BomListDto
 
 public class CreateBomDto
 {
-    public int ProductId { get; set; }
+    public long ProductId { get; set; }
     public string MaterialCode { get; set; } = string.Empty;
     public string MaterialName { get; set; } = string.Empty;
     public double Quantity { get; set; } = 1;
@@ -66,7 +66,7 @@ public class UpdateBomDto : CreateBomDto { }
 // ─── Process ─────────────────────────────────────────────────
 public class ProcessListDto
 {
-    public int Id { get; set; }
+    public long Id { get; set; }
     public string Code { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
     public string? ProcessType { get; set; }
@@ -91,23 +91,23 @@ public class UpdateProcessDto : CreateProcessDto
 // ─── Routing ─────────────────────────────────────────────────
 public class RoutingListDto
 {
-    public int Id { get; set; }
-    public int ProductId { get; set; }
+    public long Id { get; set; }
+    public long ProductId { get; set; }
     public string ProductName { get; set; } = string.Empty;
     public string Code { get; set; } = string.Empty;
     public int StepOrder { get; set; }
-    public int ProcessId { get; set; }
+    public long ProcessId { get; set; }
     public string ProcessName { get; set; } = string.Empty;
     public double? StandardTimeMinutes { get; set; }
 }
 
 public class CreateRoutingDto
 {
-    public int ProductId { get; set; }
+    public long ProductId { get; set; }
     public string Code { get; set; } = string.Empty;
     public string? Description { get; set; }
     public int StepOrder { get; set; }
-    public int ProcessId { get; set; }
+    public long ProcessId { get; set; }
     public double? StandardTimeMinutes { get; set; }
 }
 
@@ -116,7 +116,7 @@ public class UpdateRoutingDto : CreateRoutingDto { }
 // ─── InspectionStandard ──────────────────────────────────────
 public class InspectionStandardListDto
 {
-    public int Id { get; set; }
+    public long Id { get; set; }
     public string Code { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
     public string InspectionType { get; set; } = string.Empty;
@@ -135,8 +135,8 @@ public class CreateInspectionStandardDto
     public string Name { get; set; } = string.Empty;
     public string? Description { get; set; }
     public string InspectionType { get; set; } = string.Empty;
-    public int? ProductId { get; set; }
-    public int? ProcessId { get; set; }
+    public long? ProductId { get; set; }
+    public long? ProcessId { get; set; }
     public string ItemName { get; set; } = string.Empty;
     public double? Usl { get; set; }
     public double? Lsl { get; set; }
@@ -154,7 +154,7 @@ public class UpdateInspectionStandardDto : CreateInspectionStandardDto
 // ─── DefectCode ──────────────────────────────────────────────
 public class DefectCodeListDto
 {
-    public int Id { get; set; }
+    public long Id { get; set; }
     public string Code { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
     public string? DefectType { get; set; }
@@ -181,7 +181,7 @@ public class UpdateDefectCodeDto : CreateDefectCodeDto
 // ─── Equipment ───────────────────────────────────────────────
 public class EquipmentListDto
 {
-    public int Id { get; set; }
+    public long Id { get; set; }
     public string Code { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
     public string? Model { get; set; }
@@ -192,9 +192,9 @@ public class EquipmentListDto
     public bool HasMqttConnection { get; set; }
     public bool IsActive { get; set; }
     // 组织层级
-    public int? OrgId { get; set; }
-    public int? WorkshopId { get; set; }
-    public int? LineId { get; set; }
+    public long? OrgId { get; set; }
+    public long? WorkshopId { get; set; }
+    public long? LineId { get; set; }
     public string? WorkshopName { get; set; }
     public string? LineName { get; set; }
 }
@@ -210,9 +210,9 @@ public class CreateEquipmentDto
     public bool HasMqttConnection { get; set; } = false;
     public string? MqttTopicPrefix { get; set; }
     // 组织层级
-    public int? OrgId { get; set; }
-    public int? WorkshopId { get; set; }
-    public int? LineId { get; set; }
+    public long? OrgId { get; set; }
+    public long? WorkshopId { get; set; }
+    public long? LineId { get; set; }
 }
 
 public class UpdateEquipmentDto : CreateEquipmentDto
@@ -224,7 +224,7 @@ public class UpdateEquipmentDto : CreateEquipmentDto
 // ─── Tool ────────────────────────────────────────────────────
 public class ToolListDto
 {
-    public int Id { get; set; }
+    public long Id { get; set; }
     public string Code { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
     public string? Model { get; set; }
@@ -256,7 +256,7 @@ public class UpdateToolDto : CreateToolDto
 // ─── Supplier ────────────────────────────────────────────────
 public class SupplierListDto
 {
-    public int Id { get; set; }
+    public long Id { get; set; }
     public string Code { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
     public string? ContactPerson { get; set; }
@@ -288,7 +288,7 @@ public class UpdateSupplierDto : CreateSupplierDto
 // ─── Customer ────────────────────────────────────────────────
 public class CustomerListDto
 {
-    public int Id { get; set; }
+    public long Id { get; set; }
     public string Code { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
     public string? ContactPerson { get; set; }

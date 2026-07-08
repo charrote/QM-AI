@@ -1,11 +1,19 @@
 <script setup lang="ts">
-defineOptions({ name: 'AI' })
-</script>
+import { ref, onMounted } from 'vue'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import { aiApi } from '@/api/ai'
+import { ALERT_LEVEL_OPTIONS, ALERT_LEVEL_MAP } from '@/types/ai'
+import type { PagedResult } from '@/types/basicData'
 
+defineOptions({ name: 'AI' })
+const activeTab = ref('alerts')
+</script>
 <template>
-  <div class="placeholder-view">
-    <el-icon class="placeholder-icon" :size="64" color="#409eff"><Monitor /></el-icon>
-    <h2>AI质量分析</h2>
-    <p>AI Quality Analysis - 智能质量分析引擎</p>
+  <div style="height:100%;display:flex;flex-direction:column">
+    <el-tabs v-model="activeTab" type="border-card">
+      <el-tab-pane name="alerts"><AlertCenterPage /></el-tab-pane>
+      <el-tab-pane name="root-cause"><RootCauseAnalysisPage /></el-tab-pane>
+      <el-tab-pane name="models"><ModelManagementPage /></el-tab-pane>
+    </el-tabs>
   </div>
 </template>

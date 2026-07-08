@@ -8,9 +8,9 @@ public class Bom
 {
     [Key]
     [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
-    public int Id { get; set; }
+    public long Id { get; set; }
 
-    public int ProductId { get; set; }
+    public long ProductId { get; set; }
 
     /// <summary>物料编码</summary>
     [Required]

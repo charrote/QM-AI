@@ -84,7 +84,7 @@ public class InspectionItem
     /// <summary>是否启用</summary>
     public bool IsActive { get; set; } = true;
 
-    public int CreatedBy { get; set; }
+    public long CreatedBy { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 

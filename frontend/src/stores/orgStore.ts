@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
+import { ElMessage } from 'element-plus'
 import { organizationApi } from '@/api/organization'
 import type { OrganizationTreeNode } from '@/types/organization'
 
@@ -31,7 +32,7 @@ export const useOrgStore = defineStore('org', () => {
       orgTree.value = tree
       buildFlatList(tree, '')
     } catch {
-      // ignore
+      ElMessage.error('加载组织树失败')
     }
   }
 

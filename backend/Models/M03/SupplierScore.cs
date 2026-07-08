@@ -14,7 +14,7 @@ public class SupplierScore
     public long Id { get; set; }
 
     /// <summary>关联供应商</summary>
-    public int SupplierId { get; set; }
+    public long SupplierId { get; set; }
 
     /// <summary>评分日期</summary>
     public DateTime? ScoreDate { get; set; }

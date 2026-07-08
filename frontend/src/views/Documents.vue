@@ -1,11 +1,17 @@
 <script setup lang="ts">
+import { ref } from 'vue'
+import DocumentListPage from './documents/DocumentListPage.vue'
+import VersionHistoryPage from './documents/VersionHistoryPage.vue'
+
 defineOptions({ name: 'Documents' })
+const activeTab = ref('list')
 </script>
 
 <template>
-  <div class="placeholder-view">
-    <el-icon class="placeholder-icon" :size="64" color="#409eff"><Document /></el-icon>
-    <h2>文件与体系</h2>
-    <p>Documents & System - 质量文件与体系管理</p>
+  <div style="height:100%;display:flex;flex-direction:column">
+    <el-tabs v-model="activeTab" type="border-card">
+      <el-tab-pane name="list"><DocumentListPage /></el-tab-pane>
+      <el-tab-pane name="versions"><VersionHistoryPage /></el-tab-pane>
+    </el-tabs>
   </div>
 </template>

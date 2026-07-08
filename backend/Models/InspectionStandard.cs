@@ -8,7 +8,7 @@ public class InspectionStandard
 {
     [Key]
     [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
-    public int Id { get; set; }
+    public long Id { get; set; }
 
     [Required]
     [MaxLength(100)]
@@ -27,10 +27,10 @@ public class InspectionStandard
     public string InspectionType { get; set; } = string.Empty;
 
     /// <summary>关联产品（可为空，表示通用标准）</summary>
-    public int? ProductId { get; set; }
+    public long? ProductId { get; set; }
 
     /// <summary>关联工序</summary>
-    public int? ProcessId { get; set; }
+    public long? ProcessId { get; set; }
 
     /// <summary>检验项目名称</summary>
     [Required]

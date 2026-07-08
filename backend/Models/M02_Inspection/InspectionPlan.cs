@@ -39,27 +39,27 @@ public class InspectionPlan
 
     // ═══ 业务维度（用于匹配业务上下文）═══
     /// <summary>产品维度（可为null表示通用计划）</summary>
-    public int? ProductId { get; set; }
+    public long? ProductId { get; set; }
 
     /// <summary>材料维度（关联products表，product_type='material'）</summary>
-    public int? MaterialId { get; set; }
+    public long? MaterialId { get; set; }
 
     /// <summary>供应商维度</summary>
-    public int? SupplierId { get; set; }
+    public long? SupplierId { get; set; }
 
     /// <summary>客户维度</summary>
-    public int? CustomerId { get; set; }
+    public long? CustomerId { get; set; }
 
     /// <summary>工艺/工序维度</summary>
-    public int? ProcessId { get; set; }
+    public long? ProcessId { get; set; }
 
     /// <summary>设备维度</summary>
-    public int? EquipmentId { get; set; }
+    public long? EquipmentId { get; set; }
 
     /// <summary>是否启用</summary>
     public bool IsActive { get; set; } = true;
 
-    public int CreatedBy { get; set; }
+    public long CreatedBy { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 

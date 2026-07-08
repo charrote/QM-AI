@@ -8,7 +8,7 @@ public class Equipment
 {
     [Key]
     [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
-    public int Id { get; set; }
+    public long Id { get; set; }
 
     [Required]
     [MaxLength(100)]
@@ -31,13 +31,13 @@ public class Equipment
     public string? Workshop { get; set; }
 
     /// <summary>所属组织ID</summary>
-    public int? OrgId { get; set; }
+    public long? OrgId { get; set; }
 
     /// <summary>关联车间（组织ID，level=workshop）</summary>
-    public int? WorkshopId { get; set; }
+    public long? WorkshopId { get; set; }
 
     /// <summary>关联产线（组织ID，level=line）</summary>
-    public int? LineId { get; set; }
+    public long? LineId { get; set; }
 
     /// <summary>设备状态：running/idle/fault/maintenance</summary>
     [MaxLength(20)]

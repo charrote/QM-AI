@@ -14,10 +14,10 @@ public class IpqcAiRiskScore
     public long Id { get; set; }
 
     /// <summary>关联设备</summary>
-    public int EquipmentId { get; set; }
+    public long EquipmentId { get; set; }
 
     /// <summary>关联工序</summary>
-    public int ProcessId { get; set; }
+    public long ProcessId { get; set; }
 
     /// <summary>关联工单（可选）</summary>
     public long? WorkOrderId { get; set; }

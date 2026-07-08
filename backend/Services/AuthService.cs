@@ -15,7 +15,7 @@ public class AuthService
 {
     private readonly AppDbContext _context;
     private readonly IConfiguration _configuration;
-    private static readonly ConcurrentDictionary<string, (int UserId, DateTime ExpiresAt)> _refreshTokens = new();
+    private static readonly ConcurrentDictionary<string, (long UserId, DateTime ExpiresAt)> _refreshTokens = new();
 
     public AuthService(AppDbContext context, IConfiguration configuration)
     {

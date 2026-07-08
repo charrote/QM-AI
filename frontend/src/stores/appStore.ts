@@ -11,6 +11,10 @@ export const useAppStore = defineStore('app', () => {
 
   const activeAlertCount = ref<number>(0)
 
+  function updateAlertCount(count: number) {
+    activeAlertCount.value = count
+  }
+
   function toggleSidebar() {
     sidebarCollapsed.value = !sidebarCollapsed.value
   }
@@ -43,5 +47,6 @@ export const useAppStore = defineStore('app', () => {
     toggleSidebar,
     toggleTheme,
     applyTheme,
+    updateAlertCount,
   }
 })

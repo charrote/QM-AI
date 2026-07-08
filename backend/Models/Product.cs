@@ -8,7 +8,7 @@ public class Product
 {
     [Key]
     [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
-    public int Id { get; set; }
+    public long Id { get; set; }
 
     [Required]
     [MaxLength(100)]
@@ -36,7 +36,7 @@ public class Product
     public double? DefaultAql { get; set; }
 
     /// <summary>所属组织ID</summary>
-    public int? OrgId { get; set; }
+    public long? OrgId { get; set; }
 
     public bool IsActive { get; set; } = true;
 

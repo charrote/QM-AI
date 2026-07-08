@@ -184,7 +184,7 @@ async function calculateSamplingPlan() {
 
 onMounted(async () => {
   await loadInspections()
-  calculateSamplingPlan()
+  await calculateSamplingPlan()
 })
 </script>
 

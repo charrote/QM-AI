@@ -45,6 +45,7 @@ request.interceptors.response.use(
   async (error: AxiosError) => {
     const originalRequest = error.config as InternalAxiosRequestConfig & {
       _retry?: boolean
+      _silent?: boolean
     }
 
     if (!originalRequest) {
@@ -74,8 +75,9 @@ request.interceptors.response.use(
         return request(originalRequest)
       } catch (refreshError) {
         processQueue(refreshError, null)
-        authStore.logout()
-        window.location.href = '/login'
+        authStore.logout(() => {
+          window.location.href = '/login'
+        })
         return Promise.reject(refreshError)
       } finally {
         isRefreshing = false
@@ -86,7 +88,9 @@ request.interceptors.response.use(
       (error.response?.data as { message?: string })?.message ||
       error.message ||
       'Request failed'
-    ElMessage.error(msg)
+    if (!originalRequest._silent) {
+      ElMessage.error(msg)
+    }
     return Promise.reject(error)
   },
 )

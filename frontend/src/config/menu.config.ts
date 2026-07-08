@@ -97,6 +97,11 @@ export const menuConfigs: MenuConfig[] = [
     closable: true,
     order: 5,
     module: 'defects',
+    children: [
+      { id: 'defects-page', name: '缺陷管理', icon: 'Warning', path: '/defects', closable: true, order: 1, module: 'defects' },
+      { id: 'capa-page', name: 'CAPA 流程', icon: 'List', path: '/defects/capa', closable: true, order: 2, module: 'defects' },
+      { id: 'scrap-rework-page', name: '报废/返工', icon: 'SwitchButton', path: '/defects/scrap-rework', closable: true, order: 3, module: 'defects' },
+    ],
   },
   {
     id: 'trace',
@@ -106,6 +111,11 @@ export const menuConfigs: MenuConfig[] = [
     closable: true,
     order: 6,
     module: 'trace',
+    children: [
+      { id: 'trace-page', name: '追溯查询', icon: 'Search', path: '/trace', closable: true, order: 1, module: 'trace' },
+      { id: 'ng-diffusion-page', name: 'NG 扩散分析', icon: 'DataAnalysis', path: '/trace/ng-diffusion', closable: true, order: 2, module: 'trace' },
+      { id: 'recall-simulation-page', name: '召回模拟', icon: 'RefreshLeft', path: '/trace/recall-simulation', closable: true, order: 3, module: 'trace' },
+    ],
   },
   {
     id: 'complaints',
@@ -115,15 +125,25 @@ export const menuConfigs: MenuConfig[] = [
     closable: true,
     order: 7,
     module: 'complaints',
+    children: [
+      { id: 'complaint-list', name: '客诉列表', icon: 'Document', path: '/complaints/list', closable: true, order: 1, module: 'complaints' },
+      { id: 'd8-report', name: '8D 报告', icon: 'EditPen', path: '/complaints/d8', closable: true, order: 2, module: 'complaints' },
+      { id: 'complaint-timeline', name: '客诉时间线', icon: 'Timeline', path: '/complaints/timeline', closable: true, order: 3, module: 'complaints' },
+    ],
   },
   {
     id: 'ai',
-    name: 'AI质量分析',
+    name: 'AI 质量分析',
     icon: 'Monitor',
     path: '/ai',
     closable: true,
     order: 8,
     module: 'ai',
+    children: [
+      { id: 'alert-center', name: '预警中心', icon: 'BellFilled', path: '/ai/alerts', closable: true, order: 1, module: 'ai' },
+      { id: 'root-cause', name: '根因分析', icon: 'Search', path: '/ai/root-cause', closable: true, order: 2, module: 'ai' },
+      { id: 'model-management', name: '模型管理', icon: 'Cpu', path: '/ai/models', closable: true, order: 3, module: 'ai' },
+    ],
   },
   {
     id: 'equipment-link',
@@ -133,6 +153,11 @@ export const menuConfigs: MenuConfig[] = [
     closable: true,
     order: 9,
     module: 'equipment-link',
+    children: [
+      { id: 'param-mapping', name: '参数映射', icon: 'Link', path: '/equipment-link/mapping', closable: true, order: 1, module: 'equipment-link' },
+      { id: 'status-history', name: '状态历史', icon: 'Clock', path: '/equipment-link/status', closable: true, order: 2, module: 'equipment-link' },
+      { id: 'quality-correlation', name: '质量关联', icon: 'DataAnalysis', path: '/equipment-link/correlation', closable: true, order: 3, module: 'equipment-link' },
+    ],
   },
   {
     id: 'documents',
@@ -142,6 +167,10 @@ export const menuConfigs: MenuConfig[] = [
     closable: true,
     order: 10,
     module: 'documents',
+    children: [
+      { id: 'document-list', name: '文档管理', icon: 'FolderOpened', path: '/documents/list', closable: true, order: 1, module: 'documents' },
+      { id: 'version-history', name: '版本历史', icon: 'Clock', path: '/documents/versions', closable: true, order: 2, module: 'documents' },
+    ],
   },
   {
     id: 'audits',
@@ -151,15 +180,11 @@ export const menuConfigs: MenuConfig[] = [
     closable: true,
     order: 11,
     module: 'audits',
-  },
-  {
-    id: 'reports',
-    name: '报表中心',
-    icon: 'DataBoard',
-    path: '/reports',
-    closable: true,
-    order: 12,
-    module: 'reports',
+    children: [
+      { id: 'audit-list', name: '审核列表', icon: 'Document', path: '/audits/list', closable: true, order: 1, module: 'audits' },
+      { id: 'audit-detail', name: '审核详情', icon: 'View', path: '/audits/detail', closable: true, order: 2, module: 'audits' },
+      { id: 'finding', name: '不符合项管理', icon: 'WarningFilled', path: '/audits/finding', closable: true, order: 3, module: 'audits' },
+    ],
   },
   {
     id: 'organizations',
@@ -171,12 +196,17 @@ export const menuConfigs: MenuConfig[] = [
     module: 'system',
   },
   {
-    id: 'settings',
-    name: '系统管理',
-    icon: 'Tools',
-    path: '/settings',
+    id: 'reports',
+    name: '报表中心',
+    icon: 'DataBoard',
+    path: '/reports',
     closable: true,
-    order: 13,
-    module: 'settings',
+    order: 12,
+    module: 'reports',
+    children: [
+      { id: 'quality-dashboard', name: '质量仪表盘', icon: 'Odometer', path: '/reports/dashboard', closable: true, order: 1, module: 'reports' },
+      { id: 'report-builder', name: '报表定制', icon: 'EditPen', path: '/reports/builder', closable: true, order: 2, module: 'reports' },
+      { id: 'export-center', name: '导出中心', icon: 'Download', path: '/reports/export', closable: true, order: 3, module: 'reports' },
+    ],
   },
 ]

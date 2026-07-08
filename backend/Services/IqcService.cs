@@ -684,7 +684,7 @@ public class IqcService
     // 供应商评分
     // ═══════════════════════════════════════════════════════════════
 
-    public async Task<SupplierScoreDto?> GetSupplierScore(int supplierId)
+    public async Task<SupplierScoreDto?> GetSupplierScore(long supplierId)
     {
         var supplier = await _db.Suppliers.FindAsync(supplierId);
         if (supplier == null) return null;

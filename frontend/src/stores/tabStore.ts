@@ -6,6 +6,8 @@ import { menuConfigs } from '@/config/menu.config'
 const STORAGE_KEY = 'qm-ai-tabs'
 const STORAGE_ACTIVE_KEY = 'qm-ai-active-tab'
 
+let saveTimer: ReturnType<typeof setTimeout> | null = null
+
 function findMenuByPath(path: string): TabItem | undefined {
   // 先查顶层菜单
   const top = menuConfigs.find(m => m.path === path)
@@ -124,12 +126,22 @@ export const useTabStore = defineStore('tab', () => {
     refreshKey.value++
   }
 
+  let saveTimer: ReturnType<typeof setTimeout> | null = null
+
   function saveTabs() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(tabs.value))
     localStorage.setItem(STORAGE_ACTIVE_KEY, activeTabId.value)
   }
 
-  watch([tabs, activeTabId], saveTabs, { deep: true })
+  watch([tabs, activeTabId], () => {
+    if (saveTimer) clearTimeout(saveTimer)
+    saveTimer = setTimeout(saveTabs, 300)
+  })
+
+  watch([tabs, activeTabId], () => {
+    if (saveTimer) clearTimeout(saveTimer)
+    saveTimer = setTimeout(saveTabs, 300)
+  })
 
   return {
     tabs,

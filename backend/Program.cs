@@ -131,6 +131,25 @@ builder.Services.AddScoped<BusinessDataService>();
 builder.Services.AddScoped<InspectionItemService>();
 builder.Services.AddScoped<InspectionPlanService>();
 
+// M07 不良与异常管理
+builder.Services.AddScoped<DefectService>();
+builder.Services.AddScoped<CapaService>();
+
+// M08 质量追溯
+builder.Services.AddScoped<TraceService>();
+
+// M09 客诉 8D
+builder.Services.AddScoped<ComplaintService>();
+
+// M11 设备联动
+builder.Services.AddScoped<EquipmentLinkService>();
+
+// M12 文件管理
+builder.Services.AddScoped<DocumentService>();
+
+// M13 审核稽核
+builder.Services.AddScoped<AuditService>();
+
 var app = builder.Build();
 
 // ─── 全局异常处理中间件 ─────────────────────────────────────────

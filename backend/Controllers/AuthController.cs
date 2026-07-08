@@ -27,9 +27,8 @@ public class AuthController : ControllerBase
     }
 
     [HttpPost("logout")]
-    public IActionResult Logout([FromBody] RefreshTokenRequest request)
+    public IActionResult Logout()
     {
-        _authService.Logout(request.RefreshToken);
         return Ok(new { message = "Logged out successfully" });
     }
 

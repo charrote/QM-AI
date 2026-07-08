@@ -19,10 +19,10 @@ public class IpqcPatrolPlan
     public string PlanNo { get; set; } = string.Empty;
 
     /// <summary>关联工序</summary>
-    public int ProcessId { get; set; }
+    public long ProcessId { get; set; }
 
     /// <summary>关联设备</summary>
-    public int EquipmentId { get; set; }
+    public long EquipmentId { get; set; }
 
     /// <summary>巡检间隔（分钟）</summary>
     public int PatrolIntervalMin { get; set; }

@@ -24,7 +24,7 @@ public class ProductBatch
     public string Source { get; set; } = "manual";
 
     /// <summary>关联产品</summary>
-    public int ProductId { get; set; }
+    public long ProductId { get; set; }
 
     /// <summary>关联工单</summary>
     public long? WorkOrderId { get; set; }

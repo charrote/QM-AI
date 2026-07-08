@@ -142,6 +142,61 @@ public class SpcAlgorithmService
     /// <summary>
     /// Calculate process capability indices (Cp, Cpk, Pp, Ppk).
     /// </summary>
+    /// <summary>
+    /// Calculate process capability with subgroup-based sigma estimation (R̄/d₂).
+    /// For X̄-R charts, sigmaWithin must be estimated from within-subgroup variation,
+    /// NOT from individual values. This matches Minitab behavior.
+    /// </summary>
+    public CpkResult CalculateCapabilityFromSubgroups(IEnumerable<double[]> subgroups, double usl, double lsl)
+    {
+        var subgroupsList = subgroups.ToList();
+        if (!subgroupsList.Any() || subgroupsList.First().Length < 2)
+            throw new ArgumentException("Need at least 2 subgroups with 2+ values each.");
+
+        // Flatten all values for overall statistics
+        var allValues = subgroupsList.SelectMany(s => s).ToList();
+        double mean = allValues.Average();
+
+        // Calculate R̄ for within-subgroup sigma estimation (SPC standard)
+        var rValues = subgroupsList.Select(s => s.Max() - s.Min()).ToList();
+        double rDouble = rValues.Average();
+        int n = subgroupsList.First().Length;
+        var constants = SpcConstants.GetConstants(n);
+        double sigmaWithin = rDouble / constants.d2;  // R̄/d₂ method (Minitab standard)
+
+        double sigmaOverall = CalculatePopulationStdDev(allValues);
+
+        double cp = (usl - lsl) / (6 * sigmaWithin);
+        double cpu = (usl - mean) / (3 * sigmaWithin);
+        double cpl = (mean - lsl) / (3 * sigmaWithin);
+        double cpk = Math.Min(cpu, cpl);
+
+        double pp = (usl - lsl) / (6 * sigmaOverall);
+        double ppu = (usl - mean) / (3 * sigmaOverall);
+        double ppl = (mean - lsl) / (3 * sigmaOverall);
+        double ppk = Math.Min(ppu, ppl);
+
+        string grade = cpk >= 1.67 ? "优秀" :
+                       cpk >= 1.33 ? "良好" :
+                       cpk >= 1.0 ? "临界" : "不足";
+
+        double ppm = (1 - NormalCdf((usl - mean) / sigmaWithin) +
+                      NormalCdf((lsl - mean) / sigmaWithin)) * 1_000_000;
+
+        return new CpkResult
+        {
+            Cp = Math.Round(cp, 4),
+            Cpk = Math.Round(cpk, 4),
+            Pp = Math.Round(pp, 4),
+            Ppk = Math.Round(ppk, 4),
+            SigmaWithin = Math.Round(sigmaWithin, 6),
+            SigmaOverall = Math.Round(sigmaOverall, 6),
+            Grade = grade,
+            EstimatedPpm = Math.Round(ppm, 2),
+            Mean = Math.Round(mean, 6)
+        };
+    }
+
     public CpkResult CalculateCapability(IEnumerable<double> data, double usl, double lsl)
     {
         var dataList = data.ToList();
@@ -250,12 +305,16 @@ public class SpcAlgorithmService
         }
 
         // ── Rule 4: 14 consecutive points alternating up and down ──
-        for (int i = 0; i <= n - 14; i++)
+        // Start from i=1 so that means[j-1] always has a valid predecessor
+        for (int i = 1; i <= n - 14; i++)
         {
             bool alternating = true;
             for (int j = i; j < i + 13; j++)
             {
-                if ((means[j + 1] - means[j]) * (means[j] - means[j - 1 >= 0 ? j - 1 : j]) >= 0)
+                double diff1 = means[j + 1] - means[j];
+                double diff2 = means[j] - means[j - 1];
+                // Alternating means signs differ: product should be negative
+                if (diff1 * diff2 >= 0)
                 {
                     alternating = false;
                     break;

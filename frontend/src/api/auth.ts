@@ -7,7 +7,7 @@ export const authApi = {
   },
 
   logout(): Promise<void> {
-    return request.post('/auth/logout').then(res => res.data)
+    return request.post('/auth/logout', undefined, { headers: { 'Content-Type': 'text/plain' } }).then(res => res.data)
   },
 
   refresh(refreshToken: string): Promise<LoginResponse> {

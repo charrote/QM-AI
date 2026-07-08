@@ -8,7 +8,7 @@ public class User
 {
     [Key]
     [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
-    public int Id { get; set; }
+    public long Id { get; set; }
 
     [Required]
     [MaxLength(100)]
@@ -27,7 +27,7 @@ public class User
     [MaxLength(200)]
     public string? Email { get; set; }
 
-    public int RoleId { get; set; }
+    public long RoleId { get; set; }
 
     public bool IsActive { get; set; } = true;
 

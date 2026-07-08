@@ -4,8 +4,11 @@ import { ElMessage } from 'element-plus'
 import { packagingApi } from '@/api/fqc'
 import type { PackagingConfirmation, CreatePackagingConfirmation } from '@/types/fqc'
 import type { PagedRequest } from '@/types/basicData'
+import { useAuthStore } from '@/stores/authStore'
 
 defineOptions({ name: 'FqcPackagingPage' })
+
+const authStore = useAuthStore()
 
 const loading = ref(false)
 const list = ref<PackagingConfirmation[]>([])
@@ -16,7 +19,7 @@ const createForm = reactive<CreatePackagingConfirmation>({
   batchId: 0,
   packagingMethod: '',
   labelPrinted: false,
-  confirmedBy: 1,
+  confirmedBy: authStore.user?.id || 0,
 })
 
 async function fetchList() {
