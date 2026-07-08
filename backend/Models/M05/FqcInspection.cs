@@ -56,7 +56,7 @@ public class FqcInspection
     public string Conclusion { get; set; } = "pending";
 
     /// <summary>检验员 ID</summary>
-    public int? InspectorId { get; set; }
+    public long? InspectorId { get; set; }
 
     /// <summary>检验时间</summary>
     public DateTime? CheckedAt { get; set; }

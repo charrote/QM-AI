@@ -5,8 +5,11 @@ import { releaseApi } from '@/api/fqc'
 import type { OqcRelease, CreateOqcRelease, SignOqcRelease } from '@/types/fqc'
 import type { PagedRequest } from '@/types/basicData'
 import { RELEASE_STATUS_OPTIONS, RELEASE_STATUS_MAP } from '@/types/fqc'
+import { useAuthStore } from '@/stores/authStore'
 
 defineOptions({ name: 'FqcOqcReleasesPage' })
+
+const authStore = useAuthStore()
 
 const loading = ref(false)
 const list = ref<OqcRelease[]>([])
@@ -51,7 +54,7 @@ async function handleCreate() {
 
 function openSign(id: number) {
   signId.value = id
-  signForm.authorizedBy = 1
+  signForm.authorizedBy = authStore.user?.id || 0
   signForm.eSignatureUrl = ''
   signVisible.value = true
 }

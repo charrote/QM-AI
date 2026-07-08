@@ -11,7 +11,7 @@ public class SysDictType
 {
     [Key]
     [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
-    public int Id { get; set; }
+    public long Id { get; set; }
 
     /// <summary>字典类型编码</summary>
     [Required]
@@ -46,7 +46,7 @@ public class SysDictItem
 {
     [Key]
     [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
-    public int Id { get; set; }
+    public long Id { get; set; }
 
     /// <summary>字典类型编码</summary>
     [Required]

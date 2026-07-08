@@ -25,13 +25,13 @@ public class IpqcPatrol
     public long? WorkOrderId { get; set; }
 
     /// <summary>关联工序</summary>
-    public int ProcessId { get; set; }
+    public long ProcessId { get; set; }
 
     /// <summary>关联设备</summary>
-    public int EquipmentId { get; set; }
+    public long EquipmentId { get; set; }
 
     /// <summary>检验员</summary>
-    public int InspectorId { get; set; }
+    public long InspectorId { get; set; }
 
     /// <summary>计划时间</summary>
     public DateTime ScheduledTime { get; set; }

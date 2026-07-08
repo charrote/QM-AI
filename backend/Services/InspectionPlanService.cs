@@ -227,7 +227,7 @@ public class InspectionPlanService
             ProcessId = dto.ProcessId,
             EquipmentId = dto.EquipmentId,
             IsActive = true,
-            CreatedBy = (int)userId,
+            CreatedBy = userId,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow,
         };

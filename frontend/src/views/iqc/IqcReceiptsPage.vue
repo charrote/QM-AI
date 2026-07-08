@@ -226,7 +226,7 @@ onMounted(async () => {
   await loadReceipts()
   await loadSuppliers()
   await loadProducts()
-  calculateSamplingPlan()
+  await calculateSamplingPlan()
 })
 </script>
 

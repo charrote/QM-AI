@@ -99,6 +99,7 @@ export interface CreateDynamicParam {
   precision?: number
   aiStrategy?: string
   sortOrder?: number
+  isActive?: boolean
 }
 
 export interface UpdateDynamicParam {

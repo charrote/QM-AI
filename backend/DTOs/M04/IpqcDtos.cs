@@ -8,9 +8,9 @@ public class IpqcFirstPieceListDto
     public string FpNo { get; set; } = string.Empty;
     public long WorkOrderId { get; set; }
     public string? WorkOrderNo { get; set; }
-    public int ProcessId { get; set; }
+    public long ProcessId { get; set; }
     public string? ProcessName { get; set; }
-    public int EquipmentId { get; set; }
+    public long EquipmentId { get; set; }
     public string? EquipmentName { get; set; }
     public string? Shift { get; set; }
     public string Reason { get; set; } = string.Empty;
@@ -23,7 +23,7 @@ public class IpqcFirstPieceListDto
 
 public class IpqcFirstPieceDetailDto : IpqcFirstPieceListDto
 {
-    public int OperatorId { get; set; }
+    public long OperatorId { get; set; }
     public string? OperatorName { get; set; }
     public List<IpqcFirstPieceItemDto>? Items { get; set; }
 }
@@ -48,9 +48,9 @@ public class CreateIpqcFirstPieceDto
 {
     public string? FpNo { get; set; }
     public long WorkOrderId { get; set; }
-    public int ProcessId { get; set; }
-    public int EquipmentId { get; set; }
-    public int OperatorId { get; set; }
+    public long ProcessId { get; set; }
+    public long EquipmentId { get; set; }
+    public long OperatorId { get; set; }
     public string? Shift { get; set; }
     public string Reason { get; set; } = "班次切换";
     public string? Inspector { get; set; }
@@ -85,9 +85,9 @@ public class IpqcPatrolPlanListDto
 {
     public long Id { get; set; }
     public string PlanNo { get; set; } = string.Empty;
-    public int ProcessId { get; set; }
+    public long ProcessId { get; set; }
     public string? ProcessName { get; set; }
-    public int EquipmentId { get; set; }
+    public long EquipmentId { get; set; }
     public string? EquipmentName { get; set; }
     public int PatrolIntervalMin { get; set; }
     public bool AutoGenerate { get; set; }
@@ -99,8 +99,8 @@ public class IpqcPatrolPlanListDto
 public class CreateIpqcPatrolPlanDto
 {
     public string? PlanNo { get; set; }
-    public int ProcessId { get; set; }
-    public int EquipmentId { get; set; }
+    public long ProcessId { get; set; }
+    public long EquipmentId { get; set; }
     public int PatrolIntervalMin { get; set; }
     public bool AutoGenerate { get; set; } = true;
     public string? Inspector { get; set; }
@@ -123,9 +123,9 @@ public class IpqcPatrolListDto
     public long PatrolPlanId { get; set; }
     public string? PlanNo { get; set; }
     public long? WorkOrderId { get; set; }
-    public int ProcessId { get; set; }
+    public long ProcessId { get; set; }
     public string? ProcessName { get; set; }
-    public int EquipmentId { get; set; }
+    public long EquipmentId { get; set; }
     public string? EquipmentName { get; set; }
     public string? Inspector { get; set; }
     public DateTime ScheduledTime { get; set; }

@@ -6,7 +6,7 @@ public class ProductBatchListDto
 {
     public long Id { get; set; }
     public string BatchCode { get; set; } = string.Empty;
-    public int ProductId { get; set; }
+    public long ProductId { get; set; }
     public string ProductName { get; set; } = string.Empty;
     public long? WorkOrderId { get; set; }
     public decimal Quantity { get; set; }
@@ -25,7 +25,7 @@ public class ProductBatchDetailDto : ProductBatchListDto
 public class CreateProductBatchDto
 {
     public string? BatchCode { get; set; }
-    public int ProductId { get; set; }
+    public long ProductId { get; set; }
     public long? WorkOrderId { get; set; }
     public decimal Quantity { get; set; }
     /// <summary>批次来源：manual / ipqc-auto / work-order</summary>
@@ -63,7 +63,7 @@ public class FqcInspectionListDto
 
 public class FqcInspectionDetailDto : FqcInspectionListDto
 {
-    public int ProductId { get; set; }
+    public long ProductId { get; set; }
     public string ProductName { get; set; } = string.Empty;
     public decimal BatchQuantity { get; set; }
     public List<FqcInspectionItemDto>? Items { get; set; }
@@ -78,7 +78,7 @@ public class CreateFqcInspectionDto
     public int SampleSize { get; set; }
     public int Ac { get; set; }
     public int Re { get; set; }
-    public int? InspectorId { get; set; }
+    public long? InspectorId { get; set; }
 }
 
 public class SubmitFqcInspectionDto
@@ -86,7 +86,7 @@ public class SubmitFqcInspectionDto
     public int TotalChecked { get; set; }
     public int TotalPass { get; set; }
     public int TotalFail { get; set; }
-    public int? InspectorId { get; set; }
+    public long? InspectorId { get; set; }
     public List<FqcInspectionItemSubmitDto>? Items { get; set; }
 }
 
@@ -128,7 +128,7 @@ public class OqcReleaseListDto
     public long Id { get; set; }
     public long BatchId { get; set; }
     public string? BatchCode { get; set; }
-    public int CustomerId { get; set; }
+    public long CustomerId { get; set; }
     public string CustomerName { get; set; } = string.Empty;
     public string ReleaseNumber { get; set; } = string.Empty;
     public DateTime ReleaseDate { get; set; }
@@ -148,7 +148,7 @@ public class OqcReleaseDetailDto : OqcReleaseListDto
 public class CreateOqcReleaseDto
 {
     public long BatchId { get; set; }
-    public int CustomerId { get; set; }
+    public long CustomerId { get; set; }
     public string? ReleaseNumber { get; set; }
     public DateTime ReleaseDate { get; set; }
     public decimal Quantity { get; set; }

@@ -26,7 +26,7 @@ public class InspectionItemDetailDto : InspectionItemListDto
     public int? SubgroupSize { get; set; }
     public string? InspectionMethod { get; set; }
     public int? SampleSize { get; set; }
-    public int CreatedBy { get; set; }
+    public long CreatedBy { get; set; }
     public DateTime UpdatedAt { get; set; }
 }
 

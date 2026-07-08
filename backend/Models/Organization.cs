@@ -11,7 +11,7 @@ public class Organization
 {
     [Key]
     [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
-    public int Id { get; set; }
+    public long Id { get; set; }
 
     /// <summary>组织编码</summary>
     [Required]
@@ -29,7 +29,7 @@ public class Organization
     public string Level { get; set; } = string.Empty;
 
     /// <summary>父级组织ID</summary>
-    public int? ParentId { get; set; }
+    public long? ParentId { get; set; }
 
     /// <summary>排序号</summary>
     public int SortOrder { get; set; } = 0;
@@ -51,7 +51,7 @@ public class Organization
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
     /// <summary>创建人</summary>
-    public int? CreatedBy { get; set; }
+    public long? CreatedBy { get; set; }
 
     // Navigation properties
     [ForeignKey(nameof(ParentId))]

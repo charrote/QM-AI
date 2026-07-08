@@ -17,7 +17,7 @@ public class OqcRelease
     public long BatchId { get; set; }
 
     /// <summary>关联客户</summary>
-    public int CustomerId { get; set; }
+    public long CustomerId { get; set; }
 
     /// <summary>放行单号（唯一）</summary>
     [Required]

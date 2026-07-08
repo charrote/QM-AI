@@ -22,7 +22,7 @@ public class IqcInspection
     public long ReceiptId { get; set; }
 
     /// <summary>关联检验标准</summary>
-    public int? StandardId { get; set; }
+    public long? StandardId { get; set; }
 
     /// <summary>抽样样本量</summary>
     public int SampleSize { get; set; }

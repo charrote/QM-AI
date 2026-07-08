@@ -8,13 +8,13 @@ public class InspectionPlanListDto
     public string PlanCode { get; set; } = string.Empty;
     public string PlanName { get; set; } = string.Empty;
     public string InspectionType { get; set; } = string.Empty;
-    public int? ProductId { get; set; }
+    public long? ProductId { get; set; }
     public string? ProductName { get; set; }
-    public int? SupplierId { get; set; }
+    public long? SupplierId { get; set; }
     public string? SupplierName { get; set; }
-    public int? CustomerId { get; set; }
+    public long? CustomerId { get; set; }
     public string? CustomerName { get; set; }
-    public int? ProcessId { get; set; }
+    public long? ProcessId { get; set; }
     public string? ProcessName { get; set; }
     public bool IsActive { get; set; }
     public int ItemCount { get; set; }
@@ -23,12 +23,12 @@ public class InspectionPlanListDto
 
 public class InspectionPlanDetailDto : InspectionPlanListDto
 {
-    public int? MaterialId { get; set; }
+    public long? MaterialId { get; set; }
     public string? MaterialName { get; set; }
-    public int? EquipmentId { get; set; }
+    public long? EquipmentId { get; set; }
     public string? EquipmentName { get; set; }
     public string? Description { get; set; }
-    public int CreatedBy { get; set; }
+    public long CreatedBy { get; set; }
     public DateTime UpdatedAt { get; set; }
     public List<InspectionPlanItemDto> Items { get; set; } = new();
 }
@@ -57,12 +57,12 @@ public class CreateInspectionPlanDto
     public string PlanName { get; set; } = string.Empty;
     public string InspectionType { get; set; } = string.Empty;
     public string? Description { get; set; }
-    public int? ProductId { get; set; }
-    public int? MaterialId { get; set; }
-    public int? SupplierId { get; set; }
-    public int? CustomerId { get; set; }
-    public int? ProcessId { get; set; }
-    public int? EquipmentId { get; set; }
+    public long? ProductId { get; set; }
+    public long? MaterialId { get; set; }
+    public long? SupplierId { get; set; }
+    public long? CustomerId { get; set; }
+    public long? ProcessId { get; set; }
+    public long? EquipmentId { get; set; }
     public List<CreateInspectionPlanItemDto> Items { get; set; } = new();
 }
 
@@ -83,12 +83,12 @@ public class UpdateInspectionPlanDto
 {
     public string PlanName { get; set; } = string.Empty;
     public string? Description { get; set; }
-    public int? ProductId { get; set; }
-    public int? MaterialId { get; set; }
-    public int? SupplierId { get; set; }
-    public int? CustomerId { get; set; }
-    public int? ProcessId { get; set; }
-    public int? EquipmentId { get; set; }
+    public long? ProductId { get; set; }
+    public long? MaterialId { get; set; }
+    public long? SupplierId { get; set; }
+    public long? CustomerId { get; set; }
+    public long? ProcessId { get; set; }
+    public long? EquipmentId { get; set; }
     public bool IsActive { get; set; } = true;
     public List<CreateInspectionPlanItemDto> Items { get; set; } = new();
 }

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, reactive, computed, nextTick, watch } from 'vue'
+import { ref, onMounted, reactive, computed, nextTick, watch, onUnmounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { spcApi } from '@/api/spc'
 import { inspectionItemApi } from '@/api/inspectionItem'
@@ -101,6 +101,39 @@ const xbarChartRef = ref<HTMLElement>()
 const rChartRef = ref<HTMLElement>()
 let xbarChartInstance: any = null
 let rChartInstance: any = null
+
+function resizeHandlerXbar() {
+  xbarChartInstance?.resize?.()
+}
+
+function resizeHandlerR() {
+  rChartInstance?.resize?.()
+}
+
+function safeJsonParse(str: string): any {
+  try {
+    return JSON.parse(str)
+  } catch {
+    return null
+  }
+}
+
+function cleanupCharts() {
+  if (xbarChartInstance) {
+    window.removeEventListener('resize', resizeHandlerXbar)
+    xbarChartInstance.dispose()
+    xbarChartInstance = null
+  }
+  if (rChartInstance) {
+    window.removeEventListener('resize', resizeHandlerR)
+    rChartInstance.dispose()
+    rChartInstance = null
+  }
+}
+
+onUnmounted(() => {
+  cleanupCharts()
+})
 
 // ═════════════════════════════════════════════════════════════════
 //  Computed
@@ -383,7 +416,8 @@ function renderXbarChart(categories: string[], values: number[], limits: any) {
     }
 
     xbarChartInstance.setOption(option)
-    window.addEventListener('resize', () => xbarChartInstance?.resize?.())
+    window.removeEventListener('resize', resizeHandlerXbar)
+    window.addEventListener('resize', resizeHandlerXbar)
   })
 }
 
@@ -424,7 +458,8 @@ function renderRChart(categories: string[], values: number[], limits: any) {
     }
 
     rChartInstance.setOption(option)
-    window.addEventListener('resize', () => rChartInstance?.resize?.())
+    window.removeEventListener('resize', resizeHandlerR)
+    window.addEventListener('resize', resizeHandlerR)
   })
 }
 
@@ -710,6 +745,10 @@ watch(activeTab, (tab) => {
 onMounted(async () => {
   await fetchCharts()
 })
+
+onUnmounted(() => {
+  cleanupCharts()
+})
 </script>
 
 <template>
@@ -992,7 +1031,7 @@ onMounted(async () => {
               <el-table-column prop="detail" label="详情" min-width="200">
                 <template #default="{ row }">
                   <template v-if="row.detail">
-                    {{ JSON.parse(row.detail).description || row.detail }}
+                    {{ safeJsonParse(row.detail)?.description || row.detail }}
                   </template>
                 </template>
               </el-table-column>

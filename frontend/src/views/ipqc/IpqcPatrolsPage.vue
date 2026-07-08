@@ -31,6 +31,8 @@ const submitForm = ref<SubmitIpqcPatrol>({
   items: [],
 })
 
+const submitId = ref<number>(0)
+
 // ─── Helpers ────────────────────────────────────
 function formatDate(d?: string) {
   if (!d) return '-'
@@ -131,8 +133,8 @@ async function openSubmit(id: number) {
         submitForm.value.items = [{ itemName: '外观检查', dataType: 'visual', result: 'pending' }]
       }
     }
-    ;(window as any).__submitPatrolId = id
-    dialogVisible.value = true
+  submitId.value = id
+  dialogVisible.value = true
   } catch {
     ElMessage.error('加载巡检详情失败')
   }
@@ -147,7 +149,7 @@ function removePatrolItem(index: number) {
 }
 
 async function handleSubmit() {
-  const id = (window as any).__submitPatrolId
+  const id = submitId.value
   if (!id) return
   try {
     await patrolApi.submit(id, {

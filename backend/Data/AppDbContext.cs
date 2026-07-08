@@ -6,6 +6,11 @@ using QM_AI.API.Models.M03;
 using QM_AI.API.Models.M04;
 using QM_AI.API.Models.M05;
 using QM_AI.API.Models.M06;
+using QM_AI.API.Models.M07;
+using QM_AI.API.Models.M09;
+using QM_AI.API.Models.M11;
+using QM_AI.API.Models.M12;
+using QM_AI.API.Models.M13;
 
 namespace QM_AI.API.Data;
 
@@ -79,6 +84,34 @@ public class AppDbContext : DbContext
     public DbSet<SpcAlertTrigger> SpcAlertTriggers { get; set; } = null!;
     public DbSet<SpcAnovaResult> SpcAnovaResults { get; set; } = null!;
     public DbSet<SpcDataSource> SpcDataSources { get; set; } = null!;
+
+    // M07 不良与异常管理
+    public DbSet<Defect> Defects { get; set; } = null!;
+    public DbSet<Capa> Capas { get; set; } = null!;
+    public DbSet<CapaTemporaryMeasure> CapaTemporaryMeasures { get; set; } = null!;
+    public DbSet<CapaRootCause> CapaRootCauses { get; set; } = null!;
+    public DbSet<CapaCorrectiveAction> CapaCorrectiveActions { get; set; } = null!;
+    public DbSet<CapaPreventiveAction> CapaPreventiveActions { get; set; } = null!;
+    public DbSet<CapaVerification> CapaVerifications { get; set; } = null!;
+    public DbSet<ScrapReworkRecord> ScrapReworkRecords { get; set; } = null!;
+
+    // M09 客诉 8D
+    public DbSet<Complaint> Complaints { get; set; } = null!;
+    public DbSet<ComplaintEvent> ComplaintEvents { get; set; } = null!;
+    public DbSet<D8Report> D8Reports { get; set; } = null!;
+
+    // M11 设备联动
+    public DbSet<EquipmentParamMapping> EquipmentParamMappings { get; set; } = null!;
+    public DbSet<EquipmentStatusHistory> EquipmentStatusHistories { get; set; } = null!;
+    public DbSet<EquipmentQualityCorrelation> EquipmentQualityCorrelations { get; set; } = null!;
+
+    // M12 文件管理
+    public DbSet<Document> Documents { get; set; } = null!;
+    public DbSet<DocumentVersion> DocumentVersions { get; set; } = null!;
+
+    // M13 审核稽核
+    public DbSet<Audit> Audits { get; set; } = null!;
+    public DbSet<AuditFinding> AuditFindings { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -475,6 +508,188 @@ public class AppDbContext : DbContext
         {
             entity.HasIndex(i => new { i.TypeCode, i.SortOrder });
             entity.Property(i => i.TypeCode).HasMaxLength(50);
+        });
+
+        // ── M07 不良与异常管理 ──
+        modelBuilder.Entity<Defect>(entity =>
+        {
+            entity.HasIndex(d => d.DefectCode).IsUnique();
+            entity.HasIndex(d => d.SourceType);
+            entity.HasIndex(d => d.Status);
+            entity.Property(d => d.Severity).HasMaxLength(10);
+            entity.Property(d => d.SourceType).HasMaxLength(10);
+            entity.Property(d => d.Status).HasMaxLength(20);
+            entity.Property(d => d.ImageUrls).HasColumnType("json");
+        });
+
+        modelBuilder.Entity<Capa>(entity =>
+        {
+            entity.HasIndex(c => c.CapaCode).IsUnique();
+            entity.HasIndex(c => c.Status);
+            entity.HasIndex(c => c.CurrentPhase);
+            entity.Property(c => c.Severity).HasMaxLength(10);
+            entity.Property(c => c.Status).HasMaxLength(20);
+            entity.Property(c => c.Title).HasMaxLength(500);
+            entity.HasOne(c => c.Defect)
+                  .WithMany()
+                  .HasForeignKey(c => c.DefectId)
+                  .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<CapaTemporaryMeasure>(entity =>
+        {
+            entity.Property(e => e.Description).HasMaxLength(2000);
+            entity.HasOne(e => e.Capa)
+                  .WithMany(c => c.TemporaryMeasures)
+                  .HasForeignKey(e => e.CapaId)
+                  .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<CapaRootCause>(entity =>
+        {
+            entity.Property(e => e.AnalysisMethod).HasMaxLength(20);
+            entity.Property(e => e.Content).HasColumnType("json");
+            entity.Property(e => e.RootCauseSummary).HasMaxLength(2000);
+            entity.HasOne(e => e.Capa)
+                  .WithMany(c => c.RootCauses)
+                  .HasForeignKey(e => e.CapaId)
+                  .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<CapaCorrectiveAction>(entity =>
+        {
+            entity.Property(e => e.ActionDescription).HasMaxLength(2000);
+            entity.Property(e => e.Status).HasMaxLength(20);
+            entity.Property(e => e.Remarks).HasMaxLength(1000);
+            entity.HasOne(e => e.Capa)
+                  .WithMany(c => c.CorrectiveActions)
+                  .HasForeignKey(e => e.CapaId)
+                  .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<CapaPreventiveAction>(entity =>
+        {
+            entity.Property(e => e.ActionDescription).HasMaxLength(2000);
+            entity.Property(e => e.Status).HasMaxLength(20);
+            entity.Property(e => e.Remarks).HasMaxLength(1000);
+            entity.HasOne(e => e.Capa)
+                  .WithMany(c => c.PreventiveActions)
+                  .HasForeignKey(e => e.CapaId)
+                  .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<CapaVerification>(entity =>
+        {
+            entity.Property(e => e.Conclusion).HasMaxLength(20);
+            entity.Property(e => e.Evidence).HasMaxLength(2000);
+            entity.Property(e => e.ImageUrls).HasColumnType("json");
+            entity.Property(e => e.Remarks).HasMaxLength(1000);
+            entity.HasOne(e => e.Capa)
+                  .WithMany(c => c.Verifications)
+                  .HasForeignKey(e => e.CapaId)
+                  .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<ScrapReworkRecord>(entity =>
+        {
+            entity.HasIndex(e => e.Type);
+            entity.Property(e => e.Type).HasMaxLength(10);
+            entity.Property(e => e.Reason).HasMaxLength(2000);
+            entity.Property(e => e.ReworkSteps).HasColumnType("json");
+            entity.Property(e => e.ReworkInspectionResult).HasMaxLength(10);
+            entity.HasOne(e => e.Defect)
+                  .WithMany()
+                  .HasForeignKey(e => e.DefectId)
+                  .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        // ── M09 客诉 8D ──
+        modelBuilder.Entity<Complaint>(entity =>
+        {
+            entity.HasIndex(e => e.ComplaintCode).IsUnique();
+            entity.Property(e => e.Severity).HasMaxLength(10);
+            entity.Property(e => e.Subject).HasMaxLength(500);
+            entity.Property(e => e.Status).HasMaxLength(20);
+            entity.HasMany(e => e.Events)
+                  .WithOne(ev => ev.Complaint)
+                  .HasForeignKey(ev => ev.ComplaintId)
+                  .OnDelete(DeleteBehavior.Cascade);
+            entity.HasMany(e => e.D8Reports)
+                  .WithOne(d => d.Complaint)
+                  .HasForeignKey(d => d.ComplaintId)
+                  .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<ComplaintEvent>(entity =>
+        {
+            entity.HasIndex(e => new { e.ComplaintId, e.CreatedAt });
+            entity.Property(e => e.EventType).HasMaxLength(20);
+        });
+
+        modelBuilder.Entity<D8Report>(entity =>
+        {
+            entity.HasIndex(e => e.ComplaintId).IsUnique();
+            entity.Property(e => e.Status).HasMaxLength(20);
+        });
+
+        // ── M11 设备联动 ──
+        modelBuilder.Entity<EquipmentParamMapping>(entity =>
+        {
+            entity.Property(e => e.MqttTopic).HasMaxLength(500);
+            entity.Property(e => e.SystemParamCode).HasMaxLength(50);
+            entity.Property(e => e.DataType).HasMaxLength(10);
+            entity.Property(e => e.Unit).HasMaxLength(20);
+        });
+
+        modelBuilder.Entity<EquipmentStatusHistory>(entity =>
+        {
+            entity.HasIndex(e => new { e.EquipmentId, e.RecordedAt });
+            entity.Property(e => e.Signal).HasMaxLength(10);
+        });
+
+        modelBuilder.Entity<EquipmentQualityCorrelation>(entity =>
+        {
+            entity.HasIndex(e => new { e.EquipmentId, e.AnalysisDate });
+        });
+
+        // ── M12 文件管理 ──
+        modelBuilder.Entity<Document>(entity =>
+        {
+            entity.Property(e => e.Title).HasMaxLength(500);
+            entity.Property(e => e.DocType).HasMaxLength(20);
+            entity.Property(e => e.MinioKey).HasMaxLength(500);
+            entity.Property(e => e.Status).HasMaxLength(10);
+            entity.HasMany(e => e.Versions)
+                  .WithOne(v => v.Document)
+                  .HasForeignKey(v => v.DocumentId)
+                  .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<DocumentVersion>(entity =>
+        {
+            entity.Property(e => e.MinioKey).HasMaxLength(500);
+        });
+
+        // ── M13 审核稽核 ──
+        modelBuilder.Entity<Audit>(entity =>
+        {
+            entity.HasIndex(e => e.AuditCode).IsUnique();
+            entity.Property(e => e.AuditType).HasMaxLength(10);
+            entity.Property(e => e.Title).HasMaxLength(500);
+            entity.Property(e => e.Status).HasMaxLength(10);
+            entity.HasMany(e => e.Findings)
+                  .WithOne(f => f.Audit)
+                  .HasForeignKey(f => f.AuditId)
+                  .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<AuditFinding>(entity =>
+        {
+            entity.HasIndex(e => e.AuditId);
+            entity.Property(e => e.FindingType).HasMaxLength(20);
+            entity.Property(e => e.Severity).HasMaxLength(10);
+            entity.Property(e => e.Status).HasMaxLength(10);
+            entity.Property(e => e.RequirementRef).HasMaxLength(200);
         });
 
         // ── M06 SPC 统计分析 ──

@@ -27,19 +27,19 @@ public class SpcDataSource
     public long? InspectionItemId { get; set; }
 
     /// <summary>过滤：产品</summary>
-    public int? ProductId { get; set; }
+    public long? ProductId { get; set; }
 
     /// <summary>过滤：工序</summary>
-    public int? ProcessId { get; set; }
+    public long? ProcessId { get; set; }
 
     /// <summary>过滤：供应商</summary>
-    public int? SupplierId { get; set; }
+    public long? SupplierId { get; set; }
 
     /// <summary>过滤：客户</summary>
-    public int? CustomerId { get; set; }
+    public long? CustomerId { get; set; }
 
     /// <summary>过滤：设备</summary>
-    public int? EquipmentId { get; set; }
+    public long? EquipmentId { get; set; }
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 

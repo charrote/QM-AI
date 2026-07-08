@@ -52,6 +52,8 @@ const componentNameMap: Record<string, string> = {
   'basic-tool': 'BasicData',
   'basic-supplier': 'BasicData',
   'basic-customer': 'BasicData',
+  'basic-inspection-items': 'InspectionItemsPage',
+  'basic-inspection-plans': 'InspectionPlansPage',
   'iqc-params': 'IqcParams',
   'iqc-receipts': 'IqcReceiptsPage',
   'iqc-inspections': 'IqcInspectionsPage',
@@ -68,13 +70,34 @@ const componentNameMap: Record<string, string> = {
   'fqc-packaging': 'FqcPackagingPage',
   spc: 'SPC',
   defects: 'Defects',
-  trace: 'Trace',
+  'capa-page': 'CapaPage',
+  'scrap-rework-page': 'ScrapReworkPage',
+  'trace-page': 'TracePage',
+  'ng-diffusion-page': 'NgDiffusionPage',
+  'recall-simulation-page': 'RecallSimulationPage',
   complaints: 'Complaints',
-  ai: 'AI',
-  'equipment-link': 'EquipmentLink',
+  'complaint-list': 'ComplaintListPage',
+  'd8-report': 'D8ReportPage',
+  'complaint-timeline': 'ComplaintTimelinePage',
+   ai: 'AI',
+   'alert-center': 'AlertCenterPage',
+   'root-cause': 'RootCauseAnalysisPage',
+   'model-management': 'ModelManagementPage',
+   'equipment-link': 'EquipmentLink',
+   'param-mapping': 'ParamMappingPage',
+   'status-history': 'StatusHistoryPage',
+   'quality-correlation': 'QualityCorrelationPage',
   documents: 'Documents',
+  'document-list': 'DocumentListPage',
+  'version-history': 'VersionHistoryPage',
   audits: 'Audits',
+  'audit-list': 'AuditListPage',
+  'audit-detail': 'AuditDetailPage',
+  finding: 'FindingPage',
   reports: 'Reports',
+  'quality-dashboard': 'QualityDashboardPage',
+  'report-builder': 'ReportBuilderPage',
+  'export-center': 'ExportCenterPage',
   organizations: 'OrganizationPage',
   settings: 'Settings',
 }
@@ -214,8 +237,9 @@ function handleMenuSelect(index: string) {
 }
 
 function handleLogout() {
-  authStore.logout()
-  router.push('/login')
+  authStore.logout(() => {
+    router.push('/login')
+  })
 }
 
 // ─── 组织选择器辅助 ──────────────────────────────────────
@@ -396,7 +420,7 @@ function getIconComponent(iconName?: string) {
               :data-tab-path="tab.path"
               :class="[
                 'tab-item',
-                { active: tab.id === currentRouteTabId },
+                { active: tab.id === tabStore.activeTabId },
               ]"
               @click="activateTab(tab)"
               @contextmenu="handleContextMenu($event, tab)"

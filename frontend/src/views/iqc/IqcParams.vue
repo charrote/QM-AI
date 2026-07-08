@@ -117,6 +117,7 @@ const paramForm = reactive<CreateDynamicParam>({
   precision: 1.0,
   aiStrategy: '',
   sortOrder: 0,
+  isActive: true,
 })
 
 const dataTypeOptions = [
@@ -185,6 +186,7 @@ function openEditParam(param: DynamicParam) {
   // 需要解析提取 ID 以匹配下拉选项
   paramForm.aiStrategy = parseAiStrategyId(param.aiStrategy)
   paramForm.sortOrder = param.sortOrder
+  paramForm.isActive = param.isActive
   paramDialogVisible.value = true
 }
 
@@ -218,7 +220,7 @@ async function saveParam() {
         precision: paramForm.precision,
         aiStrategy: aiStrategyPayload,
         sortOrder: paramForm.sortOrder,
-        isActive: selectedParam.value.isActive,
+        isActive: paramForm.isActive ?? true,
       })
       ElMessage.success('参数已更新')
     } else {

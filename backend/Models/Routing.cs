@@ -8,9 +8,9 @@ public class Routing
 {
     [Key]
     [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
-    public int Id { get; set; }
+    public long Id { get; set; }
 
-    public int ProductId { get; set; }
+    public long ProductId { get; set; }
 
     /// <summary>工艺路线编号</summary>
     [Required]
@@ -23,7 +23,7 @@ public class Routing
     /// <summary>工序顺序（步骤号）</summary>
     public int StepOrder { get; set; }
 
-    public int ProcessId { get; set; }
+    public long ProcessId { get; set; }
 
     /// <summary>标准工时（分钟）</summary>
     public double? StandardTimeMinutes { get; set; }

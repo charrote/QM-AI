@@ -2,7 +2,7 @@ namespace QM_AI.API.DTOs.Auth;
 
 public class UserInfoDto
 {
-    public int Id { get; set; }
+    public long Id { get; set; }
     public string Username { get; set; } = string.Empty;
     public string? DisplayName { get; set; }
     public string? Avatar { get; set; }

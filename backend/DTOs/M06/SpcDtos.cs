@@ -205,11 +205,11 @@ public class SpcDataSourceDto
     public string SourceType { get; set; } = string.Empty;
     public long? InspectionItemId { get; set; }
     public string? InspectionItemName { get; set; }
-    public int? ProductId { get; set; }
-    public int? ProcessId { get; set; }
-    public int? SupplierId { get; set; }
-    public int? CustomerId { get; set; }
-    public int? EquipmentId { get; set; }
+    public long? ProductId { get; set; }
+    public long? ProcessId { get; set; }
+    public long? SupplierId { get; set; }
+    public long? CustomerId { get; set; }
+    public long? EquipmentId { get; set; }
     public DateTime CreatedAt { get; set; }
 }
 
@@ -218,11 +218,11 @@ public class CreateSpcDataSourceDto
     public long ChartId { get; set; }
     public string SourceType { get; set; } = string.Empty;
     public long? InspectionItemId { get; set; }
-    public int? ProductId { get; set; }
-    public int? ProcessId { get; set; }
-    public int? SupplierId { get; set; }
-    public int? CustomerId { get; set; }
-    public int? EquipmentId { get; set; }
+    public long? ProductId { get; set; }
+    public long? ProcessId { get; set; }
+    public long? SupplierId { get; set; }
+    public long? CustomerId { get; set; }
+    public long? EquipmentId { get; set; }
 }
 
 // ─── 业务数据拉取 DTO（用于SPC从IQC/IPQC/FQC取数）─────────────
@@ -237,22 +237,22 @@ public class BusinessInspectionDataDto
     public decimal? MeasuredValue { get; set; }
     public string Result { get; set; } = string.Empty;
     public DateTime InspectedAt { get; set; }
-    public int? ProductId { get; set; }
-    public int? ProcessId { get; set; }
-    public int? SupplierId { get; set; }
-    public int? CustomerId { get; set; }
-    public int? EquipmentId { get; set; }
+    public long? ProductId { get; set; }
+    public long? ProcessId { get; set; }
+    public long? SupplierId { get; set; }
+    public long? CustomerId { get; set; }
+    public long? EquipmentId { get; set; }
 }
 
 public class BusinessDataQueryDto
 {
     public string? SourceType { get; set; } // IQC/IPQC/FQC
     public long? InspectionItemId { get; set; }
-    public int? ProductId { get; set; }
-    public int? ProcessId { get; set; }
-    public int? SupplierId { get; set; }
-    public int? CustomerId { get; set; }
-    public int? EquipmentId { get; set; }
+    public long? ProductId { get; set; }
+    public long? ProcessId { get; set; }
+    public long? SupplierId { get; set; }
+    public long? CustomerId { get; set; }
+    public long? EquipmentId { get; set; }
     public DateTime? StartDate { get; set; }
     public DateTime? EndDate { get; set; }
     public int? Limit { get; set; }

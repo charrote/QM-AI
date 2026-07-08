@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import type { FormInstance } from 'element-plus'
 import { anomalyApi } from '@/api/iqc'
 import type { IqcAnomaly, CreateIqcAnomaly, ResolveIqcAnomaly } from '@/types/iqc'
 import {
@@ -16,6 +17,7 @@ const total = ref(0)
 
 const anomalies = ref<IqcAnomaly[]>([])
 const anomalyDialogVisible = ref(false)
+const anomalyFormRef = ref<FormInstance>()
 const anomalyForm = reactive<CreateIqcAnomaly>({
   receiptId: 0, anomalyType: 'quality', severity: 'major', description: ''
 })
@@ -64,6 +66,10 @@ function openCreateAnomaly(receiptId?: number) {
 async function saveAnomaly() {
   if (!anomalyForm.receiptId) {
     ElMessage.warning('请选择来料登记')
+    return
+  }
+  if (!anomalyForm.anomalyType || !anomalyForm.severity || !anomalyForm.description) {
+    ElMessage.warning('请填写异常类型、严重程度和描述')
     return
   }
   try {

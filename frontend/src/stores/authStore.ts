@@ -2,7 +2,6 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { UserInfo } from '@/types/user'
 import { authApi } from '@/api/auth'
-import { useRouter } from 'vue-router'
 
 const TOKEN_KEY = 'qm-ai-token'
 const REFRESH_KEY = 'qm-ai-refresh-token'
@@ -13,6 +12,13 @@ export const useAuthStore = defineStore('auth', () => {
   const refreshToken = ref<string>('')
   const user = ref<UserInfo | null>(null)
   const isAuthenticated = computed(() => !!token.value && !!user.value)
+
+  // 外部注入的路由实例（由 App.vue 或 router 设置）
+  let onSessionExpired: (() => void) | null = null
+
+  function setOnSessionExpired(handler: () => void) {
+    onSessionExpired = handler
+  }
 
   function initFromStorage() {
     const savedToken = localStorage.getItem(TOKEN_KEY)
@@ -56,13 +62,18 @@ export const useAuthStore = defineStore('auth', () => {
     persistAuth()
   }
 
-  async function logout() {
+  async function logout(onRedirect?: () => void) {
     try {
       await authApi.logout()
     } catch {
       // ignore
     }
     clearAuth()
+    if (onRedirect) {
+      onRedirect()
+    } else {
+      window.location.href = '/login'
+    }
   }
 
   async function refreshTokenAction() {
@@ -74,8 +85,9 @@ export const useAuthStore = defineStore('auth', () => {
       return res.token
     } catch {
       clearAuth()
-      const router = useRouter()
-      router.push('/login')
+      if (onSessionExpired) {
+        onSessionExpired()
+      }
       throw new Error('Session expired')
     }
   }
@@ -89,5 +101,6 @@ export const useAuthStore = defineStore('auth', () => {
     login,
     logout,
     refreshTokenAction,
+    setOnSessionExpired,
   }
 })

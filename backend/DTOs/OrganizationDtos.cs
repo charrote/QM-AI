@@ -5,16 +5,16 @@ namespace QM_AI.API.DTOs;
 // ─── Organization ───────────────────────────────────────────────
 public class OrganizationTreeNodeDto
 {
-    public int Id { get; set; }
+    public long Id { get; set; }
     public string Code { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
     public string Level { get; set; } = string.Empty;
-    public int? ParentId { get; set; }
+    public long? ParentId { get; set; }
     public int SortOrder { get; set; }
     public bool IsActive { get; set; }
     public string? Location { get; set; }
     public string? Description { get; set; }
-    public int? CreatedBy { get; set; }
+    public long? CreatedBy { get; set; }
     /// <summary>子节点数量</summary>
     public int ChildCount { get; set; }
     public List<OrganizationTreeNodeDto> Children { get; set; } = new();
@@ -22,11 +22,11 @@ public class OrganizationTreeNodeDto
 
 public class OrganizationListDto
 {
-    public int Id { get; set; }
+    public long Id { get; set; }
     public string Code { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
     public string Level { get; set; } = string.Empty;
-    public int? ParentId { get; set; }
+    public long? ParentId { get; set; }
     public string? ParentName { get; set; }
     public int SortOrder { get; set; }
     public bool IsActive { get; set; }
@@ -37,18 +37,18 @@ public class OrganizationListDto
 
 public class OrganizationDetailDto
 {
-    public int Id { get; set; }
+    public long Id { get; set; }
     public string Code { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
     public string Level { get; set; } = string.Empty;
-    public int? ParentId { get; set; }
+    public long? ParentId { get; set; }
     public string? ParentName { get; set; }
     public int SortOrder { get; set; }
     public bool IsActive { get; set; }
     public string? Location { get; set; }
     public string? Contact { get; set; }
     public string? Description { get; set; }
-    public int? CreatedBy { get; set; }
+    public long? CreatedBy { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
 }
@@ -59,19 +59,19 @@ public class CreateOrganizationDto
     public string Name { get; set; } = string.Empty;
     /// <summary>层级: group/company/workshop/line</summary>
     public string Level { get; set; } = string.Empty;
-    public int? ParentId { get; set; }
+    public long? ParentId { get; set; }
     public int SortOrder { get; set; } = 0;
     public string? Location { get; set; }
     public string? Contact { get; set; }
     public string? Description { get; set; }
-    public int? CreatedBy { get; set; }
+    public long? CreatedBy { get; set; }
 }
 
 public class UpdateOrganizationDto
 {
     public string Code { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
-    public int? ParentId { get; set; }
+    public long? ParentId { get; set; }
     public int SortOrder { get; set; } = 0;
     public bool IsActive { get; set; } = true;
     public string? Location { get; set; }
@@ -82,7 +82,7 @@ public class UpdateOrganizationDto
 // ─── SysDict ────────────────────────────────────────────────────
 public class SysDictTypeDto
 {
-    public int Id { get; set; }
+    public long Id { get; set; }
     public string TypeCode { get; set; } = string.Empty;
     public string TypeName { get; set; } = string.Empty;
     public bool IsSystem { get; set; }
@@ -92,7 +92,7 @@ public class SysDictTypeDto
 
 public class SysDictItemDto
 {
-    public int Id { get; set; }
+    public long Id { get; set; }
     public string TypeCode { get; set; } = string.Empty;
     public string ItemLabel { get; set; } = string.Empty;
     public string ItemValue { get; set; } = string.Empty;

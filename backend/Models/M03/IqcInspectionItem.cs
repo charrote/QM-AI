@@ -42,7 +42,7 @@ public class IqcInspectionItem
     public string Result { get; set; } = "pending";
 
     /// <summary>关联不良代码</summary>
-    public int? DefectCodeId { get; set; }
+    public long? DefectCodeId { get; set; }
 
     /// <summary>备注</summary>
     public string? Remark { get; set; }

@@ -176,7 +176,6 @@ const entityConfigs: Record<EntityName, EntityConfig<any, any>> = {
       { prop: 'model', label: '型号', width: '120' },
       { prop: 'productionLine', label: '产线', width: '100' },
       { prop: 'workshop', label: '车间', width: '100' },
-      { prop: 'status', label: '状态', width: '80' },
       { prop: 'equipmentType', label: '类型', width: '100' },
       {
         prop: 'isActive', label: '状态', width: '80',
@@ -406,7 +405,32 @@ async function openEdit(row: any) {
     const detail = await config.value.api.get(row.id)
     Object.assign(formData, detail)
   } catch {
-    Object.assign(formData, row)
+    // 如果获取详情失败，手动赋值已知字段而非浅拷贝可能不完整的 row
+    formData.code = row.code
+    formData.name = row.name
+    formData.description = row.description
+    formData.isActive = row.isActive !== undefined ? row.isActive : true
+    if (row.unit !== undefined) formData.unit = row.unit
+    if (row.category !== undefined) formData.category = row.category
+    if (row.defaultInspectionLevel !== undefined) formData.defaultInspectionLevel = row.defaultInspectionLevel
+    if (row.defaultAql !== undefined) formData.defaultAql = row.defaultAql
+    if (row.equipmentType !== undefined) formData.equipmentType = row.equipmentType
+    if (row.workshop !== undefined) formData.workshop = row.workshop
+    if (row.productionLine !== undefined) formData.productionLine = row.productionLine
+    if (row.hasMqttConnection !== undefined) formData.hasMqttConnection = row.hasMqttConnection
+    if (row.mqttTopicPrefix !== undefined) formData.mqttTopicPrefix = row.mqttTopicPrefix
+    if (row.toolType !== undefined) formData.toolType = row.toolType
+    if (row.designLife !== undefined) formData.designLife = row.designLife
+    if (row.lifeUnit !== undefined) formData.lifeUnit = row.lifeUnit
+    if (row.currentLife !== undefined) formData.currentLife = row.currentLife
+    if (row.supplier !== undefined) formData.supplier = row.supplier
+    if (row.grade !== undefined) formData.grade = row.grade
+    if (row.score !== undefined) formData.score = row.score
+    if (row.supplyCategory !== undefined) formData.supplyCategory = row.supplyCategory
+    if (row.contactPerson !== undefined) formData.contactPerson = row.contactPerson
+    if (row.contactPhone !== undefined) formData.contactPhone = row.contactPhone
+    if (row.email !== undefined) formData.email = row.email
+    if (row.address !== undefined) formData.address = row.address
   }
   dialogVisible.value = true
 }

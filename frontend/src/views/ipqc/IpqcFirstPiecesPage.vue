@@ -48,6 +48,8 @@ const submitForm = reactive<SubmitIpqcFirstPiece>({
   items: [],
 })
 
+const submitId = ref<number>(0)
+
 const loadingPlanItems = ref(false)
 
 // ─── Auto-load plans ──────────────────────────
@@ -197,13 +199,12 @@ async function openSubmit(id: number) {
   submitForm.items = (detail.items || []).map(i => ({ ...i }))
   submitForm.inspector = detail.inspector || undefined
 
-  // store id for submit
-  ;(window as any).__submitFirstPieceId = id
+  submitId.value = id
   dialogVisible.value = true
 }
 
 async function handleSubmit() {
-  const id = (window as any).__submitFirstPieceId
+  const id = submitId.value
   if (!id) return
   try {
     await firstPieceApi.submit(id, {

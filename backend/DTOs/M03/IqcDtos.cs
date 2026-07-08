@@ -7,9 +7,9 @@ public class IqcReceiptListDto
 {
     public long Id { get; set; }
     public string ReceiptNo { get; set; } = string.Empty;
-    public int SupplierId { get; set; }
+    public long SupplierId { get; set; }
     public string SupplierName { get; set; } = string.Empty;
-    public int ProductId { get; set; }
+    public long ProductId { get; set; }
     public string ProductName { get; set; } = string.Empty;
     public string? BatchNo { get; set; }
     public int Quantity { get; set; }
@@ -29,8 +29,8 @@ public class IqcReceiptDetailDto : IqcReceiptListDto
 public class CreateIqcReceiptDto
 {
     public string ReceiptNo { get; set; } = string.Empty;
-    public int SupplierId { get; set; }
-    public int ProductId { get; set; }
+    public long SupplierId { get; set; }
+    public long ProductId { get; set; }
     public string? BatchNo { get; set; }
     public int Quantity { get; set; }
     public string? Unit { get; set; }
@@ -55,7 +55,7 @@ public class IqcInspectionListDto
     public string InspectionNo { get; set; } = string.Empty;
     public long ReceiptId { get; set; }
     public string? ReceiptNo { get; set; }
-    public int? StandardId { get; set; }
+    public long? StandardId { get; set; }
     public int SampleSize { get; set; }
     public int Ac { get; set; }
     public int Re { get; set; }
@@ -78,7 +78,7 @@ public class IqcInspectionDetailDto : IqcInspectionListDto
 public class CreateIqcInspectionDto
 {
     public long ReceiptId { get; set; }
-    public int? StandardId { get; set; }
+    public long? StandardId { get; set; }
     public int SampleSize { get; set; }
     public int Ac { get; set; }
     public int Re { get; set; }
@@ -103,7 +103,7 @@ public class IqcInspectionItemSubmitDto
     public decimal? Usl { get; set; }
     public decimal? Lsl { get; set; }
     public string Result { get; set; } = "pending";
-    public int? DefectCodeId { get; set; }
+    public long? DefectCodeId { get; set; }
     public string? Remark { get; set; }
 }
 
@@ -118,7 +118,7 @@ public class IqcInspectionItemDto
     public decimal? Usl { get; set; }
     public decimal? Lsl { get; set; }
     public string Result { get; set; } = "pending";
-    public int? DefectCodeId { get; set; }
+    public long? DefectCodeId { get; set; }
     public string? DefectCodeName { get; set; }
     public string? Remark { get; set; }
 }
@@ -168,7 +168,7 @@ public class ResolveIqcAnomalyDto
 public class SupplierScoreDto
 {
     public long Id { get; set; }
-    public int SupplierId { get; set; }
+    public long SupplierId { get; set; }
     public string SupplierName { get; set; } = string.Empty;
     public DateTime? ScoreDate { get; set; }
     public decimal? Score { get; set; }

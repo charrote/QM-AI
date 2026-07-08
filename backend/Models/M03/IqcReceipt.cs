@@ -19,10 +19,10 @@ public class IqcReceipt
     public string ReceiptNo { get; set; } = string.Empty;
 
     /// <summary>关联供应商</summary>
-    public int SupplierId { get; set; }
+    public long SupplierId { get; set; }
 
     /// <summary>关联物料/产品</summary>
-    public int ProductId { get; set; }
+    public long ProductId { get; set; }
 
     /// <summary>批次号</summary>
     [MaxLength(100)]

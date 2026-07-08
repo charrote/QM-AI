@@ -48,7 +48,7 @@ public class EquipmentController : ControllerBase
             .ToList();
         var orgMap = orgIds.Any()
             ? await _db.Organizations.Where(o => orgIds.Contains(o.Id)).ToDictionaryAsync(o => o.Id, o => o.Name)
-            : new Dictionary<int, string>();
+            : new Dictionary<long, string>();
 
         foreach (var item in items)
         {
