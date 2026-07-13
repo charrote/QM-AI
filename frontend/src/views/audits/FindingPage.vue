@@ -186,7 +186,7 @@ onMounted(async () => {
     </div>
 
     <!-- Table -->
-    <el-table :data="findings" stripe style="width: 100%" size="small">
+    <el-table :data="findings" stripe style="width: 100%" >
       <el-table-column prop="id" label="ID" width="60" />
       <el-table-column prop="auditId" label="审核ID" width="80" />
       <el-table-column label="发现类型" width="100">
@@ -248,7 +248,7 @@ onMounted(async () => {
       width="600px"
       :close-on-click-modal="false"
     >
-      <el-form :model="createForm" label-width="100px" size="small">
+      <el-form :model="createForm" label-width="100px" >
         <el-form-item label="审核ID" required>
           <el-input v-model="createForm.auditId" placeholder="审核ID" type="number" />
         </el-form-item>
@@ -291,7 +291,7 @@ onMounted(async () => {
       width="500px"
       :close-on-click-modal="false"
     >
-      <el-form :model="statusForm" label-width="110px" size="small">
+      <el-form :model="statusForm" label-width="110px" >
         <el-form-item label="状态" required>
           <el-select v-model="statusForm.status" style="width: 100%">
             <el-option v-for="opt in FINDING_STATUS_OPTIONS" :key="opt.value" :label="opt.label" :value="opt.value" />
@@ -326,7 +326,7 @@ onMounted(async () => {
       width="400px"
       :close-on-click-modal="false"
     >
-      <el-form :model="verifyForm" label-width="80px" size="small">
+      <el-form :model="verifyForm" label-width="80px" >
         <el-form-item label="验证人ID" required>
           <el-input v-model="verifyForm.verifiedBy" placeholder="验证人ID" type="number" />
         </el-form-item>

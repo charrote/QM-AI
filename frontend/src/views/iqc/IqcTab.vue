@@ -553,7 +553,7 @@ async function onSubTabChange(tab: string) {
       </div>
 
       <!-- Table -->
-      <el-table :data="receipts" stripe style="width: 100%" size="small" v-loading="false">
+      <el-table :data="receipts" stripe style="width: 100%"  v-loading="false">
         <el-table-column prop="receiptNo" label="收货单号" width="160" />
         <el-table-column prop="supplierName" label="供应商" width="150" show-overflow-tooltip />
         <el-table-column prop="productName" label="物料" width="150" show-overflow-tooltip />
@@ -609,7 +609,7 @@ async function onSubTabChange(tab: string) {
         <el-button @click="loadInspections">刷新</el-button>
       </div>
 
-      <el-table :data="inspections" stripe style="width: 100%" size="small">
+      <el-table :data="inspections" stripe style="width: 100%" >
         <el-table-column prop="inspectionNo" label="检验单号" width="180" />
         <el-table-column prop="receiptNo" label="来源单号" width="150" />
         <el-table-column prop="sampleSize" label="样本量" width="70" />
@@ -669,7 +669,7 @@ async function onSubTabChange(tab: string) {
         <el-button @click="loadAnomalies">刷新</el-button>
       </div>
 
-      <el-table :data="anomalies" stripe style="width: 100%" size="small">
+      <el-table :data="anomalies" stripe style="width: 100%" >
         <el-table-column prop="anomalyNo" label="异常单号" width="180" />
         <el-table-column prop="receiptNo" label="来料单号" width="150" />
         <el-table-column label="类型" width="90">
@@ -737,7 +737,7 @@ async function onSubTabChange(tab: string) {
               <el-button type="primary" size="small" @click="updateSupplierScore">保存评分</el-button>
             </div>
           </template>
-          <el-form label-width="120px" size="small">
+          <el-form label-width="120px" >
             <el-form-item label="综合评分">
               <el-input-number v-model="supplierScore.score" :min="0" :max="100" :precision="2" style="width: 200px" />
               <el-tag :type="supplierScore.grade === 'A' ? 'success' : supplierScore.grade === 'B' ? 'primary' : supplierScore.grade === 'C' ? 'warning' : 'danger'" style="margin-left: 12px">
@@ -788,7 +788,7 @@ async function onSubTabChange(tab: string) {
             <el-icon style="vertical-align: middle"><Box /></el-icon>
             <span style="vertical-align: middle">来料信息</span>
           </template>
-          <el-descriptions :column="3" size="small" border>
+          <el-descriptions :column="3" border>
             <el-descriptions-item label="单号">{{ traceResult.receipt.receiptNo }}</el-descriptions-item>
             <el-descriptions-item label="供应商">{{ traceResult.receipt.supplierName }}</el-descriptions-item>
             <el-descriptions-item label="物料">{{ traceResult.receipt.productName }}</el-descriptions-item>
@@ -808,7 +808,7 @@ async function onSubTabChange(tab: string) {
             <el-icon style="vertical-align: middle"><Document /></el-icon>
             <span style="vertical-align: middle">检验记录 ({{ traceResult.inspections.length }})</span>
           </template>
-          <el-table :data="traceResult.inspections" size="small" stripe>
+          <el-table :data="traceResult.inspections"  stripe>
             <el-table-column prop="inspectionNo" label="检验单号" width="180" />
             <el-table-column prop="sampleSize" label="样本量" width="70" />
             <el-table-column label="Ac/Re" width="70">
@@ -835,7 +835,7 @@ async function onSubTabChange(tab: string) {
             <el-icon style="vertical-align: middle"><WarningFilled /></el-icon>
             <span style="vertical-align: middle">异常记录 ({{ traceResult.anomalies.length }})</span>
           </template>
-          <el-table :data="traceResult.anomalies" size="small" stripe>
+          <el-table :data="traceResult.anomalies"  stripe>
             <el-table-column prop="anomalyNo" label="异常单号" width="180" />
             <el-table-column label="类型" width="80">
               <template #default="{ row }">{{ statusLabel(row.anomalyType, IQC_ANOMALY_TYPE_OPTIONS) }}</template>
@@ -864,7 +864,7 @@ async function onSubTabChange(tab: string) {
             <el-icon style="vertical-align: middle"><DataAnalysis /></el-icon>
             <span style="vertical-align: middle">供应商评分</span>
           </template>
-          <el-descriptions :column="3" size="small" border>
+          <el-descriptions :column="3" border>
             <el-descriptions-item label="评分">{{ traceResult.supplierScore.score }}</el-descriptions-item>
             <el-descriptions-item label="评级">{{ traceResult.supplierScore.grade }} 级</el-descriptions-item>
             <el-descriptions-item label="评估日期">{{ formatDate(traceResult.supplierScore.scoreDate) }}</el-descriptions-item>
@@ -882,7 +882,7 @@ async function onSubTabChange(tab: string) {
       width="560px"
       :close-on-click-modal="false"
     >
-      <el-form :model="receiptForm" label-width="100px" size="small">
+      <el-form :model="receiptForm" label-width="100px" >
         <el-form-item label="收货单号" required>
           <el-input v-model="receiptForm.receiptNo" placeholder="如: REC-20260620-001" />
         </el-form-item>
@@ -952,7 +952,7 @@ async function onSubTabChange(tab: string) {
       size="600px"
     >
       <template v-if="receiptDetail">
-        <el-descriptions :column="2" size="small" border style="margin-bottom: 16px">
+        <el-descriptions :column="2" border style="margin-bottom: 16px">
           <el-descriptions-item label="供应商">{{ receiptDetail.supplierName }}</el-descriptions-item>
           <el-descriptions-item label="物料">{{ receiptDetail.productName }}</el-descriptions-item>
           <el-descriptions-item label="批次号">{{ receiptDetail.batchNo }}</el-descriptions-item>
@@ -1010,7 +1010,7 @@ async function onSubTabChange(tab: string) {
         <!-- Inspections summary -->
         <el-card v-if="receiptDetail.inspections && receiptDetail.inspections.length > 0" class="trace-card">
           <template #header>检验记录</template>
-          <el-table :data="receiptDetail.inspections" size="small" stripe>
+          <el-table :data="receiptDetail.inspections"  stripe>
             <el-table-column prop="inspectionNo" label="检验单号" />
             <el-table-column prop="sampleSize" label="样本量" width="60" />
             <el-table-column label="Ac/Re" width="70">
@@ -1030,7 +1030,7 @@ async function onSubTabChange(tab: string) {
         <!-- Anomalies summary -->
         <el-card v-if="receiptDetail.anomalies && receiptDetail.anomalies.length > 0" class="trace-card">
           <template #header>异常记录</template>
-          <el-table :data="receiptDetail.anomalies" size="small" stripe>
+          <el-table :data="receiptDetail.anomalies"  stripe>
             <el-table-column prop="anomalyNo" label="异常单号" />
             <el-table-column label="严重程度" width="80">
               <template #default="{ row }">
@@ -1060,7 +1060,7 @@ async function onSubTabChange(tab: string) {
       width="500px"
       :close-on-click-modal="false"
     >
-      <el-form :model="newInspectionForm" label-width="120px" size="small">
+      <el-form :model="newInspectionForm" label-width="120px" >
         <el-form-item label="来料登记ID">
           <el-input-number v-model="newInspectionForm.receiptId" :min="1" style="width: 100%" />
         </el-form-item>
@@ -1111,7 +1111,7 @@ async function onSubTabChange(tab: string) {
       size="500px"
     >
       <template v-if="inspectionDetail">
-        <el-descriptions :column="2" size="small" border style="margin-bottom: 16px">
+        <el-descriptions :column="2" border style="margin-bottom: 16px">
           <el-descriptions-item label="来源">{{ inspectionDetail.receiptNo }}</el-descriptions-item>
           <el-descriptions-item label="供应商">{{ inspectionDetail.supplierName }}</el-descriptions-item>
           <el-descriptions-item label="物料">{{ inspectionDetail.productName }}</el-descriptions-item>
@@ -1127,7 +1127,7 @@ async function onSubTabChange(tab: string) {
         </el-descriptions>
 
         <h4 style="margin-bottom: 8px">检验项目</h4>
-        <el-table :data="inspectionDetail.items || []" size="small" stripe>
+        <el-table :data="inspectionDetail.items || []"  stripe>
           <el-table-column prop="itemName" label="项目" min-width="120" />
           <el-table-column prop="measuredValue" label="实测值" width="90" />
           <el-table-column label="规格" width="130">
@@ -1156,14 +1156,14 @@ async function onSubTabChange(tab: string) {
       width="600px"
       :close-on-click-modal="false"
     >
-      <el-form label-width="100px" size="small">
+      <el-form label-width="100px" >
         <el-form-item label="检验员">
           <el-input v-model="submitInspector" placeholder="检验员姓名" style="width: 200px" />
         </el-form-item>
         <el-form-item label="检验项目">
           <div class="submit-items">
             <div v-for="(item, index) in submitItems" :key="index" class="submit-item-row">
-              <el-input v-model="item.itemName" placeholder="项目名称" size="small" style="width: 150px" />
+              <el-input v-model="item.itemName" placeholder="项目名称"  style="width: 150px" />
               <el-input-number
                 v-model="item.measuredValue"
                 :precision="4"
@@ -1172,12 +1172,12 @@ async function onSubTabChange(tab: string) {
                 style="width: 140px"
                 placeholder="实测值"
               />
-              <el-select v-model="item.result" size="small" style="width: 100px">
+              <el-select v-model="item.result"  style="width: 100px">
                 <el-option label="合格" value="pass" />
                 <el-option label="不合格" value="fail" />
                 <el-option label="待定" value="pending" />
               </el-select>
-              <el-input v-model="item.remark" placeholder="备注" size="small" style="width: 120px" />
+              <el-input v-model="item.remark" placeholder="备注"  style="width: 120px" />
               <el-button link size="small" type="danger" @click="removeSubmitItem(index)">删除</el-button>
             </div>
           </div>
@@ -1199,7 +1199,7 @@ async function onSubTabChange(tab: string) {
       width="520px"
       :close-on-click-modal="false"
     >
-      <el-form :model="anomalyForm" label-width="100px" size="small">
+      <el-form :model="anomalyForm" label-width="100px" >
         <el-form-item label="来料登记ID" required>
           <el-input-number v-model="anomalyForm.receiptId" :min="1" style="width: 100%" />
         </el-form-item>
@@ -1241,7 +1241,7 @@ async function onSubTabChange(tab: string) {
       width="480px"
       :close-on-click-modal="false"
     >
-      <el-form :model="resolveForm" label-width="100px" size="small">
+      <el-form :model="resolveForm" label-width="100px" >
         <el-form-item label="解决方案" required>
           <el-input v-model="resolveForm.resolution" type="textarea" :rows="4" placeholder="请描述解决方案..." />
         </el-form-item>
@@ -1267,19 +1267,19 @@ async function onSubTabChange(tab: string) {
           </template>
           <el-row :gutter="16" style="margin-bottom: 8px">
             <el-col :span="6">
-              <el-form-item label="批量" size="small">
+              <el-form-item label="批量" >
                 <el-input-number v-model="samplingPlanForm.lotSize" :min="1" :max="500000" style="width: 100%" />
               </el-form-item>
             </el-col>
             <el-col :span="6">
-              <el-form-item label="检验水平" size="small">
+              <el-form-item label="检验水平" >
                 <el-select v-model="samplingPlanForm.samplingLevel" style="width: 100%">
                   <el-option v-for="opt in SAMPLING_LEVEL_OPTIONS" :key="opt.value" :label="opt.label" :value="opt.value" />
                 </el-select>
               </el-form-item>
             </el-col>
             <el-col :span="6">
-              <el-form-item label="AQL 值" size="small">
+              <el-form-item label="AQL 值" >
                 <el-input-number v-model="samplingPlanForm.aqlValue" :min="0.01" :step="0.1" :precision="2" style="width: 100%" />
               </el-form-item>
             </el-col>

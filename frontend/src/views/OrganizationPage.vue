@@ -317,7 +317,7 @@ onMounted(() => {
           </div>
         </div>
 
-        <el-descriptions :column="2" border size="small" class="detail-descriptions">
+        <el-descriptions :column="2" border class="detail-descriptions">
           <el-descriptions-item label="编码" :span="1">{{ selectedNode.code }}</el-descriptions-item>
           <el-descriptions-item label="层级" :span="1">
             <el-tag :color="levelColor" effect="dark" size="small">{{ levelLabel }}</el-tag>

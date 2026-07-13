@@ -66,7 +66,7 @@ public class AuditService
     private async Task<AuditFinding> AddFindingInternal(long auditId, AuditFinding finding, string initialStatus)
     {
         var audit = await _db.Audits.FindAsync(auditId);
-        if (audit == null) throw new Exception($"Audit {auditId} not found");
+        if (audit == null) throw new InvalidOperationException($"Audit {auditId} not found");
 
         finding.AuditId = auditId;
         finding.Status = initialStatus;
@@ -126,7 +126,7 @@ public class AuditService
         var f = await _db.AuditFindings.FindAsync(findingId);
         if (f == null) return null;
 
-        if (f.Status != "rectifying") throw new Exception($"Cannot verify finding in status '{f.Status}'");
+        if (f.Status != "rectifying") throw new InvalidOperationException($"Cannot verify finding in status '{f.Status}'");
 
         f.Status = newStatus;
         f.VerifiedByStr = verifierId;

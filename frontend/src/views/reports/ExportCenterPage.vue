@@ -101,7 +101,7 @@ onMounted(() => {
   <div class="page-container" v-loading="searchLoading">
     <!-- Toolbar -->
     <div class="toolbar-row">
-      <el-select v-model="statusFilter" placeholder="导出状态" clearable size="small" style="width: 140px">
+      <el-select v-model="statusFilter" placeholder="导出状态" clearable  style="width: 140px">
         <el-option v-for="opt in EXPORT_STATUS_OPTIONS" :key="opt.value" :label="opt.label" :value="opt.value" />
       </el-select>
       <el-button type="primary" size="small" @click="loadExports" :loading="tableLoading">

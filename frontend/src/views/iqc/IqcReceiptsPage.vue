@@ -246,7 +246,7 @@ onMounted(async () => {
     </div>
 
     <!-- Table -->
-    <el-table :data="receipts" stripe style="width: 100%" size="small" v-loading="false">
+    <el-table :data="receipts" stripe style="width: 100%"  v-loading="false">
       <el-table-column prop="receiptNo" label="收货单号" width="160" />
       <el-table-column prop="supplierName" label="供应商" width="150" show-overflow-tooltip />
       <el-table-column prop="productName" label="物料" width="150" show-overflow-tooltip />
@@ -296,19 +296,19 @@ onMounted(async () => {
           </template>
           <el-row :gutter="16" style="margin-bottom: 8px">
             <el-col :span="6">
-              <el-form-item label="批量" size="small">
+              <el-form-item label="批量" >
                 <el-input-number v-model="samplingPlanForm.lotSize" :min="1" :max="500000" style="width: 100%" />
               </el-form-item>
             </el-col>
             <el-col :span="6">
-              <el-form-item label="检验水平" size="small">
+              <el-form-item label="检验水平" >
                 <el-select v-model="samplingPlanForm.samplingLevel" style="width: 100%">
                   <el-option v-for="opt in SAMPLING_LEVEL_OPTIONS" :key="opt.value" :label="opt.label" :value="opt.value" />
                 </el-select>
               </el-form-item>
             </el-col>
             <el-col :span="6">
-              <el-form-item label="AQL 值" size="small">
+              <el-form-item label="AQL 值" >
                 <el-input-number v-model="samplingPlanForm.aqlValue" :min="0.01" :step="0.1" :precision="2" style="width: 100%" />
               </el-form-item>
             </el-col>
@@ -333,7 +333,7 @@ onMounted(async () => {
       width="560px"
       :close-on-click-modal="false"
     >
-      <el-form :model="receiptForm" label-width="100px" size="small">
+      <el-form :model="receiptForm" label-width="100px" >
         <el-form-item label="收货单号" required>
           <el-input v-model="receiptForm.receiptNo" placeholder="如: REC-20260620-001" />
         </el-form-item>
@@ -401,7 +401,7 @@ onMounted(async () => {
       size="600px"
     >
       <template v-if="receiptDetail">
-        <el-descriptions :column="2" size="small" border style="margin-bottom: 16px">
+        <el-descriptions :column="2" border style="margin-bottom: 16px">
           <el-descriptions-item label="供应商">{{ receiptDetail.supplierName }}</el-descriptions-item>
           <el-descriptions-item label="物料">{{ receiptDetail.productName }}</el-descriptions-item>
           <el-descriptions-item label="批次号">{{ receiptDetail.batchNo }}</el-descriptions-item>
@@ -459,7 +459,7 @@ onMounted(async () => {
         <!-- Inspections summary -->
         <el-card v-if="receiptDetail.inspections && receiptDetail.inspections.length > 0" class="trace-card">
           <template #header>检验记录</template>
-          <el-table :data="receiptDetail.inspections" size="small" stripe>
+          <el-table :data="receiptDetail.inspections"  stripe>
             <el-table-column prop="inspectionNo" label="检验单号" />
             <el-table-column prop="sampleSize" label="样本量" width="60" />
             <el-table-column label="Ac/Re" width="70">
@@ -479,7 +479,7 @@ onMounted(async () => {
         <!-- Anomalies summary -->
         <el-card v-if="receiptDetail.anomalies && receiptDetail.anomalies.length > 0" class="trace-card">
           <template #header>异常记录</template>
-          <el-table :data="receiptDetail.anomalies" size="small" stripe>
+          <el-table :data="receiptDetail.anomalies"  stripe>
             <el-table-column prop="anomalyNo" label="异常单号" />
             <el-table-column label="严重程度" width="80">
               <template #default="{ row }">
@@ -507,7 +507,7 @@ onMounted(async () => {
       width="500px"
       :close-on-click-modal="false"
     >
-      <el-form :model="newInspectionForm" label-width="120px" size="small">
+      <el-form :model="newInspectionForm" label-width="120px" >
         <el-form-item label="来料登记ID">
           <el-input-number v-model="newInspectionForm.receiptId" :min="1" style="width: 100%" />
         </el-form-item>

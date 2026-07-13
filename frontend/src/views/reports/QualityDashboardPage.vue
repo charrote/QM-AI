@@ -165,7 +165,7 @@ onMounted(() => {
         size="small"
         style="width: 150px"
       />
-      <el-select v-model="moduleFilter" placeholder="模块" size="small" style="width: 120px">
+      <el-select v-model="moduleFilter" placeholder="模块"  style="width: 120px">
         <el-option v-for="opt in REPORT_MODULE_OPTIONS" :key="opt.value" :label="opt.label" :value="opt.value" />
       </el-select>
       <el-button-group>
@@ -294,7 +294,7 @@ onMounted(() => {
           <el-button size="small" text @click="loadSupplierScores" :loading="supplierLoading">刷新</el-button>
         </div>
       </template>
-      <el-table :data="supplierScores" stripe size="small" v-loading="supplierLoading" max-height="360">
+      <el-table :data="supplierScores" stripe  v-loading="supplierLoading" max-height="360">
         <el-table-column prop="supplierName" label="供应商" min-width="160" />
         <el-table-column label="综合评分" width="120">
           <template #default="{ row }">

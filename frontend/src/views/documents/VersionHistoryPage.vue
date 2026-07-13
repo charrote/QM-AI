@@ -76,7 +76,7 @@ onMounted(() => {
     </div>
 
     <!-- Table -->
-    <el-table :data="versions" stripe v-loading="tableLoading" style="width: 100%" size="small">
+    <el-table :data="versions" stripe v-loading="tableLoading" style="width: 100%" >
       <el-table-column prop="documentId" label="文档ID" width="100" />
       <el-table-column prop="version" label="版本" width="80" />
       <el-table-column prop="changeDescription" label="变更说明" min-width="200" show-overflow-tooltip />

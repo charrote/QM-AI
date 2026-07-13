@@ -217,7 +217,7 @@ onMounted(async () => {
     </div>
 
     <!-- Table -->
-    <el-table :data="items" stripe size="small" v-loading="loading" style="flex:1">
+    <el-table :data="items" stripe  v-loading="loading" style="flex:1">
       <el-table-column prop="patrolNo" label="巡检编号" width="170" />
       <el-table-column prop="planNo" label="计划编号" width="170" />
       <el-table-column prop="processName" label="工序" width="120" />
@@ -275,7 +275,7 @@ onMounted(async () => {
         </div>
       </template>
 
-      <el-form :model="submitForm" label-width="100px" size="small">
+      <el-form :model="submitForm" label-width="100px" >
         <el-form-item label="检验结论">
           <el-select v-model="submitForm.conclusion" style="width:200px">
             <el-option v-for="o in IPQC_PATROL_CONCLUSION_OPTIONS" :key="o.value" :label="o.label" :value="o.value" />

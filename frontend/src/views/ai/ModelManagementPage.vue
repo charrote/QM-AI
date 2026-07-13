@@ -117,7 +117,7 @@ function formatDate(d?: string) {
     </div>
 
     <!-- Table -->
-    <el-table :data="models" stripe style="width: 100%" size="small">
+    <el-table :data="models" stripe style="width: 100%" >
       <el-table-column prop="name" label="模型名称" min-width="150" show-overflow-tooltip />
       <el-table-column label="类型" width="120">
         <template #default="{ row }">
@@ -169,7 +169,7 @@ function formatDate(d?: string) {
       width="500px"
       :close-on-click-modal="false"
     >
-      <el-form :model="createForm" label-width="100px" size="small">
+      <el-form :model="createForm" label-width="100px" >
         <el-form-item label="模型名称" required>
           <el-input v-model="createForm.name" placeholder="如: 缺陷分类模型-v2" />
         </el-form-item>
@@ -191,7 +191,7 @@ function formatDate(d?: string) {
     <!-- Detail Dialog -->
     <el-dialog v-model="detailVisible" :title="currentModel?.name || '模型详情'" width="640px">
       <template v-if="currentModel">
-        <el-descriptions :column="2" border size="small">
+        <el-descriptions :column="2" border>
           <el-descriptions-item label="模型名称">{{ currentModel.name }}</el-descriptions-item>
           <el-descriptions-item label="类型">{{ MODEL_TYPE_MAP[currentModel.type] || currentModel.type }}</el-descriptions-item>
           <el-descriptions-item label="状态">

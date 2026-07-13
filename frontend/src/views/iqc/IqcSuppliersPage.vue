@@ -74,7 +74,7 @@ onMounted(async () => {
             <el-button type="primary" size="small" @click="updateSupplierScore">保存评分</el-button>
           </div>
         </template>
-        <el-form label-width="120px" size="small">
+        <el-form label-width="120px" >
           <el-form-item label="综合评分">
             <el-input-number v-model="supplierScore.score" :min="0" :max="100" :precision="2" style="width: 200px" />
             <el-tag :type="supplierScore.grade === 'A' ? 'success' : supplierScore.grade === 'B' ? 'primary' : supplierScore.grade === 'C' ? 'warning' : 'danger'" style="margin-left: 12px">

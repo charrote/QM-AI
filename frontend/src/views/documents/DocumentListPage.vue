@@ -218,7 +218,7 @@ onMounted(() => {
     </div>
 
     <!-- Table -->
-    <el-table :data="documents" stripe v-loading="tableLoading" style="width: 100%" size="small">
+    <el-table :data="documents" stripe v-loading="tableLoading" style="width: 100%" >
       <el-table-column prop="title" label="标题" min-width="180" show-overflow-tooltip />
       <el-table-column prop="docType" label="文档类型" width="140">
         <template #default="{ row }">
@@ -264,7 +264,7 @@ onMounted(() => {
 
     <!-- Dialog: Create/Edit -->
     <el-dialog v-model="dialogVisible" :title="isEditing ? '编辑文档' : '新建文档'" width="520px" :close-on-click-modal="false">
-      <el-form :model="docForm" label-width="90px" size="small">
+      <el-form :model="docForm" label-width="90px" >
         <el-form-item label="标题" required>
           <el-input v-model="docForm.title" placeholder="请输入文档标题" />
         </el-form-item>
@@ -287,7 +287,7 @@ onMounted(() => {
 
     <!-- Dialog: Approve -->
     <el-dialog v-model="approveDialogVisible" title="审批文档" width="440px" :close-on-click-modal="false">
-      <el-form :model="approveForm" label-width="90px" size="small">
+      <el-form :model="approveForm" label-width="90px" >
         <el-form-item label="审批人ID" required>
           <el-input-number v-model="approveForm.approvedBy" :min="1" placeholder="审批人ID" style="width: 100%" />
         </el-form-item>
@@ -300,7 +300,7 @@ onMounted(() => {
 
     <!-- Dialog: Reject -->
     <el-dialog v-model="rejectDialogVisible" title="驳回文档" width="440px" :close-on-click-modal="false">
-      <el-form :model="rejectForm" label-width="90px" size="small">
+      <el-form :model="rejectForm" label-width="90px" >
         <el-form-item label="驳回原因" required>
           <el-input v-model="rejectForm.reason" type="textarea" :rows="4" placeholder="请输入驳回原因" />
         </el-form-item>

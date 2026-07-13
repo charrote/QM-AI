@@ -164,7 +164,7 @@ onMounted(() => {
       <el-button @click="loadCapas">刷新</el-button>
     </div>
 
-    <el-table :data="capas" stripe style="width: 100%" size="small">
+    <el-table :data="capas" stripe style="width: 100%" >
       <el-table-column prop="capaCode" label="CAPA编号" width="140" />
       <el-table-column prop="title" label="标题" min-width="180" show-overflow-tooltip />
       <el-table-column label="严重程度" width="80">
@@ -176,7 +176,7 @@ onMounted(() => {
       </el-table-column>
       <el-table-column label="阶段" width="120">
         <template #default="{ row }">
-          <el-steps :active="row.currentPhase" finish-status="success" simple size="small">
+          <el-steps :active="row.currentPhase" finish-status="success" simple>
             <el-step
               v-for="step in CAPA_PHASE_LABELS"
               :key="step.phase"
@@ -235,7 +235,7 @@ onMounted(() => {
       width="600px"
       :close-on-click-modal="false"
     >
-      <el-form :model="capaForm" label-width="100px" size="small">
+      <el-form :model="capaForm" label-width="100px" >
         <el-row :gutter="16">
           <el-col :span="12">
             <el-form-item label="缺陷ID">

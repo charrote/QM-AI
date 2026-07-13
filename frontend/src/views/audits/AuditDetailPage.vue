@@ -66,7 +66,7 @@ onMounted(async () => {
             </el-tag>
           </div>
         </template>
-        <el-descriptions :column="2" border size="small">
+        <el-descriptions :column="2" border>
           <el-descriptions-item label="审核代码">{{ audit!.auditCode }}</el-descriptions-item>
           <el-descriptions-item label="审核类型">
             {{ AUDIT_TYPE_OPTIONS.find(o => o.value === audit!.auditType)?.label || audit!.auditType }}
@@ -92,7 +92,7 @@ onMounted(async () => {
             </el-button>
           </div>
         </template>
-        <el-table :data="findings" stripe size="small">
+        <el-table :data="findings" stripe >
           <el-table-column prop="id" label="ID" width="60" />
           <el-table-column label="类型" width="100">
             <template #default="{ row }">

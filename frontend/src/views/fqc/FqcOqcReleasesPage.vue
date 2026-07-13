@@ -93,7 +93,7 @@ onMounted(fetchList)
 <template>
   <div class="page-container">
     <div class="toolbar-row">
-      <el-form :inline="true" :model="query" size="small">
+      <el-form :inline="true" :model="query" >
         <el-form-item>
           <el-input v-model="query.keyword" placeholder="搜索放行单号/批次" clearable @keyup.enter="fetchList" />
         </el-form-item>
@@ -143,7 +143,7 @@ onMounted(fetchList)
 
     <!-- 新建放行单对话框 -->
     <el-dialog v-model="createVisible" title="新建出货放行单" width="500px">
-      <el-form :model="createForm" label-width="100px" size="small">
+      <el-form :model="createForm" label-width="100px" >
         <el-form-item label="批次 ID">
           <el-input-number v-model="createForm.batchId" :min="1" />
         </el-form-item>
@@ -165,7 +165,7 @@ onMounted(fetchList)
 
     <!-- 电子签名对话框 -->
     <el-dialog v-model="signVisible" title="电子签名" width="450px">
-      <el-form :model="signForm" label-width="100px" size="small">
+      <el-form :model="signForm" label-width="100px" >
         <el-form-item label="签名图片 URL">
           <el-input v-model="signForm.eSignatureUrl" placeholder="输入 MinIO 签名图片地址" />
         </el-form-item>

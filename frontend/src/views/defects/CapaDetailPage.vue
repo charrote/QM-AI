@@ -152,7 +152,7 @@ onMounted(loadCapaDetail)
       />
     </el-steps>
 
-    <el-descriptions :column="3" size="small" border class="detail-descriptions">
+    <el-descriptions :column="3" border class="detail-descriptions">
       <el-descriptions-item label="缺陷ID">{{ capa.defectId }}</el-descriptions-item>
       <el-descriptions-item label="负责人">{{ capa.assignedTo }}</el-descriptions-item>
       <el-descriptions-item label="截止日期">{{ capa.dueDate?.slice(0, 10) || '-' }}</el-descriptions-item>
@@ -176,7 +176,7 @@ onMounted(loadCapaDetail)
         </div>
       </template>
       <div v-if="capa.temporaryMeasures && capa.temporaryMeasures.length > 0">
-        <el-table :data="capa.temporaryMeasures" size="small" stripe>
+        <el-table :data="capa.temporaryMeasures"  stripe>
           <el-table-column prop="description" label="措施描述" min-width="200" />
           <el-table-column prop="executedBy" label="执行人" width="90" />
           <el-table-column label="执行时间" width="160">
@@ -187,13 +187,13 @@ onMounted(loadCapaDetail)
       <el-empty v-else description="暂无临时措施" :image-size="60" />
       <el-row :gutter="12" class="phase-form" v-if="capa.currentPhase >= 1 && capa.currentPhase < 2">
         <el-col :span="12">
-          <el-input v-model="tempMeasureForm.description" placeholder="措施描述" size="small" />
+          <el-input v-model="tempMeasureForm.description" placeholder="措施描述"  />
         </el-col>
         <el-col :span="4">
-          <el-input v-model="tempMeasureForm.executedBy" placeholder="执行人" size="small" />
+          <el-input v-model="tempMeasureForm.executedBy" placeholder="执行人"  />
         </el-col>
         <el-col :span="4">
-          <el-date-picker v-model="tempMeasureForm.executedAt" type="date" size="small" style="width: 100%" />
+          <el-date-picker v-model="tempMeasureForm.executedAt" type="date" style="width: 100%" />
         </el-col>
         <el-col :span="2">
           <el-button type="primary" size="small" @click="addTemporaryMeasure">添加</el-button>
@@ -212,7 +212,7 @@ onMounted(loadCapaDetail)
         </div>
       </template>
       <div v-if="capa.rootCauses && capa.rootCauses.length > 0">
-        <el-table :data="capa.rootCauses" size="small" stripe>
+        <el-table :data="capa.rootCauses"  stripe>
           <el-table-column prop="analysisMethod" label="分析方法" width="100" />
           <el-table-column prop="content" label="分析内容" min-width="250" show-overflow-tooltip />
           <el-table-column prop="rootCauseSummary" label="根因总结" min-width="180" show-overflow-tooltip />
@@ -225,7 +225,7 @@ onMounted(loadCapaDetail)
       <el-empty v-else description="暂无根本原因分析" :image-size="60" />
       <el-row :gutter="12" class="phase-form" v-if="capa.currentPhase >= 2 && capa.currentPhase < 3">
         <el-col :span="3">
-          <el-select v-model="rootCauseForm.analysisMethod" size="small" style="width: 100%">
+          <el-select v-model="rootCauseForm.analysisMethod"  style="width: 100%">
             <el-option label="5Why" value="5Why" />
             <el-option label="鱼骨图" value="fishbone" />
             <el-option label="FMEA" value="FMEA" />
@@ -233,10 +233,10 @@ onMounted(loadCapaDetail)
           </el-select>
         </el-col>
         <el-col :span="8">
-          <el-input v-model="rootCauseForm.content" placeholder="分析内容" size="small" />
+          <el-input v-model="rootCauseForm.content" placeholder="分析内容"  />
         </el-col>
         <el-col :span="7">
-          <el-input v-model="rootCauseForm.rootCauseSummary" placeholder="根因总结" size="small" />
+          <el-input v-model="rootCauseForm.rootCauseSummary" placeholder="根因总结"  />
         </el-col>
         <el-col :span="6">
           <el-button type="primary" size="small" @click="addRootCause">添加分析</el-button>
@@ -255,7 +255,7 @@ onMounted(loadCapaDetail)
         </div>
       </template>
       <div v-if="capa.correctiveActions && capa.correctiveActions.length > 0">
-        <el-table :data="capa.correctiveActions" size="small" stripe>
+        <el-table :data="capa.correctiveActions"  stripe>
           <el-table-column prop="actionDescription" label="措施描述" min-width="200" />
           <el-table-column prop="responsiblePerson" label="负责人" width="90" />
           <el-table-column label="截止日期" width="110">
@@ -288,13 +288,13 @@ onMounted(loadCapaDetail)
       <el-empty v-else description="暂无纠正措施" :image-size="60" />
       <el-row :gutter="12" class="phase-form" v-if="capa.currentPhase >= 3 && capa.currentPhase < 4">
         <el-col :span="8">
-          <el-input v-model="correctiveForm.actionDescription" placeholder="措施描述" size="small" />
+          <el-input v-model="correctiveForm.actionDescription" placeholder="措施描述"  />
         </el-col>
         <el-col :span="5">
-          <el-input v-model="correctiveForm.responsiblePerson" placeholder="负责人" size="small" />
+          <el-input v-model="correctiveForm.responsiblePerson" placeholder="负责人"  />
         </el-col>
         <el-col :span="5">
-          <el-date-picker v-model="correctiveForm.dueDate" type="date" size="small" style="width: 100%" />
+          <el-date-picker v-model="correctiveForm.dueDate" type="date" style="width: 100%" />
         </el-col>
         <el-col :span="6">
           <el-button type="primary" size="small" @click="addCorrectiveAction">添加</el-button>
@@ -313,7 +313,7 @@ onMounted(loadCapaDetail)
         </div>
       </template>
       <div v-if="capa.preventiveActions && capa.preventiveActions.length > 0">
-        <el-table :data="capa.preventiveActions" size="small" stripe>
+        <el-table :data="capa.preventiveActions"  stripe>
           <el-table-column prop="actionDescription" label="措施描述" min-width="200" />
           <el-table-column prop="responsiblePerson" label="负责人" width="90" />
           <el-table-column label="截止日期" width="110">
@@ -346,13 +346,13 @@ onMounted(loadCapaDetail)
       <el-empty v-else description="暂无预防措施" :image-size="60" />
       <el-row :gutter="12" class="phase-form" v-if="capa.currentPhase >= 4 && capa.currentPhase < 5">
         <el-col :span="8">
-          <el-input v-model="preventiveForm.actionDescription" placeholder="措施描述" size="small" />
+          <el-input v-model="preventiveForm.actionDescription" placeholder="措施描述"  />
         </el-col>
         <el-col :span="5">
-          <el-input v-model="preventiveForm.responsiblePerson" placeholder="负责人" size="small" />
+          <el-input v-model="preventiveForm.responsiblePerson" placeholder="负责人"  />
         </el-col>
         <el-col :span="5">
-          <el-date-picker v-model="preventiveForm.dueDate" type="date" size="small" style="width: 100%" />
+          <el-date-picker v-model="preventiveForm.dueDate" type="date" style="width: 100%" />
         </el-col>
         <el-col :span="6">
           <el-button type="primary" size="small" @click="addPreventiveAction">添加</el-button>
@@ -371,7 +371,7 @@ onMounted(loadCapaDetail)
         </div>
       </template>
       <div v-if="capa.verifications && capa.verifications.length > 0">
-        <el-table :data="capa.verifications" size="small" stripe>
+        <el-table :data="capa.verifications"  stripe>
           <el-table-column prop="verifierId" label="验证人ID" width="90" />
           <el-table-column label="验证日期" width="160">
             <template #default="{ row }">{{ formatDate(row.verificationDate) }}</template>
@@ -384,19 +384,19 @@ onMounted(loadCapaDetail)
       <el-empty v-else description="暂无验证记录" :image-size="60" />
       <el-row :gutter="12" class="phase-form" v-if="capa.currentPhase >= 5 && capa.currentPhase < 6">
         <el-col :span="3">
-          <el-input-number v-model="verificationForm.verifierId" :min="0" placeholder="验证人ID" size="small" style="width: 100%" />
+          <el-input-number v-model="verificationForm.verifierId" :min="0" placeholder="验证人ID"  style="width: 100%" />
         </el-col>
         <el-col :span="4">
-          <el-date-picker v-model="verificationForm.verificationDate" type="date" size="small" style="width: 100%" />
+          <el-date-picker v-model="verificationForm.verificationDate" type="date" style="width: 100%" />
         </el-col>
         <el-col :span="5">
-          <el-input v-model="verificationForm.conclusion" placeholder="结论" size="small" />
+          <el-input v-model="verificationForm.conclusion" placeholder="结论"  />
         </el-col>
         <el-col :span="5">
-          <el-input v-model="verificationForm.evidence" placeholder="证据" size="small" />
+          <el-input v-model="verificationForm.evidence" placeholder="证据"  />
         </el-col>
         <el-col :span="4">
-          <el-input v-model="verificationForm.remarks" placeholder="备注" size="small" />
+          <el-input v-model="verificationForm.remarks" placeholder="备注"  />
         </el-col>
         <el-col :span="3">
           <el-button type="primary" size="small" @click="addVerification">添加</el-button>

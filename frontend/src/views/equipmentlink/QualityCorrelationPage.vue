@@ -87,7 +87,7 @@ onMounted(() => {
       <el-button @click="resetQuery" size="small">重置</el-button>
     </div>
 
-    <el-table :data="correlations" v-loading="loading" stripe border style="width: 100%" size="small" row-key="id">
+    <el-table :data="correlations" v-loading="loading" stripe border style="width: 100%"  row-key="id">
       <el-table-column prop="equipmentId" label="设备ID" width="70" />
       <el-table-column label="设备名称" min-width="140">
         <template #default="{ row }">{{ getEquipmentName(row.equipmentId) }}</template>

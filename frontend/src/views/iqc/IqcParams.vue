@@ -631,7 +631,7 @@ onMounted(async () => {
 
         <div class="rules-content">
           <div class="rules-table">
-            <el-table :data="rules" stripe style="width: 100%" size="small">
+            <el-table :data="rules" stripe style="width: 100%" >
               <el-table-column prop="name" label="规则名称" min-width="160" />
               <el-table-column prop="code" label="编码" width="120" />
               <el-table-column prop="logic" label="逻辑" width="80">
@@ -697,7 +697,7 @@ onMounted(async () => {
       width="480px"
       :close-on-click-modal="false"
     >
-      <el-form :model="groupForm" label-width="100px" size="small">
+      <el-form :model="groupForm" label-width="100px" >
         <el-form-item label="组名称" required>
           <el-input v-model="groupForm.name" placeholder="如：热力学参数组" />
         </el-form-item>
@@ -728,7 +728,7 @@ onMounted(async () => {
       width="580px"
       :close-on-click-modal="false"
     >
-      <el-form :model="paramForm" label-width="120px" size="small">
+      <el-form :model="paramForm" label-width="120px" >
         <el-form-item label="参数名称" required>
           <el-input v-model="paramForm.name" placeholder="如：温度-精加工" />
         </el-form-item>
@@ -799,7 +799,7 @@ onMounted(async () => {
       width="640px"
       :close-on-click-modal="false"
     >
-      <el-form :model="ruleForm" label-width="120px" size="small">
+      <el-form :model="ruleForm" label-width="120px" >
         <el-form-item label="规则名称" required>
           <el-input v-model="ruleForm.name" placeholder="如：连续10件合格放行" />
         </el-form-item>

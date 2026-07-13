@@ -59,7 +59,7 @@ onMounted(fetchList)
 <template>
   <div class="page-container">
     <div class="toolbar-row">
-      <el-form :inline="true" :model="query" size="small">
+      <el-form :inline="true" :model="query" >
         <el-form-item>
           <el-input v-model="query.keyword" placeholder="搜索批次号/包装方式" clearable @keyup.enter="fetchList" />
         </el-form-item>
@@ -105,7 +105,7 @@ onMounted(fetchList)
 
     <!-- 包装确认对话框 -->
     <el-dialog v-model="createVisible" title="包装确认" width="500px">
-      <el-form :model="createForm" label-width="100px" size="small">
+      <el-form :model="createForm" label-width="100px" >
         <el-form-item label="批次 ID">
           <el-input-number v-model="createForm.batchId" :min="1" />
         </el-form-item>

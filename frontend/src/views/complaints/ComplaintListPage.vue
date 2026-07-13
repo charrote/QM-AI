@@ -1,31 +1,39 @@
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { Search, Refresh, Plus, Edit, Delete, Document, TrendCharts, Check, Close } from '@element-plus/icons-vue'
 import { complaintApi } from '@/api/complaint'
 import { customerApi } from '@/api/basicData'
-import type { PagedResult } from '@/types/basicData'
-import type { Complaint } from '@/types/complaint'
+import type { Complaint, CreateComplaint, UpdateComplaint } from '@/types/complaint'
 import {
-  COMPLAINT_SEVERITY_OPTIONS as SEVERITY_OPTIONS, COMPLAINT_SEVERITY_MAP as SEVERITY_MAP, COMPLAINT_STATUS_OPTIONS as STATUS_OPTIONS, COMPLAINT_STATUS_MAP as STATUS_MAP,
-  EVENT_TYPE_MAP,
+  COMPLAINT_SEVERITY_OPTIONS as SEVERITY_OPTIONS, COMPLAINT_SEVERITY_MAP as SEVERITY_MAP,
+  COMPLAINT_STATUS_OPTIONS as STATUS_OPTIONS, COMPLAINT_STATUS_MAP as STATUS_MAP,
 } from '@/types/complaint'
+import DataTable, { type Column } from '@/components/common/DataTable.vue'
+import StatusTag from '@/components/common/StatusTag.vue'
+import FormDialog from '@/components/common/FormDialog.vue'
+import { usePagination } from '@/composables/usePagination'
 
 defineOptions({ name: 'ComplaintListPage' })
 
 const router = useRouter()
 
+// ─── Pagination ──────────────────────────────────────────
+const pagination = usePagination(1, 20)
+
+// ─── Search state ────────────────────────────────────────
 const searchKeyword = ref('')
 const severityFilter = ref('')
 const statusFilter = ref('')
 const customerIdFilter = ref<number | undefined>(undefined)
-const page = ref(1)
-const pageSize = ref(20)
-const total = ref(0)
 
 const complaints = ref<Complaint[]>([])
 
-// Stats
+// Customer options
+const customerOptions = ref<Array<{ value: number; label: string }>>([])
+
+// Stats (stub — API not yet available)
 const stats = reactive({
   totalCount: 0,
   bySeverity: {} as Record<string, number>,
@@ -33,52 +41,54 @@ const stats = reactive({
   avgDaysToClose: 0,
 })
 
-// Customer options
-const customerOptions = ref<Array<{ value: number; label: string }>>([])
-
-// Dialog
+// Dialog state
 const dialogVisible = ref(false)
 const isEditing = ref(false)
 const currentId = ref<number | null>(null)
-const form = reactive({
-  complaintCode: '',
-  customerId: 0,
-  severity: 'minor',
-  subject: '',
-  description: '',
-  assignedTo: '',
-  dueDate: '',
+const submitLoading = ref(false)
+
+const form = reactive<Omit<CreateComplaint, 'customerId'> & { customerId: number | undefined }>({
+  complaintCode: '', customerId: undefined, severity: 'minor',
+  subject: '', description: '', assignedTo: '', dueDate: '',
 })
 
-const statusLabel = (status: string) => STATUS_MAP[status] || status
-const severityLabel = (sev: string) => SEVERITY_MAP[sev] || sev
+// ─── Table columns ───────────────────────────────────────
+const tableColumns = computed<Column[]>(() => [
+  { prop: 'complaintCode', label: '投诉代码', width: 140 },
+  { prop: 'customerName', label: '客户', width: 150, showOverflowTooltip: true },
+  { label: '严重程度', slotName: 'severity', width: 90, align: 'center' },
+  { prop: 'subject', label: '主题', minWidth: 180, showOverflowTooltip: true },
+  { label: '状态', slotName: 'status', width: 90, align: 'center' },
+  { label: '负责人', slotName: 'assignedTo', width: 90 },
+  { label: '截止日期', slotName: 'dueDate', width: 110 },
+  { label: '创建时间', slotName: 'createdAt', width: 160 },
+  { label: '操作', slotName: 'actions', width: 300, fixed: 'right' as const },
+])
 
-function formatDate(d?: string) {
-  if (!d) return '-'
-  return new Date(d).toLocaleString('zh-CN')
-}
-
+// ─── Data loading ────────────────────────────────────────
 async function loadComplaints() {
+  pagination.loading.value = true
   try {
     const res = await complaintApi.list({
-      page: page.value,
-      pageSize: pageSize.value,
+      page: pagination.currentPage.value,
+      pageSize: pagination.pageSize.value,
       keyword: searchKeyword.value || undefined,
       severity: severityFilter.value || undefined,
       status: statusFilter.value || undefined,
       customerId: customerIdFilter.value,
     })
     complaints.value = res.items
-    total.value = res.total
+    pagination.total.value = res.total
   } catch (e) {
     console.error('Failed to load complaints', e)
+  } finally {
+    pagination.loading.value = false
   }
 }
 
 async function loadStats() {
   try {
-    const res = await Promise.resolve({ totalCount: 0, bySeverity: {}, byStatus: {}, avgDaysToClose: 0 })
-    Object.assign(stats, res)
+    Object.assign(stats, { totalCount: 0, bySeverity: {}, byStatus: {}, avgDaysToClose: 0 })
   } catch (e) {
     console.error('Failed to load stats', e)
   }
@@ -96,63 +106,69 @@ async function loadCustomers() {
   }
 }
 
+function handlePageChange(page: number) {
+  pagination.goToPage(page)
+  loadComplaints()
+}
+
+function handleSizeChange(size: number) {
+  pagination.pageSize = size
+  pagination.goToPage(1)
+  loadComplaints()
+}
+
+// ─── Search helpers ──────────────────────────────────────
+function applySearch() {
+  pagination.goToPage(1)
+  loadComplaints()
+}
+
+// ─── CRUD operations ─────────────────────────────────────
 function openCreate() {
   isEditing.value = false
   currentId.value = null
-  form.complaintCode = ''
-  form.customerId = 0
-  form.severity = 'minor'
-  form.subject = ''
-  form.description = ''
-  form.assignedTo = ''
-  form.dueDate = ''
+  Object.assign(form, {
+    complaintCode: '', customerId: undefined, severity: 'minor',
+    subject: '', description: '', assignedTo: '', dueDate: '',
+  })
   dialogVisible.value = true
 }
 
 function openEdit(row: Complaint) {
   isEditing.value = true
   currentId.value = row.id
-  form.complaintCode = row.complaintCode
-  form.customerId = row.customerId
-  form.severity = row.severity
-  form.subject = row.subject
-  form.description = row.description
-  form.assignedTo = row.assignedTo?.toString() || ''
-  form.dueDate = row.dueDate?.slice(0, 10) || ''
+  Object.assign(form, {
+    complaintCode: row.complaintCode,
+    customerId: row.customerId,
+    severity: row.severity,
+    subject: row.subject,
+    description: row.description,
+    assignedTo: row.assignedTo?.toString() || '',
+    dueDate: row.dueDate?.slice(0, 10) || '',
+  })
   dialogVisible.value = true
 }
 
-async function saveComplaint() {
-  if (!form.complaintCode || !form.customerId || !form.subject) {
+async function saveComplaint(formData: Partial<CreateComplaint>) {
+  if (!formData.complaintCode || !formData.customerId || !formData.subject) {
     ElMessage.warning('请填写完整信息')
     return
   }
+  submitLoading.value = true
   try {
     if (isEditing.value && currentId.value) {
-      await complaintApi.update(currentId.value, {
-        severity: form.severity,
-        subject: form.subject,
-        description: form.description,
-        assignedTo: form.assignedTo ? Number(form.assignedTo) : null,
-        dueDate: form.dueDate || null,
-      })
+      await complaintApi.update(currentId.value, formData as UpdateComplaint)
       ElMessage.success('客诉已更新')
     } else {
-      await complaintApi.create({
-        complaintCode: form.complaintCode,
-        customerId: form.customerId,
-        severity: form.severity,
-        subject: form.subject,
-        description: form.description,
-        assignedTo: form.assignedTo ? Number(form.assignedTo) : undefined,
-        dueDate: form.dueDate || undefined,
-      })
+      await complaintApi.create(formData as CreateComplaint)
       ElMessage.success('客诉已创建')
     }
     dialogVisible.value = false
     await Promise.all([loadComplaints(), loadStats()])
   } catch (e: any) {
     ElMessage.error(e?.response?.data?.message || '操作失败')
+  } finally {
+    submitLoading.value = false
   }
 }
 
@@ -167,6 +183,7 @@ async function deleteComplaint(row: Complaint) {
   }
 }
 
+// ─── Navigation ──────────────────────────────────────────
 function viewDetail(row: Complaint) {
   router.push({ name: 'D8Report', query: { complaintId: String(row.id) } })
 }
@@ -177,14 +194,12 @@ function goToCapa(row: Complaint) {
 
 async function transitionStatus(row: Complaint, newStatus: string) {
   try {
-    await ElMessageBox.confirm(`确认将状态变更为「${statusLabel(newStatus)}」吗？`, '状态变更', { type: 'info' })
+    await ElMessageBox.confirm(`确认将状态变更为「${STATUS_MAP[newStatus] || newStatus}」吗？`, '状态变更', { type: 'info' })
     await complaintApi.transitionStatus(row.id, { newStatus })
     ElMessage.success('状态已更新')
     await loadComplaints()
   } catch (e: any) {
-    if (e !== 'cancel') {
-      ElMessage.error(e?.response?.data?.message || '状态更新失败')
-    }
+    if (e !== 'cancel') ElMessage.error(e?.response?.data?.message || '状态更新失败')
   }
 }
 
@@ -197,25 +212,25 @@ onMounted(async () => {
   <div class="page-container">
     <!-- Stats Cards -->
     <el-row :gutter="16" class="stats-row">
-      <el-col :span="6">
+      <el-col :xs="12" :sm="6">
         <el-card shadow="hover" class="stat-card">
           <div class="stat-value">{{ stats.totalCount }}</div>
           <div class="stat-label">投诉总数</div>
         </el-card>
       </el-col>
-      <el-col :span="6" v-for="item in SEVERITY_OPTIONS" :key="item.value">
-        <el-card shadow="hover" class="stat-card" :class="item.value">
+      <el-col v-for="item in SEVERITY_OPTIONS" :key="item.value" :xs="12" :sm="6">
+        <el-card shadow="hover" class="stat-card">
           <div class="stat-value">{{ stats.bySeverity[item.value] || 0 }}</div>
           <div class="stat-label">{{ item.label }}</div>
         </el-card>
       </el-col>
-      <el-col :span="6" v-for="item in STATUS_OPTIONS" :key="item.value">
-        <el-card shadow="hover" class="stat-card" :class="item.value">
+      <el-col v-for="item in STATUS_OPTIONS" :key="item.value" :xs="12" :sm="6">
+        <el-card shadow="hover" class="stat-card">
           <div class="stat-value">{{ stats.byStatus[item.value] || 0 }}</div>
           <div class="stat-label">{{ item.label }}</div>
         </el-card>
       </el-col>
-      <el-col :span="6">
+      <el-col :xs="12" :sm="6">
         <el-card shadow="hover" class="stat-card">
           <div class="stat-value">{{ stats.avgDaysToClose.toFixed(1) }}</div>
           <div class="stat-label">平均处理天数</div>
@@ -223,96 +238,83 @@ onMounted(async () => {
       </el-col>
     </el-row>
 
-    <!-- Toolbar -->
-    <div class="toolbar-row">
+    <!-- Search Toolbar -->
+    <div class="search-bar">
       <el-input
         v-model="searchKeyword"
         placeholder="搜索代码/主题/客户..."
+        :prefix-icon="Search"
         clearable
         style="width: 260px"
-        @keyup.enter="loadComplaints"
+        @keyup.enter="applySearch"
       />
-      <el-select v-model="customerIdFilter" placeholder="客户" clearable style="width: 180px" @change="loadComplaints">
+      <el-select v-model="customerIdFilter" placeholder="客户" clearable filterable style="width: 180px" @change="applySearch">
         <el-option v-for="opt in customerOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
       </el-select>
-      <el-select v-model="severityFilter" placeholder="严重程度" clearable style="width: 130px" @change="loadComplaints">
+      <el-select v-model="severityFilter" placeholder="严重程度" clearable style="width: 130px" @change="applySearch">
         <el-option v-for="opt in SEVERITY_OPTIONS" :key="opt.value" :label="opt.label" :value="opt.value" />
       </el-select>
-      <el-select v-model="statusFilter" placeholder="状态" clearable style="width: 130px" @change="loadComplaints">
+      <el-select v-model="statusFilter" placeholder="状态" clearable style="width: 130px" @change="applySearch">
         <el-option v-for="opt in STATUS_OPTIONS" :key="opt.value" :label="opt.label" :value="opt.value" />
       </el-select>
-      <el-button type="primary" @click="openCreate">+ 新建客诉</el-button>
-      <el-button @click="loadComplaints">刷新</el-button>
+      <el-button :icon="Refresh" @click="loadComplaints">刷新</el-button>
+      <div class="search-spacer" />
+      <el-button type="primary" :icon="Plus" @click="openCreate">新建客诉</el-button>
     </div>
 
-    <!-- Table -->
-    <el-table :data="complaints" stripe style="width: 100%" size="small">
-      <el-table-column prop="complaintCode" label="投诉代码" width="140" />
-      <el-table-column prop="customerName" label="客户" width="150" show-overflow-tooltip />
-      <el-table-column label="严重程度" width="90">
-        <template #default="{ row }">
-          <el-tag :type="SEVERITY_OPTIONS.find(o => o.value === row.severity)?.type || 'info'" size="small" effect="plain">
-            {{ SEVERITY_MAP[row.severity] || row.severity }}
-          </el-tag>
-        </template>
-      </el-table-column>
-      <el-table-column prop="subject" label="主题" min-width="180" show-overflow-tooltip />
-      <el-table-column label="状态" width="100">
-        <template #default="{ row }">
-          <el-tag :type="STATUS_OPTIONS.find(o => o.value === row.status)?.type || 'info'" size="small" effect="plain">
-            {{ STATUS_MAP[row.status] || row.status }}
-          </el-tag>
-        </template>
-      </el-table-column>
-      <el-table-column prop="assignedTo" label="负责人" width="80">
-        <template #default="{ row }">{{ row.assignedTo || '-' }}</template>
-      </el-table-column>
-      <el-table-column label="截止日期" width="110">
-        <template #default="{ row }">{{ row.dueDate?.slice(0, 10) || '-' }}</template>
-      </el-table-column>
-      <el-table-column label="创建时间" width="150">
-        <template #default="{ row }">{{ formatDate(row.createdAt) }}</template>
-      </el-table-column>
-      <el-table-column label="操作" width="320" fixed="right">
-        <template #default="{ row }">
-          <el-button link size="small" type="primary" @click="openEdit(row)">编辑</el-button>
-          <el-button link size="small" type="primary" @click="viewDetail(row)">详情</el-button>
-          <el-button link size="small" type="warning" @click="goToCapa(row)">CAPA</el-button>
-          <el-button
-            v-if="row.status === 'new'"
-            link size="small" type="success"
-            @click="transitionStatus(row, 'acknowledged')"
-          >确认接收</el-button>
-          <el-button
-            v-if="row.status === 'in_progress'"
-            link size="small" type="success"
-            @click="transitionStatus(row, 'closed')"
-          >关闭</el-button>
-          <el-button link size="small" type="danger" @click="deleteComplaint(row)">删除</el-button>
-        </template>
-      </el-table-column>
-    </el-table>
+    <!-- Data Table -->
+    <DataTable
+      :data="complaints"
+      :columns="tableColumns"
+      :loading="pagination.loading.value"
+      :total="pagination.total"
+      :current-page="pagination.currentPage"
+      :page-size="pagination.pageSize"
+      @update:current-page="handlePageChange"
+      @update:page-size="handleSizeChange"
+    >
+      <template #severity="{ row }">
+        <StatusTag :status="row.severity" :text="SEVERITY_MAP[row.severity] || row.severity" />
+      </template>
+      <template #status="{ row }">
+        <StatusTag :status="row.status" :text="STATUS_MAP[row.status] || row.status" />
+      </template>
+      <template #assignedTo="{ row }">
+        {{ row.assignedTo || '-' }}
+      </template>
+      <template #dueDate="{ row }">
+        {{ row.dueDate?.slice(0, 10) || '-' }}
+      </template>
+      <template #createdAt="{ row }">
+        {{ row.createdAt ? new Date(row.createdAt).toLocaleString('zh-CN') : '-' }}
+      </template>
+      <template #actions="{ row }">
+        <el-button link size="small" type="primary" :icon="Edit" @click.stop="openEdit(row)">编辑</el-button>
+        <el-button link size="small" type="primary" :icon="Document" @click.stop="viewDetail(row)">详情</el-button>
+        <el-button link size="small" type="warning" :icon="TrendCharts" @click.stop="goToCapa(row)">CAPA</el-button>
+        <el-button
+          v-if="row.status === 'new'"
+          link size="small" type="success" :icon="Check"
+          @click.stop="transitionStatus(row, 'acknowledged')"
+        >确认接收</el-button>
+        <el-button
+          v-if="row.status === 'in_progress'"
+          link size="small" type="success" :icon="Close"
+          @click.stop="transitionStatus(row, 'closed')"
+        >关闭</el-button>
+        <el-button link size="small" type="danger" :icon="Delete" @click.stop="deleteComplaint(row)">删除</el-button>
+      </template>
+    </DataTable>
 
-    <!-- Pagination -->
-    <div class="pagination-row">
-      <el-pagination
-        v-model:current-page="page"
-        v-model:page-size="pageSize"
-        :total="total"
-        layout="total, prev, pager, next"
-        size="small"
-        @current-change="loadComplaints"
-      />
-    </div>
-
-    <!-- Dialog -->
-    <el-dialog
+    <!-- Create/Edit Dialog -->
+    <FormDialog
       v-model="dialogVisible"
       :title="isEditing ? '编辑客诉' : '新建客诉'"
-      width="640px"
-      :close-on-click-modal="false"
+      :loading="submitLoading"
+      width="680px"
+      @submit="saveComplaint(form as CreateComplaint)"
     >
-      <el-form :model="form" label-width="100px" size="small">
+      <el-form :model="form" label-width="90px" size="default">
         <el-row :gutter="16">
           <el-col :span="12">
             <el-form-item label="投诉代码" required>
@@ -337,7 +339,7 @@ onMounted(async () => {
           </el-col>
           <el-col :span="12">
             <el-form-item label="负责人">
-              <el-input v-model="form.assignedTo" placeholder="负责人ID" />
+              <el-input v-model="form.assignedTo" placeholder="负责人姓名" />
             </el-form-item>
           </el-col>
         </el-row>
@@ -350,25 +352,41 @@ onMounted(async () => {
         <el-row :gutter="16">
           <el-col :span="12">
             <el-form-item label="截止日期">
-              <el-date-picker v-model="form.dueDate" type="date" style="width: 100%" />
+              <el-date-picker v-model="form.dueDate" type="date" value-format="YYYY-MM-DD" style="width: 100%" placeholder="选择日期" />
             </el-form-item>
           </el-col>
         </el-row>
       </el-form>
-      <template #footer>
-        <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="saveComplaint">保存</el-button>
-      </template>
-    </el-dialog>
+    </FormDialog>
   </div>
 </template>
 
 <style scoped>
 .page-container { display: flex; flex-direction: column; height: 100%; }
-.toolbar-row { display: flex; align-items: center; gap: 8px; margin: 12px 0; flex-wrap: wrap; }
-.pagination-row { display: flex; justify-content: flex-end; padding: 12px 0; }
-.stats-row { margin-bottom: 8px; }
+
+.search-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.search-spacer { flex: 1; }
+
+.stats-row { margin-bottom: 12px; }
+
 .stat-card { text-align: center; }
-.stat-value { font-size: 28px; font-weight: 700; color: var(--el-text-color-primary); }
-.stat-label { font-size: 13px; color: var(--el-text-color-secondary); margin-top: 4px; }
+
+.stat-value {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--el-text-color-primary);
+}
+
+.stat-label {
+  font-size: 13px;
+  color: var(--el-text-color-secondary);
+  margin-top: 4px;
+}
 </style>

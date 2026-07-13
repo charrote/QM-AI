@@ -157,7 +157,7 @@ onMounted(async () => {
     </div>
 
     <!-- Table -->
-    <el-table :data="items" stripe size="small" v-loading="loading" style="flex:1">
+    <el-table :data="items" stripe  v-loading="loading" style="flex:1">
       <el-table-column prop="planNo" label="计划编号" width="180" />
       <el-table-column prop="processName" label="工序" width="140" />
       <el-table-column prop="equipmentName" label="设备" width="140" />
@@ -196,7 +196,7 @@ onMounted(async () => {
 
     <!-- Dialog -->
     <el-dialog v-model="dialogVisible" :title="editingId ? '编辑巡检计划' : '新建巡检计划'" width="500px" :close-on-click-modal="false">
-      <el-form :model="form" label-width="110px" size="small">
+      <el-form :model="form" label-width="110px" >
         <el-form-item label="工序" required>
           <el-select v-model="form.processId" filterable style="width:250px">
             <el-option v-for="p in processes" :key="p.id" :label="p.name" :value="p.id" />
