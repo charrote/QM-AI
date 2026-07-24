@@ -407,33 +407,33 @@ onMounted(async () => {
             row-height="40"
             class="routes-table"
           >
-            <el-table-column prop="routeCode" label="路线编号" width="110" show-overflow-tooltip />
-            <el-table-column prop="routeName" label="路线名称" min-width="130" show-overflow-tooltip />
-            <el-table-column prop="routeType" label="类型" width="80" align="center">
+            <el-table-column prop="routeCode" label="路线编号" width="110" :show-overflow-tooltip="false" />
+            <el-table-column prop="routeName" label="路线名称" min-width="130" :show-overflow-tooltip="false" />
+            <el-table-column prop="routeType" label="类型" width="80" align="center" :show-overflow-tooltip="false">
               <template #default="{ row }">
                 <RouteTypeTag :type="row.routeType" />
               </template>
             </el-table-column>
-            <el-table-column label="默认" width="60" align="center">
+            <el-table-column label="默认" width="60" align="center" :show-overflow-tooltip="false">
               <template #default="{ row }">
                 <el-tag v-if="row.isDefault" type="primary" size="small" effect="plain">是</el-tag>
                 <span v-else class="text-muted">—</span>
               </template>
             </el-table-column>
-            <el-table-column label="启用" width="60" align="center">
+            <el-table-column label="启用" width="60" align="center" :show-overflow-tooltip="false">
               <template #default="{ row }">
                 <el-tag :type="row.isActive ? 'success' : 'info'" size="small" effect="plain">
                   {{ row.isActive ? '是' : '否' }}
                 </el-tag>
               </template>
             </el-table-column>
-            <el-table-column prop="stepCount" label="步骤数" width="70" align="center" />
-            <el-table-column prop="totalStandardTimeMinutes" label="总工时" width="80" align="right">
+            <el-table-column prop="stepCount" label="步骤数" width="70" align="center" :show-overflow-tooltip="false" />
+            <el-table-column prop="totalStandardTimeMinutes" label="总工时" width="80" align="right" :show-overflow-tooltip="false">
               <template #default="{ row }">
                 {{ row.totalStandardTimeMinutes || '—' }} min
               </template>
             </el-table-column>
-            <el-table-column label="操作" width="100" align="center" fixed="right">
+            <el-table-column label="操作" width="100" align="center" fixed="right" :show-overflow-tooltip="false">
               <template #default="{ row }">
                 <el-button size="small" type="primary" link @click.stop="openEditRoute(row)">编辑</el-button>
                 <el-popconfirm
@@ -761,6 +761,11 @@ onMounted(async () => {
 .data-card__table {
   flex: 1;
   min-height: 0;
+}
+
+/* ── 表格内容不换行 ── */
+.data-card__table :deep(.el-table__cell) {
+  white-space: nowrap;
 }
 
 .data-card__table :deep(.el-table__header-wrapper) {
