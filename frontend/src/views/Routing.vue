@@ -406,6 +406,7 @@ onMounted(async () => {
             size="small"
             class="routes-table"
           >
+            <el-table-column type="index" label="序号" width="55" />
             <el-table-column prop="routeCode" label="路线编号" width="100" />
             <el-table-column prop="routeName" label="路线名称" min-width="160" show-overflow-tooltip />
             <el-table-column prop="routeType" label="类型" width="70" align="center">
@@ -413,10 +414,10 @@ onMounted(async () => {
                 <RouteTypeTag :type="row.routeType" />
               </template>
             </el-table-column>
-            <el-table-column label="默认" width="50" align="center">
+            <el-table-column label="默认" width="65" align="center">
               <template #default="{ row }"><el-tag v-if="row.isDefault" type="primary" size="small" effect="plain">是</el-tag><span v-else class="text-muted">—</span></template>
             </el-table-column>
-            <el-table-column label="启用" width="50" align="center">
+            <el-table-column label="启用" width="65" align="center">
               <template #default="{ row }"><el-tag :type="row.isActive ? 'success' : 'info'" size="small" effect="plain">{{ row.isActive ? '是' : '否' }}</el-tag></template>
             </el-table-column>
             <el-table-column prop="stepCount" label="步骤" width="60" align="center" />
