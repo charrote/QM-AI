@@ -5,7 +5,7 @@ import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import {
   Document, Search, Plus, Refresh,
-  CopyDocument, Loading,
+  CopyDocument, Loading, Edit, Delete,
 } from '@element-plus/icons-vue'
 import { productApi } from '@/api/basicData'
 import {
@@ -16,8 +16,7 @@ import type { Product } from '@/types/basicData'
 import type { RouteHeaderDto, RouteDetailDto, ProductRouteStepDto, RouteType } from '@/types/routing'
 import RouteStepCard from '@/components/routing/RouteStepCard.vue'
 import RouteStepDrawer from '@/components/routing/RouteStepDrawer.vue'
-import RouteSelector from '@/components/routing/RouteSelector.vue'
-import RouteHeaderCard from '@/components/routing/RouteHeaderCard.vue'
+import RouteTypeTag from '@/components/routing/RouteTypeTag.vue'
 import RouteHeaderDrawer from '@/components/routing/RouteHeaderDrawer.vue'
 import CloneDialog from '@/components/routing/CloneDialog.vue'
 
@@ -28,6 +27,7 @@ const searchKeyword = ref('')
 const selectedProductId = ref<number | null>(null)
 
 const routeHeaders = ref<RouteHeaderDto[]>([])
+const routeList = ref<RouteListDto | null>(null) // 完整响应（含 productName 等）
 const activeRouteId = ref<number | null>(null)
 const activeRouteDetail = ref<RouteDetailDto | null>(null)
 const routeLoading = ref(false)
@@ -67,11 +67,15 @@ async function selectProduct(product: Product) {
   selectedProductId.value = product.id
   activeRouteId.value = null
   routeHeaders.value = []
+  routeList.value = null
   activeRouteDetail.value = null
 
   routeLoading.value = true
   try {
-    routeHeaders.value = await getRouteHeaders(product.id)
+    const list = await getRouteHeaders(product.id)
+    routeList.value = list
+    routeHeaders.value = list.routes
+    // 自动选中第一个活跃路线
     if (routeHeaders.value.length > 0) {
       const activeRoute = routeHeaders.value.find(r => r.isActive) || routeHeaders.value[0]
       selectRoute(activeRoute.id)
@@ -112,7 +116,9 @@ function openEditRoute(header: RouteHeaderDto) {
 
 async function handleRouteDeleted() {
   if (!selectedProductId.value) return
-  routeHeaders.value = await getRouteHeaders(selectedProductId.value)
+  const list = await getRouteHeaders(selectedProductId.value)
+  routeList.value = list
+  routeHeaders.value = list.routes
   if (routeHeaders.value.length > 0) {
     const activeRoute = routeHeaders.value.find(r => r.isActive) || routeHeaders.value[0]
     selectRoute(activeRoute.id)
@@ -124,7 +130,9 @@ async function handleRouteDeleted() {
 
 async function handleRouteCreated(headerId: number) {
   if (!selectedProductId.value) return
-  routeHeaders.value = await getRouteHeaders(selectedProductId.value)
+  const list = await getRouteHeaders(selectedProductId.value)
+  routeList.value = list
+  routeHeaders.value = list.routes
   selectRoute(headerId)
 }
 
@@ -266,7 +274,9 @@ async function refreshRoute() {
     if (activeRouteId.value) {
       activeRouteDetail.value = await getRouteDetail(activeRouteId.value)
     }
-    routeHeaders.value = await getRouteHeaders(selectedProductId.value)
+    const list = await getRouteHeaders(selectedProductId.value)
+    routeList.value = list
+    routeHeaders.value = list.routes
   } catch {
     ElMessage.error('刷新失败')
   } finally {
@@ -361,60 +371,122 @@ onMounted(async () => {
 
       <!-- 右侧工艺路线 -->
       <main class="routing-main">
-        <!-- 路线选择器 -->
-        <div v-if="selectedProductId" class="route-selector-wrap">
-          <RouteSelector
-            :product-id="selectedProductId"
-            :routes="routeHeaders"
-            :active-route-id="activeRouteId"
-            @route-selected="selectRoute"
-            @create-route="openCreateRoute"
-            @route-deleted="handleRouteDeleted"
-            @route-created="handleRouteCreated"
-          />
-        </div>
-
-        <!-- 路线信息卡片 -->
-        <RouteHeaderCard
-          v-if="currentRoute"
-          :route="currentRoute"
-          @edit="openEditRoute(currentRoute)"
-          @toggle="handleRouteDeleted"
-          @delete="handleRouteDeleted"
-        />
-
-        <!-- 加载状态 -->
-        <div v-if="routeLoading" class="route-content route-content--loading">
-          <el-icon class="is-loading" :size="32"><Loading /></el-icon>
-          <span>加载中...</span>
-        </div>
-
-        <!-- 空状态 -->
-        <div
-          v-else-if="selectedProductId && !activeRouteDetail && routeHeaders.length === 0"
-          class="route-content route-content--empty"
-        >
-          <el-empty description="该产品暂无工艺路线">
-            <el-button type="primary" @click="openCreateRoute">
-              <el-icon><Plus /></el-icon>创建第一条工艺路线
+        <!-- ═══ 上段：工艺路线列表 ═══ -->
+        <div v-if="selectedProductId" class="routes-section">
+          <div class="routes-section__header">
+            <span class="routes-section__title">工艺路线</span>
+            <el-button text size="small" @click="openCreateRoute">
+              <el-icon><Plus /></el-icon>新增路线
             </el-button>
-          </el-empty>
+          </div>
+
+          <!-- 加载 -->
+          <div v-if="routeLoading" class="routes-section__loading">
+            <el-icon class="is-loading" :size="20"><Loading /></el-icon>
+            <span>加载中...</span>
+          </div>
+
+          <!-- 路线列表（空） -->
+          <div
+            v-else-if="routeHeaders.length === 0"
+            class="routes-section__empty"
+          >
+            <el-empty description="暂无工艺路线" :image-size="60" />
+            <el-button type="primary" size="small" @click="openCreateRoute">
+              <el-icon><Plus /></el-icon>创建第一条
+            </el-button>
+          </div>
+
+          <!-- 路线卡片网格 -->
+          <div v-else class="routes-grid">
+            <div
+              v-for="route in routeHeaders"
+              :key="route.id"
+              class="route-card"
+              :class="{ 'route-card--active': activeRouteId === route.id }"
+              @click="selectRoute(route.id)"
+            >
+              <div class="route-card__top">
+                <div class="route-card__title-row">
+                  <RouteTypeTag :type="route.routeType" />
+                  <span class="route-card__name">{{ route.routeName }}</span>
+                  <el-tag v-if="route.isDefault" type="primary" size="small" effect="plain">默认</el-tag>
+                </div>
+                <div class="route-card__actions" @click.stop>
+                  <el-button size="small" text @click="openEditRoute(route)">
+                    <el-icon><Edit /></el-icon>
+                  </el-button>
+                  <el-popconfirm
+                    title="确认删除此路线及其所有步骤？"
+                    confirm-button-text="删除"
+                    cancel-button-text="取消"
+                    @confirm="handleRouteDeleted"
+                  >
+                    <template #reference>
+                      <el-button size="small" text type="danger">
+                        <el-icon><Delete /></el-icon>
+                      </el-button>
+                    </template>
+                  </el-popconfirm>
+                </div>
+              </div>
+              <div class="route-card__meta">
+                <span class="route-card__code">{{ route.routeCode }}</span>
+                <el-divider direction="vertical" />
+                <span class="route-card__steps">{{ route.stepCount }} 个步骤</span>
+                <el-tag v-if="route.totalStandardTimeMinutes > 0" type="info" size="small">
+                  总工时 {{ route.totalStandardTimeMinutes }} min
+                </el-tag>
+              </div>
+              <p v-if="route.description" class="route-card__desc">{{ route.description }}</p>
+            </div>
+          </div>
         </div>
 
-        <!-- 空状态 - 没有选中路线 -->
-        <div
-          v-else-if="selectedProductId && !activeRouteDetail && routeHeaders.length > 0"
-          class="route-content route-content--empty"
-        >
-          <el-empty description="请选择一条路线" :image-size="80" />
-        </div>
+        <!-- ═══ 下段：选中路线的步骤流程 ═══ -->
+        <div v-if="selectedProductId && activeRouteId" class="steps-section">
+          <div class="steps-section__header">
+            <span class="steps-section__title">
+              工序步骤
+              <el-tag v-if="currentRoute" type="primary" size="small" effect="plain">
+                {{ currentRoute.routeCode }}
+              </el-tag>
+            </span>
+            <div class="steps-section__stats">
+              <el-tag type="info" size="small">{{ totalSteps }} 步</el-tag>
+              <el-tag v-if="total工时 > 0" type="warning" size="small">
+                总工时 {{ total工时 }} min
+              </el-tag>
+            </div>
+            <el-button text size="small" @click="openAddStep">
+              <el-icon><Plus /></el-icon>添加步骤
+            </el-button>
+          </div>
 
-        <!-- 步骤卡片流 -->
-        <div
-          v-else-if="activeRouteDetail && activeRouteDetail.steps.length > 0"
-          class="route-content route-content--flow"
-        >
-          <div class="flow-container" @drop.prevent="handleContainerDrop">
+          <!-- 加载 -->
+          <div v-if="routeLoading" class="steps-section__loading">
+            <el-icon class="is-loading" :size="20"><Loading /></el-icon>
+            <span>加载中...</span>
+          </div>
+
+          <!-- 空步骤 -->
+          <div
+            v-else-if="activeRouteDetail && activeRouteDetail.steps.length === 0"
+            class="steps-section__empty"
+          >
+            <el-empty description="该路线暂无工序步骤" :image-size="60">
+              <el-button type="primary" size="small" @click="openAddStep">
+                <el-icon><Plus /></el-icon>添加第一个步骤
+              </el-button>
+            </el-empty>
+          </div>
+
+          <!-- 步骤卡片流 -->
+          <div
+            v-else-if="activeRouteDetail"
+            class="steps-flow"
+            @drop.prevent="handleContainerDrop"
+          >
             <template v-for="(step, index) in activeRouteDetail.steps" :key="step.id">
               <RouteStepCard
                 :step="step"
@@ -445,7 +517,7 @@ onMounted(async () => {
         </div>
 
         <!-- 未选择产品 -->
-        <div v-else class="route-content route-content--idle">
+        <div v-if="!selectedProductId" class="route-content route-content--idle">
           <el-empty description="请从左侧选择产品" :image-size="120" />
         </div>
       </main>
@@ -624,44 +696,194 @@ onMounted(async () => {
   background: var(--el-bg-color-page);
 }
 
-.route-selector-wrap {
-  padding: 12px 20px 0;
+/* ── 上段：路线列表 ── */
+.routes-section {
+  padding: 16px 20px 0;
   flex-shrink: 0;
 }
 
-.route-content {
-  flex: 1;
-  padding: 20px;
-  overflow-x: auto;
-  overflow-y: auto;
+.routes-section__header {
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
 }
 
-.route-content--loading {
+.routes-section__title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+
+.routes-section__loading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 0;
+  color: var(--el-text-color-secondary);
+  font-size: 13px;
+}
+
+.routes-section__empty {
+  display: flex;
   flex-direction: column;
+  align-items: center;
   gap: 12px;
+  padding: 24px 0;
+}
+
+.routes-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 12px;
+}
+
+.route-card {
+  padding: 14px 16px;
+  background: var(--el-bg-color);
+  border: 1.5px solid var(--el-border-color-lighter);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.route-card:hover {
+  border-color: var(--el-color-primary-light-5);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.route-card--active {
+  border-color: var(--el-color-primary);
+  background: var(--el-color-primary-light-9);
+  box-shadow: 0 2px 12px rgba(64, 158, 255, 0.12);
+}
+
+.route-card__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.route-card__title-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.route-card__name {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.route-card__actions {
+  display: flex;
+  gap: 2px;
+  opacity: 0;
+  transition: opacity 0.2s;
+  flex-shrink: 0;
+}
+
+.route-card:hover .route-card__actions {
+  opacity: 1;
+}
+
+.route-card__meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
   color: var(--el-text-color-secondary);
 }
 
-.route-content--empty {
+.route-card__code {
+  font-family: monospace;
+}
+
+.route-card__desc {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: var(--el-text-color-regular);
+  line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+/* ── 下段：步骤流程 ── */
+.steps-section {
+  flex: 1;
+  display: flex;
   flex-direction: column;
+  overflow: hidden;
+  margin: 0 20px 16px;
+  border-top: 1px solid var(--el-border-color-lighter);
+  padding-top: 16px;
+}
+
+.steps-section__header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+  flex-shrink: 0;
+}
+
+.steps-section__title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.steps-section__stats {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.steps-section__loading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 0;
+  color: var(--el-text-color-secondary);
+  font-size: 13px;
+}
+
+.steps-section__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   gap: 12px;
+  padding: 20px 0;
+  flex: 1;
 }
 
-.route-content--idle {
-  flex-direction: column;
+.steps-flow {
+  flex: 1;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 8px 0 16px;
+  display: flex;
+  align-items: center;
 }
 
-/* ─── 步骤卡片流 ────────────────────────────────── */
 .flow-container {
   display: flex;
   align-items: center;
   gap: 0;
-  padding: 16px 20px;
-  overflow-x: auto;
-  min-height: 160px;
+  padding: 8px 0;
+  min-width: max-content;
   position: relative;
 }
 
@@ -676,7 +898,7 @@ onMounted(async () => {
   color: var(--el-color-primary);
   font-weight: bold;
   opacity: 0.5;
-  margin: 0 14px;
+  margin: 0 8px;
   z-index: 1;
   transition: opacity 0.2s;
 }
@@ -686,8 +908,8 @@ onMounted(async () => {
 }
 
 .flow-add-placeholder {
-  width: 140px;
-  min-height: 120px;
+  width: 120px;
+  min-height: 100px;
   border: 2px dashed var(--el-border-color-light);
   border-radius: 10px;
   display: flex;
@@ -710,9 +932,10 @@ onMounted(async () => {
 }
 
 .flow-add-placeholder .add-icon {
-  font-size: 22px;
+  font-size: 20px;
 }
 
+/* Loading icon fix */
 :deep(.el-icon.is-loading) {
   animation: loading-rotate 1s linear infinite;
 }
@@ -747,5 +970,31 @@ onMounted(async () => {
 .product-sidebar::-webkit-scrollbar-thumb {
   background: var(--el-border-color);
   border-radius: 2px;
+}
+
+/* ─── 步骤卡片流 ────────────────────────────────── */
+.route-content {
+  flex: 1;
+  padding: 20px;
+  overflow-x: auto;
+  overflow-y: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.route-content--loading {
+  flex-direction: column;
+  gap: 12px;
+  color: var(--el-text-color-secondary);
+}
+
+.route-content--empty {
+  flex-direction: column;
+  gap: 12px;
+}
+
+.route-content--idle {
+  flex-direction: column;
 }
 </style>
