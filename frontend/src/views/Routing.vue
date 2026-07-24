@@ -675,7 +675,7 @@ onMounted(async () => {
   flex-direction: column;
   overflow: hidden;
   background: var(--el-bg-color-page);
-  gap: 0;
+  gap: 12px;
 }
 
 /* ── 通用 data-card ── */
