@@ -687,6 +687,7 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   min-height: 0;
+  width: 100%;
 }
 
 .data-card__header {
@@ -744,6 +745,7 @@ onMounted(async () => {
 .data-card__table {
   flex: 1;
   min-height: 0;
+  width: 100%;
 }
 
 /* ── 表格内容不换行 ── */
@@ -753,10 +755,12 @@ onMounted(async () => {
 
 .data-card__table :deep(.el-table__header-wrapper) {
   flex-shrink: 0;
+  width: 100%;
 }
 
 .data-card__table :deep(.el-table__body-wrapper) {
   overflow-y: auto;
+  width: 100%;
 }
 
 /* ── 表格行高与产品管理一致 ── */
