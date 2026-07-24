@@ -58,7 +58,7 @@ onMounted(() => {})
         </el-button>
       </div>
       <div class="search-hints">
-        <el-text type="info" size="small">
+        <el-text type="info">
           4 维度扩散分析：同设备 / 同刀具 / 同供应商 / 同工艺参数
         </el-text>
       </div>
@@ -89,7 +89,7 @@ onMounted(() => {})
         <template #header>
           <span>受影响批次列表</span>
         </template>
-        <el-table :data="result.affectedBatches" stripe size="small">
+        <el-table :data="result.affectedBatches" stripe >
           <el-table-column prop="batchCode" label="批次号" width="140" />
           <el-table-column prop="productName" label="产品名称" min-width="150" />
           <el-table-column label="数量" width="100" align="right">
@@ -111,7 +111,7 @@ onMounted(() => {})
 
     <el-card v-else class="empty-card" shadow="never">
       <el-empty description="请输入 NG 批次号进行扩散分析">
-        <el-text type="info" size="small">分析该 NG 批次通过同设备、同刀具、同供应商、同工艺参数影响的其它批次</el-text>
+        <el-text type="info">分析该 NG 批次通过同设备、同刀具、同供应商、同工艺参数影响的其它批次</el-text>
       </el-empty>
     </el-card>
   </div>

@@ -93,7 +93,7 @@ public class DocumentService
     private async Task<DocumentVersion> CreateVersionInternal(long documentId, DocumentVersion version)
     {
         var doc = await _db.Documents.FindAsync(documentId);
-        if (doc == null) throw new Exception($"Document {documentId} not found");
+        if (doc == null) throw new InvalidOperationException($"Document {documentId} not found");
 
         var maxVer = await _db.DocumentVersions.Where(v => v.DocumentId == documentId).MaxAsync(v => v.Version);
         version.DocumentId = documentId;

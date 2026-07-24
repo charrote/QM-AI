@@ -152,28 +152,8 @@ builder.Services.AddScoped<AuditService>();
 
 var app = builder.Build();
 
-// ─── 全局异常处理中间件 ─────────────────────────────────────────
-app.UseExceptionHandler(appError =>
-{
-    appError.Run(async context =>
-    {
-        context.Response.StatusCode = 500;
-        context.Response.ContentType = "application/json";
-
-        var contextFeature = context.Features.Get<IExceptionHandlerFeature>();
-        if (contextFeature != null)
-        {
-            var logger = context.RequestServices.GetRequiredService<ILogger<Program>>();
-            logger.LogError(contextFeature.Error, "Unhandled exception: {Message}", contextFeature.Error.Message);
-
-            await context.Response.WriteAsJsonAsync(new
-            {
-                message = "服务器内部错误",
-                detail = app.Environment.IsDevelopment() ? contextFeature.Error.Message : null,
-            });
-        }
-    });
-});
+// ─── Global exception handler middleware ────────────────────────────
+app.UseMiddleware<AppExceptionHandlerMiddleware>();
 
 // 启动时自动初始化种子数据
 using (var scope = app.Services.CreateScope())
@@ -184,49 +164,49 @@ using (var scope = app.Services.CreateScope())
     // 使用 EF Core 的默认 PascalCase 列命名
     await context.Database.ExecuteSqlRawAsync(@"
         CREATE TABLE IF NOT EXISTS organizations (
-            Id BIGINT AUTO_INCREMENT PRIMARY KEY,
-            Code VARCHAR(50) NOT NULL,
-            Name VARCHAR(200) NOT NULL,
-            Level VARCHAR(20) NOT NULL,
-            ParentId BIGINT,
-            SortOrder INT DEFAULT 0,
-            IsActive TINYINT(1) DEFAULT 1,
-            Location VARCHAR(500),
-            Contact JSON,
-            Description TEXT,
-            CreatedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            UpdatedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-            CreatedBy BIGINT,
-            UNIQUE KEY uk_org_code (Code),
-            INDEX idx_org_parent (ParentId),
-            INDEX idx_org_level (Level)
+            id              BIGINT AUTO_INCREMENT PRIMARY KEY,
+            code            VARCHAR(50) NOT NULL,
+            name            VARCHAR(200) NOT NULL,
+            level           VARCHAR(20) NOT NULL,
+            parent_id       BIGINT,
+            sort_order      INT DEFAULT 0,
+            is_active       TINYINT(1) DEFAULT 1,
+            location        VARCHAR(500),
+            contact         JSON,
+            description     TEXT,
+            created_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            created_by      BIGINT,
+            UNIQUE KEY uk_org_code (code),
+            INDEX idx_org_parent (parent_id),
+            INDEX idx_org_level (level)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
 
     await context.Database.ExecuteSqlRawAsync(@"
         CREATE TABLE IF NOT EXISTS sys_dict_types (
-            Id BIGINT AUTO_INCREMENT PRIMARY KEY,
-            TypeCode VARCHAR(50) UNIQUE NOT NULL,
-            TypeName VARCHAR(200) NOT NULL,
-            IsSystem TINYINT(1) DEFAULT 0,
-            Status TINYINT(1) DEFAULT 1,
-            Remark TEXT,
-            CreatedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+            id              BIGINT AUTO_INCREMENT PRIMARY KEY,
+            type_code       VARCHAR(50) UNIQUE NOT NULL,
+            type_name       VARCHAR(200) NOT NULL,
+            is_system       TINYINT(1) DEFAULT 0,
+            status          TINYINT(1) DEFAULT 1,
+            remark          TEXT,
+            created_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
 
     await context.Database.ExecuteSqlRawAsync(@"
         CREATE TABLE IF NOT EXISTS sys_dict_items (
-            Id BIGINT AUTO_INCREMENT PRIMARY KEY,
-            TypeCode VARCHAR(50) NOT NULL,
-            ItemLabel VARCHAR(200) NOT NULL,
-            ItemValue VARCHAR(100) NOT NULL,
-            SortOrder INT DEFAULT 0,
-            Color VARCHAR(20),
-            IsDefault TINYINT(1) DEFAULT 0,
-            Status TINYINT(1) DEFAULT 1,
-            Remark TEXT,
-            CreatedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            INDEX idx_dict_items_type (TypeCode),
-            INDEX idx_dict_items_sort (TypeCode, SortOrder)
+            id              BIGINT AUTO_INCREMENT PRIMARY KEY,
+            type_code       VARCHAR(50) NOT NULL,
+            item_label      VARCHAR(200) NOT NULL,
+            item_value      VARCHAR(100) NOT NULL,
+            sort_order      INT DEFAULT 0,
+            color           VARCHAR(20),
+            is_default      TINYINT(1) DEFAULT 0,
+            status          TINYINT(1) DEFAULT 1,
+            remark          TEXT,
+            created_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            INDEX idx_dict_items_type (type_code),
+            INDEX idx_dict_items_sort (type_code, sort_order)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
 
     // 如果 organizations 表是新创建的，添加外键约束
@@ -235,7 +215,7 @@ using (var scope = app.Services.CreateScope())
         await context.Database.ExecuteSqlRawAsync(@"
             ALTER TABLE organizations
             ADD CONSTRAINT fk_org_parent
-            FOREIGN KEY (ParentId) REFERENCES organizations(Id) ON DELETE SET NULL");
+            FOREIGN KEY (parent_id) REFERENCES organizations(id) ON DELETE SET NULL");
     }
     catch { /* 约束可能已存在 */ }
 
@@ -251,10 +231,11 @@ if (app.Environment.IsDevelopment())
 
 app.UseCors("AllowFrontend");
 
+// NOTE: JwtMiddleware must run BEFORE UseAuthorization so that JWT validation
+// (extracting user claims) happens before controller authorization checks.
 app.UseAuthentication();
-app.UseAuthorization();
-
 app.UseMiddleware<JwtMiddleware>();
+app.UseAuthorization();
 
 app.MapControllers();
 

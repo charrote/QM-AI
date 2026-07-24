@@ -201,7 +201,7 @@ onMounted(async () => {
       <el-button @click="loadInspections">刷新</el-button>
     </div>
 
-    <el-table :data="inspections" stripe style="width: 100%" size="small">
+    <el-table :data="inspections" stripe style="width: 100%" >
       <el-table-column prop="inspectionNo" label="检验单号" width="180" />
       <el-table-column prop="receiptNo" label="来源单号" width="150" />
       <el-table-column prop="sampleSize" label="样本量" width="70" />
@@ -253,19 +253,19 @@ onMounted(async () => {
           </template>
           <el-row :gutter="16" style="margin-bottom: 8px">
             <el-col :span="6">
-              <el-form-item label="批量" size="small">
+              <el-form-item label="批量" >
                 <el-input-number v-model="samplingPlanForm.lotSize" :min="1" :max="500000" style="width: 100%" />
               </el-form-item>
             </el-col>
             <el-col :span="6">
-              <el-form-item label="检验水平" size="small">
+              <el-form-item label="检验水平" >
                 <el-select v-model="samplingPlanForm.samplingLevel" style="width: 100%">
                   <el-option v-for="opt in SAMPLING_LEVEL_OPTIONS" :key="opt.value" :label="opt.label" :value="opt.value" />
                 </el-select>
               </el-form-item>
             </el-col>
             <el-col :span="6">
-              <el-form-item label="AQL 值" size="small">
+              <el-form-item label="AQL 值" >
                 <el-input-number v-model="samplingPlanForm.aqlValue" :min="0.01" :step="0.1" :precision="2" style="width: 100%" />
               </el-form-item>
             </el-col>
@@ -290,7 +290,7 @@ onMounted(async () => {
       size="500px"
     >
       <template v-if="inspectionDetail">
-        <el-descriptions :column="2" size="small" border style="margin-bottom: 16px">
+        <el-descriptions :column="2" border style="margin-bottom: 16px">
           <el-descriptions-item label="来源">{{ inspectionDetail.receiptNo }}</el-descriptions-item>
           <el-descriptions-item label="供应商">{{ inspectionDetail.supplierName }}</el-descriptions-item>
           <el-descriptions-item label="物料">{{ inspectionDetail.productName }}</el-descriptions-item>
@@ -306,7 +306,7 @@ onMounted(async () => {
         </el-descriptions>
 
         <h4 style="margin-bottom: 8px">检验项目</h4>
-        <el-table :data="inspectionDetail.items || []" size="small" stripe>
+        <el-table :data="inspectionDetail.items || []"  stripe>
           <el-table-column prop="itemName" label="项目" min-width="120" />
           <el-table-column prop="measuredValue" label="实测值" width="90" />
           <el-table-column label="规格" width="130">
@@ -333,7 +333,7 @@ onMounted(async () => {
       width="720px"
       :close-on-click-modal="false"
     >
-      <el-form label-width="100px" size="small">
+      <el-form label-width="100px" >
         <el-form-item label="检验员">
           <el-input v-model="submitInspector" placeholder="检验员姓名" style="width: 200px" />
         </el-form-item>
@@ -344,7 +344,7 @@ onMounted(async () => {
           </div>
           <div v-else class="submit-items">
             <div v-for="(item, index) in submitItems" :key="index" class="submit-item-row">
-              <el-input v-model="item.itemName" placeholder="项目名称" size="small" style="width: 160px" />
+              <el-input v-model="item.itemName" placeholder="项目名称"  style="width: 160px" />
               <el-tooltip v-if="item.usl != null || item.lsl != null" :content="`规格: [${item.lsl ?? '-'}, ${item.usl ?? '-'}]`">
                 <el-tag size="small" type="info" effect="plain" style="min-width: 80px; text-align: center">
                   {{ item.lsl ?? '-' }} ~ {{ item.usl ?? '-' }}
@@ -358,12 +358,12 @@ onMounted(async () => {
                 style="width: 130px"
                 placeholder="实测值"
               />
-              <el-select v-model="item.result" size="small" style="width: 90px">
+              <el-select v-model="item.result"  style="width: 90px">
                 <el-option label="合格" value="pass" />
                 <el-option label="不合格" value="fail" />
                 <el-option label="待定" value="pending" />
               </el-select>
-              <el-input v-model="item.remark" placeholder="备注" size="small" style="width: 110px" />
+              <el-input v-model="item.remark" placeholder="备注"  style="width: 110px" />
               <el-button link size="small" type="danger" @click="removeSubmitItem(index)">删除</el-button>
             </div>
           </div>

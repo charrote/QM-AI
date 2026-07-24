@@ -8,6 +8,7 @@ public class SpcAnalysisResult
 {
     [Key]
     [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
+    [Column("id")]
     public long Id { get; set; }
 
     public long ChartId { get; set; }
@@ -43,6 +44,7 @@ public class SpcAnalysisResult
 
     public DateTime? AnalysisPeriodEnd { get; set; }
 
+    [Column("created_at")]
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     // Navigation

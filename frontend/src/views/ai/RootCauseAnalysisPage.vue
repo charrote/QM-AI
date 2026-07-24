@@ -136,7 +136,7 @@ function onDateRangeChange(val: string[] | null) {
       <template #header>
         <span style="font-weight: 600;">分析结果（{{ results.length }} 条发现）</span>
       </template>
-      <el-table :data="results" stripe style="width: 100%" size="small">
+      <el-table :data="results" stripe style="width: 100%" >
         <el-table-column label="序号" width="60" align="center">
           <template #default="{ $index }">{{ $index + 1 }}</template>
         </el-table-column>

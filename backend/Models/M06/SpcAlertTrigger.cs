@@ -8,6 +8,7 @@ public class SpcAlertTrigger
 {
     [Key]
     [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
+    [Column("id")]
     public long Id { get; set; }
 
     public long ChartId { get; set; }

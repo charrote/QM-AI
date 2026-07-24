@@ -202,7 +202,7 @@ onMounted(fetchList)
 <template>
   <div class="page-container">
     <div class="toolbar-row">
-      <el-form :inline="true" :model="query" size="small">
+      <el-form :inline="true" :model="query" >
         <el-form-item>
           <el-input v-model="query.keyword" placeholder="搜索检验单号/批次号" clearable @keyup.enter="fetchList" />
         </el-form-item>
@@ -264,7 +264,7 @@ onMounted(fetchList)
     <!-- 详情抽屉 -->
     <el-drawer v-model="detailVisible" title="检验详情" size="600px">
       <template v-if="detail">
-        <el-descriptions :column="2" border size="small">
+        <el-descriptions :column="2" border>
           <el-descriptions-item label="检验单号">{{ detail.inspectionNo }}</el-descriptions-item>
           <el-descriptions-item label="批次号">{{ detail.batchCode }}</el-descriptions-item>
           <el-descriptions-item label="产品名称">{{ detail.productName }}</el-descriptions-item>
@@ -277,7 +277,7 @@ onMounted(fetchList)
           <el-descriptions-item label="检验时间">{{ detail.checkedAt || '-' }}</el-descriptions-item>
         </el-descriptions>
         <h4 style="margin-top: 16px">检验明细</h4>
-        <el-table :data="detail.items || []" border size="small">
+        <el-table :data="detail.items || []" border >
           <el-table-column prop="itemName" label="项目名称" />
           <el-table-column prop="usl" label="规格上限" width="90" />
           <el-table-column prop="lsl" label="规格下限" width="90" />
@@ -295,7 +295,7 @@ onMounted(fetchList)
 
     <!-- 新建检验单对话框 -->
     <el-dialog v-model="createVisible" title="新建成品检验单" width="500px">
-      <el-form :model="createForm" label-width="100px" size="small">
+      <el-form :model="createForm" label-width="100px" >
         <el-form-item label="批次">
           <el-select v-model="createForm.batchId" placeholder="请选择批次" style="width:100%">
             <el-option v-for="b in batches" :key="b.id" :label="`${b.batchCode} - ${b.productName}`" :value="b.id" />
@@ -327,7 +327,7 @@ onMounted(fetchList)
 
     <!-- 提交检验结果对话框 -->
     <el-dialog v-model="submitVisible" title="提交检验结果" width="650px">
-      <el-form :model="submitForm" label-width="100px" size="small">
+      <el-form :model="submitForm" label-width="100px" >
         <el-form-item label="已检数量">
           <el-input-number v-model="submitForm.totalChecked" :min="0" />
         </el-form-item>
@@ -343,19 +343,19 @@ onMounted(fetchList)
       <div v-for="(item, idx) in submitForm.items" :key="idx" style="border:1px solid #eee; padding:8px; margin-bottom:8px; border-radius:4px">
         <el-row :gutter="8">
           <el-col :span="8">
-            <el-input v-model="item.itemName" placeholder="项目名称" size="small" />
+            <el-input v-model="item.itemName" placeholder="项目名称"  />
           </el-col>
           <el-col :span="4">
-            <el-input v-model="item.usl" placeholder="USL" size="small" type="number" />
+            <el-input v-model="item.usl" placeholder="USL"  type="number" />
           </el-col>
           <el-col :span="4">
-            <el-input v-model="item.lsl" placeholder="LSL" size="small" type="number" />
+            <el-input v-model="item.lsl" placeholder="LSL"  type="number" />
           </el-col>
           <el-col :span="4">
-            <el-input v-model="item.actualValue" placeholder="实测值" size="small" type="number" />
+            <el-input v-model="item.actualValue" placeholder="实测值"  type="number" />
           </el-col>
           <el-col :span="4">
-            <el-select v-model="item.result" size="small">
+            <el-select v-model="item.result" >
               <el-option label="合格" value="pass" />
               <el-option label="不合格" value="fail" />
             </el-select>

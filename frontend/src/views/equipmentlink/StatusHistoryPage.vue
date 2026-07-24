@@ -85,7 +85,7 @@ onMounted(() => {
 <template>
   <div class="page-container">
     <div class="toolbar-row">
-      <el-select v-model="query.equipmentId" placeholder="选择设备" clearable style="width: 200px" size="small" @change="handleSearch">
+      <el-select v-model="query.equipmentId" placeholder="选择设备" clearable style="width: 200px"  @change="handleSearch">
         <el-option v-for="eq in equipments" :key="eq.id" :label="`${eq.name} (${eq.code})`" :value="eq.id" />
       </el-select>
       <el-date-picker
@@ -109,7 +109,7 @@ onMounted(() => {
       <el-button @click="resetQuery" size="small">重置</el-button>
     </div>
 
-    <el-table :data="records" v-loading="loading" stripe border style="width: 100%" size="small">
+    <el-table :data="records" v-loading="loading" stripe border style="width: 100%" >
       <el-table-column prop="equipmentId" label="设备ID" width="70" />
       <el-table-column label="设备名称" min-width="150">
         <template #default="{ row }">{{ getEquipmentName(row.equipmentId) }}</template>

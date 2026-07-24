@@ -54,7 +54,7 @@ onMounted(() => {})
         </el-button>
       </div>
       <div class="search-hints">
-        <el-text type="info" size="small">
+        <el-text type="info">
           💡 模拟该批次产品召回的影响范围：受影响客户、召回数量、预计损失
         </el-text>
       </div>
@@ -94,7 +94,7 @@ onMounted(() => {})
         <template #header>
           <span>受影响客户列表</span>
         </template>
-        <el-table :data="result.affectedCustomers" stripe size="small">
+        <el-table :data="result.affectedCustomers" stripe >
           <el-table-column prop="name" label="客户名称" min-width="150" />
           <el-table-column prop="region" label="地区" width="120" />
           <el-table-column label="数量" width="100" align="right">
@@ -111,7 +111,7 @@ onMounted(() => {})
 
     <el-card v-else class="empty-card" shadow="never">
       <el-empty description="请输入批次号进行召回模拟">
-        <el-text type="info" size="small">模拟该批次产品流向及召回影响范围，辅助决策</el-text>
+        <el-text type="info">模拟该批次产品流向及召回影响范围，辅助决策</el-text>
       </el-empty>
     </el-card>
   </div>

@@ -16,11 +16,13 @@ public class InspectionPlan
 {
     [Key]
     [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
+    [Column("id")]
     public long Id { get; set; }
 
     /// <summary>计划编码（唯一）</summary>
     [Required]
     [MaxLength(50)]
+    [Column("plan_code")]
     public string PlanCode { get; set; } = string.Empty;
 
     /// <summary>计划名称</summary>
@@ -35,13 +37,16 @@ public class InspectionPlan
 
     /// <summary>描述</summary>
     [MaxLength(500)]
+    [Column("description")]
     public string? Description { get; set; }
 
     // ═══ 业务维度（用于匹配业务上下文）═══
     /// <summary>产品维度（可为null表示通用计划）</summary>
+    [Column("product_id")]
     public long? ProductId { get; set; }
 
     /// <summary>材料维度（关联products表，product_type='material'）</summary>
+    [Column("material_id")]
     public long? MaterialId { get; set; }
 
     /// <summary>供应商维度</summary>
@@ -54,13 +59,18 @@ public class InspectionPlan
     public long? ProcessId { get; set; }
 
     /// <summary>设备维度</summary>
+    [Column("equipment_id")]
     public long? EquipmentId { get; set; }
 
     /// <summary>是否启用</summary>
+    [Column("is_active")]
     public bool IsActive { get; set; } = true;
 
+    [Column("created_by")]
     public long CreatedBy { get; set; }
+    [Column("created_at")]
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    [Column("updated_at")]
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
     // Navigation

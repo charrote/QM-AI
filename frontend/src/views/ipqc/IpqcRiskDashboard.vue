@@ -157,7 +157,7 @@ onMounted(async () => {
       <!-- Risk Factors -->
       <div class="section" v-if="riskScore.factors && riskScore.factors.length > 0">
         <h4>风险因素</h4>
-        <el-table :data="riskScore.factors" size="small" stripe>
+        <el-table :data="riskScore.factors"  stripe>
           <el-table-column prop="name" label="因素" min-width="140" />
           <el-table-column prop="description" label="描述" min-width="200" />
           <el-table-column label="当前值" width="100">
@@ -192,7 +192,7 @@ onMounted(async () => {
     <!-- Score History -->
     <div v-if="scoreHistory.length > 0" class="section" style="margin-top:16px">
       <h4>评分历史（近 24 小时）</h4>
-      <el-table :data="scoreHistory" size="small" stripe v-loading="historyLoading" max-height="300">
+      <el-table :data="scoreHistory"  stripe v-loading="historyLoading" max-height="300">
         <el-table-column label="评分" width="80">
           <template #default="{ row }">
             <el-tag :type="levelTag(row.level)" size="small">{{ row.score }}</el-tag>

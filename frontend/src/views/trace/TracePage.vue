@@ -102,7 +102,7 @@ onMounted(() => {})
         </el-button>
       </div>
       <div class="search-hints">
-        <el-text type="info" size="small">💡 输入 SN / 批次号 / 设备编码进行 6 阶段质量追溯：来料→领料→加工→检验→批次→出货</el-text>
+        <el-text type="info">💡 输入 SN / 批次号 / 设备编码进行 6 阶段质量追溯：来料→领料→加工→检验→批次→出货</el-text>
       </div>
       <div v-if="error" class="error-msg">
         <el-alert :title="error" type="error" :closable="false" show-icon />
@@ -141,7 +141,7 @@ onMounted(() => {})
             <el-tag size="small" type="primary">物料链</el-tag>
           </div>
         </template>
-        <el-table :data="result.materialChain" stripe size="small">
+        <el-table :data="result.materialChain" stripe >
           <el-table-column prop="materialCode" label="物料代码" width="120" />
           <el-table-column prop="materialName" label="物料名称" min-width="150" />
           <el-table-column prop="batchCode" label="批次号" width="120" />
@@ -163,7 +163,7 @@ onMounted(() => {})
             <el-tag size="small" type="warning">首件</el-tag>
           </div>
         </template>
-        <el-table :data="result.firstPieces" stripe size="small">
+        <el-table :data="result.firstPieces" stripe >
           <el-table-column prop="serialNumber" label="SN" width="140" />
           <el-table-column prop="productCode" label="产品代码" width="120" />
           <el-table-column prop="productName" label="产品名称" min-width="120" />
@@ -192,7 +192,7 @@ onMounted(() => {})
             <el-tag size="small" type="warning">加工</el-tag>
           </div>
         </template>
-        <el-table :data="result.patrols" stripe size="small">
+        <el-table :data="result.patrols" stripe >
           <el-table-column prop="patrolNo" label="巡检单号" width="140" />
           <el-table-column prop="processName" label="工序" width="120" />
           <el-table-column prop="equipmentName" label="设备" width="120" />
@@ -219,7 +219,7 @@ onMounted(() => {})
             <el-tag size="small" type="danger">成品</el-tag>
           </div>
         </template>
-        <el-table :data="result.fqcInspections" stripe size="small">
+        <el-table :data="result.fqcInspections" stripe >
           <el-table-column prop="inspectionNo" label="检验单号" width="140" />
           <el-table-column prop="productName" label="产品名称" min-width="120" />
           <el-table-column label="检验时间" width="150">
@@ -245,7 +245,7 @@ onMounted(() => {})
             <el-tag size="small" type="success">出货</el-tag>
           </div>
         </template>
-        <el-table :data="result.oqcReleases" stripe size="small">
+        <el-table :data="result.oqcReleases" stripe >
           <el-table-column prop="releaseNo" label="放行单号" width="140" />
           <el-table-column prop="productName" label="产品名称" min-width="120" />
           <el-table-column prop="customer" label="客户" width="120" />
@@ -284,7 +284,7 @@ onMounted(() => {})
     <!-- Empty state for no result -->
     <el-card v-else class="empty-card" shadow="never">
       <el-empty description="请输入 SN 编码、批次号或设备编码开始追溯">
-        <el-text type="info" size="small">支持 6 阶段全流程追溯：来料 → 领料 → 加工 → 检验 → 批次 → 出货</el-text>
+        <el-text type="info">支持 6 阶段全流程追溯：来料 → 领料 → 加工 → 检验 → 批次 → 出货</el-text>
       </el-empty>
     </el-card>
   </div>

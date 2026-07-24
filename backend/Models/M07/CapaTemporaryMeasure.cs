@@ -11,12 +11,14 @@ public class CapaTemporaryMeasure
 {
     [Key]
     [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
+    [Column("id")]
     public long Id { get; set; }
 
     public long CapaId { get; set; }
 
     /// <summary>措施描述</summary>
     [Required]
+    [Column("description")]
     public string Description { get; set; } = string.Empty;
 
     /// <summary>执行人</summary>
@@ -25,6 +27,7 @@ public class CapaTemporaryMeasure
     /// <summary>执行时间</summary>
     public DateTime? ExecutedAt { get; set; }
 
+    [Column("created_at")]
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     [ForeignKey(nameof(CapaId))]

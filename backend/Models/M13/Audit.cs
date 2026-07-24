@@ -11,24 +11,29 @@ public class Audit
 {
     [Key]
     [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
+    [Column("id")]
     public long Id { get; set; }
 
     /// <summary>审核编号 AUD-NNN</summary>
     [Required]
     [MaxLength(50)]
+    [Column("audit_no")]
     public string AuditCode { get; set; } = string.Empty;
 
     /// <summary>审核类型：internal / process / product</summary>
     [Required]
     [MaxLength(10)]
+    [Column("audit_type")]
     public string AuditType { get; set; } = string.Empty;
 
     /// <summary>审核标题</summary>
     [Required]
     [MaxLength(500)]
+    [Column("title")]
     public string Title { get; set; } = string.Empty;
 
     /// <summary>描述</summary>
+    [Column("description")]
     public string? Description { get; set; }
 
     /// <summary>开始日期</summary>
@@ -64,9 +69,12 @@ public class Audit
     /// <summary>状态：planned / in_progress / completed / archived</summary>
     [Required]
     [MaxLength(10)]
+    [Column("status")]
     public string Status { get; set; } = "planned";
 
+    [Column("created_at")]
     public DateTime CreatedAt { get; set; } = DateTime.Now;
+    [Column("updated_at")]
     public DateTime UpdatedAt { get; set; } = DateTime.Now;
 
     // Navigation

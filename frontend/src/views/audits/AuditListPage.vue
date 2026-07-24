@@ -167,7 +167,7 @@ onMounted(async () => {
     </div>
 
     <!-- Table -->
-    <el-table :data="audits" stripe style="width: 100%" size="small">
+    <el-table :data="audits" stripe style="width: 100%" >
       <el-table-column prop="auditCode" label="审核代码" width="140" />
       <el-table-column label="审核类型" width="100">
         <template #default="{ row }">
@@ -223,7 +223,7 @@ onMounted(async () => {
       width="640px"
       :close-on-click-modal="false"
     >
-      <el-form :model="form" label-width="100px" size="small">
+      <el-form :model="form" label-width="100px" >
         <el-row :gutter="16">
           <el-col :span="12">
             <el-form-item label="审核代码" required>

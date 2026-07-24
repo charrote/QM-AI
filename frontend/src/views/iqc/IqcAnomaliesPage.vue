@@ -123,7 +123,7 @@ onMounted(async () => {
       <el-button @click="loadAnomalies">刷新</el-button>
     </div>
 
-    <el-table :data="anomalies" stripe style="width: 100%" size="small">
+    <el-table :data="anomalies" stripe style="width: 100%" >
       <el-table-column prop="anomalyNo" label="异常单号" width="180" />
       <el-table-column prop="receiptNo" label="来料单号" width="150" />
       <el-table-column label="类型" width="90">
@@ -174,7 +174,7 @@ onMounted(async () => {
       width="520px"
       :close-on-click-modal="false"
     >
-      <el-form :model="anomalyForm" label-width="100px" size="small">
+      <el-form :model="anomalyForm" label-width="100px" >
         <el-form-item label="来料登记ID" required>
           <el-input-number v-model="anomalyForm.receiptId" :min="1" style="width: 100%" />
         </el-form-item>
@@ -214,7 +214,7 @@ onMounted(async () => {
       width="480px"
       :close-on-click-modal="false"
     >
-      <el-form :model="resolveForm" label-width="100px" size="small">
+      <el-form :model="resolveForm" label-width="100px" >
         <el-form-item label="解决方案" required>
           <el-input v-model="resolveForm.resolution" type="textarea" :rows="4" placeholder="请描述解决方案..." />
         </el-form-item>

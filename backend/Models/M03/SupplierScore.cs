@@ -11,15 +11,18 @@ public class SupplierScore
 {
     [Key]
     [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
+    [Column("id")]
     public long Id { get; set; }
 
     /// <summary>关联供应商</summary>
     public long SupplierId { get; set; }
 
     /// <summary>评分日期</summary>
+    [Column("score_date")]
     public DateTime? ScoreDate { get; set; }
 
     /// <summary>综合评分（0-100）</summary>
+    [Column("score")]
     public decimal? Score { get; set; }
 
     /// <summary>维度评分 JSON</summary>
@@ -28,6 +31,7 @@ public class SupplierScore
 
     /// <summary>评级：A/B/C/D</summary>
     [MaxLength(10)]
+    [Column("grade")]
     public string? Grade { get; set; }
 
     /// <summary>评估意见</summary>

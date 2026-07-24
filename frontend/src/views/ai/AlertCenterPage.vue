@@ -112,7 +112,7 @@ onMounted(async () => {
     </div>
 
     <!-- Table -->
-    <el-table :data="alerts" stripe style="width: 100%" size="small">
+    <el-table :data="alerts" stripe style="width: 100%" >
       <el-table-column label="级别" width="80">
         <template #default="{ row }">
           <el-tag :type="ALERT_LEVEL_OPTIONS.find(o => o.value === row.level)?.type || 'info'" size="small" effect="plain">

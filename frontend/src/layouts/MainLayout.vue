@@ -26,6 +26,7 @@ const contextMenuX = ref(0)
 const contextMenuY = ref(0)
 const contextMenuTabId = ref('')
 const contextMenuClosable = ref(false)
+const showSearchPanel = ref(false)
 
 // Refresh mechanism: toggle this to force KeepAlive to remount current component
 const keepAliveEnabled = ref(true)
@@ -79,14 +80,14 @@ const componentNameMap: Record<string, string> = {
   'complaint-list': 'ComplaintListPage',
   'd8-report': 'D8ReportPage',
   'complaint-timeline': 'ComplaintTimelinePage',
-   ai: 'AI',
-   'alert-center': 'AlertCenterPage',
-   'root-cause': 'RootCauseAnalysisPage',
-   'model-management': 'ModelManagementPage',
-   'equipment-link': 'EquipmentLink',
-   'param-mapping': 'ParamMappingPage',
-   'status-history': 'StatusHistoryPage',
-   'quality-correlation': 'QualityCorrelationPage',
+  ai: 'AI',
+  'alert-center': 'AlertCenterPage',
+  'root-cause': 'RootCauseAnalysisPage',
+  'model-management': 'ModelManagementPage',
+  'equipment-link': 'EquipmentLink',
+  'param-mapping': 'ParamMappingPage',
+  'status-history': 'StatusHistoryPage',
+  'quality-correlation': 'QualityCorrelationPage',
   documents: 'Documents',
   'document-list': 'DocumentListPage',
   'version-history': 'VersionHistoryPage',
@@ -106,7 +107,7 @@ const keepAliveIncludes = computed(() => {
   return tabStore.tabs.map(t => componentNameMap[t.id]).filter(Boolean)
 })
 
-const sidebarWidth = computed(() => (appStore.sidebarCollapsed ? '64px' : '220px'))
+const sidebarWidth = computed(() => (appStore.sidebarCollapsed ? '64px' : '224px'))
 
 const sortedTabs = computed(() => {
   return [...tabStore.tabs].sort((a, b) => a.order - b.order)
@@ -222,7 +223,6 @@ function handleCloseAll() {
 }
 
 function handleRefresh() {
-  // Toggle KeepAlive off then on to force current component remount
   keepAliveEnabled.value = false
   nextTick(() => {
     keepAliveEnabled.value = true
@@ -248,7 +248,7 @@ const LEVEL_PADDING: Record<string, number> = {
 }
 
 const LEVEL_COLORS: Record<string, string> = {
-  group: '#8B5CF6', company: '#409EFF', workshop: '#E6A23C', line: '#67C23A',
+  group: '#8B5CF6', company: '#1677ff', workshop: '#faad14', line: '#52c41a',
 }
 
 function getLevelPadding(level: string): number {
@@ -267,17 +267,25 @@ function getIconComponent(iconName?: string) {
 
 <template>
   <el-container class="layout-container">
+    <!-- ═══ Header ═══ -->
     <el-header class="layout-header">
       <div class="header-left">
-        <div class="collapse-btn" @click="appStore.toggleSidebar()">
-          <el-icon :size="20">
+        <div class="collapse-btn" @click="appStore.toggleSidebar()" title="折叠/展开菜单">
+          <el-icon :size="18">
             <Fold v-if="!appStore.sidebarCollapsed" />
             <Expand v-else />
           </el-icon>
         </div>
         <div class="logo-area">
-          <el-icon :size="24" color="#409eff"><Monitor /></el-icon>
-          <span class="logo-text" v-show="!appStore.sidebarCollapsed">QM-AI</span>
+          <div class="logo-icon">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M9 12L11 14L15 10M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <div class="logo-text" v-show="!appStore.sidebarCollapsed">
+            <span class="logo-title">QM-AI</span>
+            <span class="logo-subtitle">质量决策平台</span>
+          </div>
         </div>
       </div>
       <div class="header-right">
@@ -288,9 +296,9 @@ function getIconComponent(iconName?: string) {
           class="org-selector"
         >
           <span class="org-selector-trigger">
-            <el-icon :size="16"><Connection /></el-icon>
+            <el-icon :size="15"><Connection /></el-icon>
             <span class="org-name">{{ orgStore.selectedOrgName || '全企业' }}</span>
-            <el-icon :size="12"><ArrowDown /></el-icon>
+            <el-icon :size="10"><ArrowDown /></el-icon>
           </span>
           <template #dropdown>
             <el-dropdown-menu class="org-dropdown-menu">
@@ -323,27 +331,59 @@ function getIconComponent(iconName?: string) {
           </template>
         </el-dropdown>
 
-        <div class="theme-toggle" @click="appStore.toggleTheme()">
-          <el-icon :size="18">
+        <!-- 搜索按钮 -->
+        <div class="header-icon-btn" @click="showSearchPanel = true" title="全局搜索">
+          <el-icon :size="17"><Search /></el-icon>
+        </div>
+
+        <!-- 通知 -->
+        <el-badge :value="appStore.activeAlertCount" :hidden="appStore.activeAlertCount === 0" :max="99">
+          <div class="header-icon-btn alert-btn" title="预警通知">
+            <el-icon :size="18"><Bell /></el-icon>
+          </div>
+        </el-badge>
+
+        <!-- 主题切换 -->
+        <div class="header-icon-btn" @click="appStore.toggleTheme()" :title="appStore.theme === 'light' ? '切换到暗色' : '切换到亮色'">
+          <el-icon :size="17">
             <Moon v-if="appStore.theme === 'light'" />
             <Sunny v-else />
           </el-icon>
         </div>
-        <el-badge :value="appStore.activeAlertCount" :hidden="appStore.activeAlertCount === 0" class="alert-badge">
-          <el-icon :size="20"><Bell /></el-icon>
-        </el-badge>
+
+        <!-- 全屏按钮 -->
+        <div class="header-icon-btn" @click="toggleFullscreen" title="全屏">
+          <el-icon :size="17">
+            <FullScreen v-if="!isFullscreen" />
+            <Bug v-else />
+          </el-icon>
+        </div>
+
+        <el-divider direction="vertical" style="height: 20px; margin: 0 4px;" />
+
+        <!-- 用户菜单 -->
         <el-dropdown trigger="click" @command="handleLogout">
           <span class="user-info">
-            <el-avatar :size="28">
+            <el-avatar :size="30" class="user-avatar">
               <el-icon :size="16"><UserFilled /></el-icon>
             </el-avatar>
-            <span class="user-name" v-show="!appStore.sidebarCollapsed">
-              {{ authStore.user?.displayName || authStore.user?.username || '用户' }}
-            </span>
+            <div class="user-detail" v-show="!appStore.sidebarCollapsed">
+              <div class="user-name">{{ authStore.user?.displayName || authStore.user?.username || '用户' }}</div>
+              <div class="user-role" v-if="authStore.user?.role">{{ authStore.user.role }}</div>
+            </div>
+            <el-icon :size="12"><ArrowDown /></el-icon>
           </span>
           <template #dropdown>
             <el-dropdown-menu>
-              <el-dropdown-item command="logout">
+              <el-dropdown-item command="profile">
+                <el-icon><User /></el-icon>
+                个人中心
+              </el-dropdown-item>
+              <el-dropdown-item command="settings">
+                <el-icon><Setting /></el-icon>
+                系统设置
+              </el-dropdown-item>
+              <el-dropdown-item divided command="logout">
                 <el-icon><SwitchButton /></el-icon>
                 退出登录
               </el-dropdown-item>
@@ -353,7 +393,9 @@ function getIconComponent(iconName?: string) {
       </div>
     </el-header>
 
+    <!-- ═══ Main Body ═══ -->
     <el-container class="layout-body">
+      <!-- Sidebar -->
       <el-aside :width="sidebarWidth" class="layout-sidebar">
         <el-menu
           :default-active="route.path"
@@ -400,11 +442,13 @@ function getIconComponent(iconName?: string) {
         </el-menu>
       </el-aside>
 
+      <!-- ═══ Content Area ═══ -->
       <el-container class="layout-content-area">
+        <!-- TabBar -->
         <div class="tab-bar" v-if="sortedTabs.length > 0">
           <div
             v-if="showScrollLeft"
-            class="tab-scroll-btn left"
+            class="tab-scroll-btn"
             @click="scrollLeft"
           >
             <el-icon><ArrowLeft /></el-icon>
@@ -418,14 +462,11 @@ function getIconComponent(iconName?: string) {
               v-for="tab in sortedTabs"
               :key="tab.id"
               :data-tab-path="tab.path"
-              :class="[
-                'tab-item',
-                { active: tab.id === tabStore.activeTabId },
-              ]"
+              :class="['tab-item', { active: tab.id === tabStore.activeTabId }]"
               @click="activateTab(tab)"
               @contextmenu="handleContextMenu($event, tab)"
             >
-              <el-icon class="tab-icon" :size="14">
+              <el-icon class="tab-icon" :size="13">
                 <component :is="getIconComponent(tab.icon)" />
               </el-icon>
               <span class="tab-name">{{ tab.name }}</span>
@@ -441,13 +482,14 @@ function getIconComponent(iconName?: string) {
           </div>
           <div
             v-if="showScrollRight"
-            class="tab-scroll-btn right"
+            class="tab-scroll-btn"
             @click="scrollRight"
           >
             <el-icon><ArrowRight /></el-icon>
           </div>
         </div>
 
+        <!-- Main Content -->
         <el-main class="content-area">
           <RouterView v-slot="{ Component }">
             <KeepAlive :include="keepAliveIncludes" v-if="keepAliveEnabled">
@@ -472,124 +514,229 @@ function getIconComponent(iconName?: string) {
   </el-container>
 </template>
 
+<script lang="ts">
+export default {
+  computed: {
+    isFullscreen(): boolean {
+      return !!(document.fullscreenElement || (document as any).webkitFullscreenElement || (document as any).msFullscreenElement)
+    }
+  },
+  methods: {
+    toggleFullscreen() {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen?.()
+      } else {
+        document.exitFullscreen?.()
+      }
+    }
+  }
+}
+</script>
+
 <style scoped>
+/* ═══ Layout Container ═══ */
 .layout-container {
   height: 100vh;
   overflow: hidden;
 }
 
+/* ═══ Header ═══ */
 .layout-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  height: 48px;
-  padding: 0 16px;
-  background: var(--bg-header, #ffffff);
-  border-bottom: 1px solid var(--border-color, #e4e7ed);
-  box-shadow: var(--shadow-sm, 0 1px 2px rgba(0,0,0,0.06));
-  z-index: 100;
+  height: var(--layout-header-height);
+  padding: 0 var(--space-4);
+  background: var(--header-bg, #fff);
+  border-bottom: 1px solid var(--header-border, #f0f0f0);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+  z-index: var(--z-fixed);
   box-sizing: border-box;
 }
 
 .header-left {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .collapse-btn {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
-  border-radius: 6px;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-md);
   cursor: pointer;
   color: var(--text-regular, #606266);
-  transition: background var(--transition-fast, 0.2s);
+  transition: all var(--duration-fast) var(--ease-out);
+  flex-shrink: 0;
 }
 
 .collapse-btn:hover {
-  background: var(--tab-item-hover-bg, #ecf5ff);
-  color: var(--primary-color, #409eff);
+  background: var(--tab-item-hover-bg, #f5f5f5);
+  color: var(--primary-color, #4096ff);
 }
 
+/* Logo */
 .logo-area {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-3);
+}
+
+.logo-icon {
+  width: 28px;
+  height: 28px;
+  color: var(--primary, #1677ff);
+  flex-shrink: 0;
+}
+
+.logo-icon svg {
+  width: 100%;
+  height: 100%;
 }
 
 .logo-text {
-  font-size: 18px;
-  font-weight: 700;
-  color: var(--text-primary, #303133);
-  white-space: nowrap;
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
 }
 
+.logo-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary, #1a1a1a);
+  letter-spacing: 0.5px;
+}
+
+.logo-subtitle {
+  font-size: 10px;
+  color: var(--text-secondary, #8c8c8c);
+  font-weight: 400;
+}
+
+/* Header Right */
 .header-right {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: var(--space-2);
 }
 
-.theme-toggle {
+/* Icon Buttons */
+.header-icon-btn {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
-  border-radius: 6px;
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-md);
   cursor: pointer;
   color: var(--text-regular, #606266);
-  transition: background var(--transition-fast, 0.2s);
+  transition: all var(--duration-fast) var(--ease-out);
 }
 
-.theme-toggle:hover {
-  background: var(--tab-item-hover-bg, #ecf5ff);
-  color: var(--primary-color, #409eff);
+.header-icon-btn:hover {
+  background: var(--tab-item-hover-bg, #f5f5f5);
+  color: var(--primary, #1677ff);
 }
 
-.alert-badge {
+.alert-btn:hover {
+  color: var(--warning, #faad14);
+}
+
+/* Organization Selector */
+.org-selector {
+  cursor: pointer;
+}
+
+.org-selector-trigger {
   display: flex;
   align-items: center;
-  cursor: pointer;
+  gap: 5px;
+  padding: 5px 10px;
+  border-radius: var(--radius-md);
+  transition: all var(--duration-fast) var(--ease-out);
   color: var(--text-regular, #606266);
+  font-size: var(--font-sm);
 }
 
-.alert-badge:hover {
-  color: var(--primary-color, #409eff);
+.org-selector-trigger:hover {
+  background: var(--tab-item-hover-bg, #f5f5f5);
+  color: var(--primary, #1677ff);
 }
 
+.org-name {
+  max-width: 100px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* User Info */
 .user-info {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
   cursor: pointer;
-  padding: 2px 8px;
-  border-radius: 6px;
-  transition: background var(--transition-fast, 0.2s);
+  padding: 3px 8px 3px 3px;
+  border-radius: var(--radius-lg);
+  transition: all var(--duration-fast) var(--ease-out);
 }
 
 .user-info:hover {
-  background: var(--tab-item-hover-bg, #ecf5ff);
+  background: var(--tab-item-hover-bg, #f5f5f5);
+}
+
+.user-avatar {
+  background: var(--primary-bg, #e6f4ff);
+  color: var(--primary, #1677ff);
+}
+
+.user-detail {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
 }
 
 .user-name {
-  font-size: 14px;
-  color: var(--text-primary, #303133);
+  font-size: var(--font-sm);
+  font-weight: var(--font-medium);
+  color: var(--text-primary, #1a1a1a);
 }
 
+.user-role {
+  font-size: 10px;
+  color: var(--text-secondary, #8c8c8c);
+}
+
+/* ═══ Sidebar ═══ */
 .layout-body {
-  height: calc(100vh - 48px);
+  height: calc(100vh - var(--layout-header-height));
 }
 
 .layout-sidebar {
-  background: var(--bg-sidebar, #304156);
+  background: var(--sidebar-bg, #001529);
   overflow-y: auto;
   overflow-x: hidden;
-  transition: width var(--transition-normal, 0.3s);
-  border-right: 1px solid var(--border-color, #e4e7ed);
+  transition: width var(--duration-normal) var(--ease-in-out);
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  /* Custom scrollbar */
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
+}
+
+.layout-sidebar::-webkit-scrollbar {
+  width: 4px;
+}
+
+.layout-sidebar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.layout-sidebar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 2px;
 }
 
 .sidebar-menu {
@@ -598,87 +745,107 @@ function getIconComponent(iconName?: string) {
 }
 
 .sidebar-menu:not(.el-menu--collapse) {
-  width: 220px;
+  width: 224px;
 }
 
+/* Menu Items */
 :deep(.sidebar-menu .el-menu-item),
 :deep(.sidebar-menu .el-sub-menu__title) {
-  color: var(--sidebar-text, #bfcbd9);
+  color: var(--sidebar-text, rgba(255, 255, 255, 0.65));
   background: transparent;
-  height: 44px;
-  line-height: 44px;
+  height: 42px;
+  line-height: 42px;
+  border-radius: 0;
+  margin: 0;
+  padding-left: 0 !important;
+}
+
+:deep(.sidebar-menu .el-menu-item .el-icon),
+:deep(.sidebar-menu .el-sub-menu__title .el-icon) {
+  font-size: 17px;
+  width: 20px;
+  text-align: center;
 }
 
 :deep(.sidebar-menu .el-menu-item:hover),
 :deep(.sidebar-menu .el-sub-menu__title:hover) {
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--sidebar-hover, rgba(255, 255, 255, 0.06));
+  color: rgba(255, 255, 255, 0.85);
 }
 
 :deep(.sidebar-menu .el-menu-item.is-active) {
-  color: var(--sidebar-text-active, #ffffff);
-  background: var(--sidebar-bg-active, #409eff);
+  color: var(--sidebar-text-active, #fff);
+  background: var(--sidebar-active-bg, #1677ff);
+  border-radius: 0;
+  border-right: 3px solid #fff;
 }
 
-/* 子菜单容器 — 与侧边栏同色系，略亮一点以体现层级 */
+/* Submenu */
 :deep(.sidebar-menu .el-sub-menu .el-menu) {
-  background: rgba(0, 0, 0, 0.15);
+  background: rgba(0, 0, 0, 0.2) !important;
+  padding-left: 0;
 }
 
-/* 子菜单缩进 */
 :deep(.sidebar-menu .el-sub-menu .el-menu .el-menu-item) {
   padding-left: 48px !important;
+  font-size: var(--font-sm);
+  height: 38px;
+  line-height: 38px;
 }
 
-/* 子菜单悬停 */
 :deep(.sidebar-menu .el-sub-menu .el-menu .el-menu-item:hover) {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--sidebar-hover, rgba(255, 255, 255, 0.06));
 }
 
-/* 子菜单激活 */
 :deep(.sidebar-menu .el-sub-menu .el-menu .el-menu-item.is-active) {
-  color: var(--sidebar-text-active, #ffffff);
-  background: var(--sidebar-bg-active, #409eff);
+  color: var(--sidebar-text-active, #fff);
+  background: var(--sidebar-active-bg, #1677ff);
+  border-right: 3px solid #fff;
 }
 
-/* 展开箭头颜色 */
+/* Arrow Icons */
 :deep(.sidebar-menu .el-sub-menu__title .el-sub-menu__icon-arrow) {
-  color: var(--sidebar-text, #bfcbd9);
+  color: var(--sidebar-text, rgba(255, 255, 255, 0.65));
+  font-size: 12px;
 }
 
+/* ═══ Content Area ═══ */
 .layout-content-area {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  background: var(--bg-base, #f5f7fa);
 }
 
+/* TabBar */
 .tab-bar {
   display: flex;
   align-items: center;
-  height: 36px;
-  background: var(--bg-tab-bar, #ffffff);
-  border-bottom: 1px solid var(--tab-bar-border, #e4e7ed);
-  box-shadow: var(--shadow-sm, 0 1px 2px rgba(0,0,0,0.06));
+  height: var(--layout-tabbar-height);
+  background: var(--tabbar-bg, #fff);
+  border-bottom: 1px solid var(--tabbar-border, #f0f0f0);
   position: relative;
   flex-shrink: 0;
+  z-index: 1;
 }
 
 .tab-scroll-btn {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 24px;
+  width: 28px;
   height: 100%;
   flex-shrink: 0;
   cursor: pointer;
-  color: var(--text-secondary, #909399);
+  color: var(--text-secondary, #8c8c8c);
   z-index: 2;
-  background: var(--bg-tab-bar, #ffffff);
-  border: 1px solid var(--tab-bar-border, #e4e7ed);
+  background: var(--tabbar-bg, #fff);
+  transition: all var(--duration-fast) var(--ease-out);
 }
 
 .tab-scroll-btn:hover {
-  color: var(--primary-color, #409eff);
-  background: var(--tab-item-hover-bg, #ecf5ff);
+  color: var(--primary, #1677ff);
+  background: var(--tab-item-hover-bg, #f5f5f5);
 }
 
 .tab-container {
@@ -687,10 +854,10 @@ function getIconComponent(iconName?: string) {
   flex: 1;
   overflow-x: auto;
   overflow-y: hidden;
-  scrollbar-width: none;
   gap: 2px;
-  padding: 0 4px;
+  padding: 0 var(--space-3);
   height: 100%;
+  scrollbar-width: none;
 }
 
 .tab-container::-webkit-scrollbar {
@@ -700,40 +867,43 @@ function getIconComponent(iconName?: string) {
 .tab-item {
   display: flex;
   align-items: center;
-  gap: 4px;
-  padding: 0 12px;
+  gap: 5px;
+  padding: 0 var(--space-3);
   height: 28px;
-  border-radius: 4px;
+  border-radius: var(--radius-md);
   cursor: pointer;
-  font-size: 13px;
-  color: var(--tab-item-color, #606266);
-  background: var(--tab-item-bg, #ffffff);
+  font-size: var(--font-sm);
+  color: var(--tab-item-text, #666);
+  background: var(--tab-item-bg, transparent);
   border: 1px solid transparent;
   white-space: nowrap;
   flex-shrink: 0;
-  transition: all var(--transition-fast, 0.2s);
+  transition: all var(--duration-fast) var(--ease-out);
   user-select: none;
 }
 
 .tab-item:hover {
-  background: var(--tab-item-hover-bg, #ecf5ff);
+  background: var(--tab-item-hover-bg, #f5f5f5);
+  color: var(--text-primary, #1a1a1a);
 }
 
 .tab-item.active {
-  color: var(--tab-item-active-color, #409eff);
-  background: var(--tab-item-active-bg, #e8f0fe);
-  border-color: var(--primary-color, #409eff);
-  border-bottom: 2px solid var(--primary-color, #409eff);
-  font-weight: 600;
+  color: var(--tab-item-active-text, #1677ff);
+  background: var(--tab-item-active-bg, #fff);
+  border-color: var(--tab-item-active-border, #1677ff);
+  font-weight: var(--font-medium);
+  box-shadow: 0 1px 3px rgba(22, 119, 255, 0.1);
 }
 
 .tab-icon {
   display: flex;
   align-items: center;
+  flex-shrink: 0;
 }
 
 .tab-name {
-  font-size: 13px;
+  font-size: var(--font-sm);
+  line-height: 1;
 }
 
 .tab-close {
@@ -743,54 +913,72 @@ function getIconComponent(iconName?: string) {
   width: 16px;
   height: 16px;
   border-radius: 3px;
-  margin-left: 2px;
-  transition: all var(--transition-fast, 0.2s);
-  color: var(--text-secondary, #909399);
+  margin-left: -2px;
+  transition: all var(--duration-fast) var(--ease-out);
+  color: var(--text-secondary, #8c8c8c);
+  opacity: 0;
+}
+
+.tab-item:hover .tab-close {
+  opacity: 1;
 }
 
 .tab-close:hover {
-  background: rgba(0, 0, 0, 0.1);
-  color: var(--text-primary, #303133);
+  background: rgba(0, 0, 0, 0.08);
+  color: var(--text-primary, #1a1a1a);
 }
 
+/* ═══ Content Area ═══ */
 .content-area {
-  background: var(--bg-content, #f0f2f5);
+  background: var(--bg-base, #f5f7fa);
   overflow-y: auto;
-  padding: 16px;
+  padding: var(--layout-content-padding);
+  flex: 1;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 0, 0, 0.1) transparent;
 }
 
-/* ── 组织选择器 ── */
-.org-selector {
-  cursor: pointer;
-  margin: 0 8px;
+.content-area::-webkit-scrollbar {
+  width: 6px;
 }
 
-.org-selector-trigger {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 4px 10px;
-  border-radius: 6px;
-  transition: background var(--transition-fast, 0.2s);
-  color: var(--text-regular, #606266);
-  font-size: 13px;
+.content-area::-webkit-scrollbar-track {
+  background: transparent;
 }
 
-.org-selector-trigger:hover {
-  background: var(--tab-item-hover-bg, #ecf5ff);
-  color: var(--primary-color, #409eff);
+.content-area::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.12);
+  border-radius: 3px;
 }
 
-.org-name {
-  max-width: 120px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+.content-area::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.2);
 }
 
+/* Dark mode scrollbar */
+html.dark .content-area::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+/* ═══ Dropdown Styles ═══ */
 .org-dropdown-menu .is-active {
-  background: #ecf5ff;
-  color: #409eff;
-  font-weight: 600;
+  background: var(--primary-bg, #f0f7ff);
+  color: var(--primary, #1677ff);
+  font-weight: var(--font-medium);
+}
+
+html.dark .org-dropdown-menu .is-active {
+  background: rgba(22, 119, 255, 0.15);
+}
+
+/* ═══ Responsive ═══ */
+@media (max-width: 1200px) {
+  .user-detail {
+    display: none;
+  }
+  
+  .logo-subtitle {
+    display: none;
+  }
 }
 </style>

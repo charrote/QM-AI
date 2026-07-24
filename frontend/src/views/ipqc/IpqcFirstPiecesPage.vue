@@ -239,7 +239,7 @@ onMounted(async () => {
     </div>
 
     <!-- Table -->
-    <el-table :data="items" stripe size="small" v-loading="loading" style="flex:1">
+    <el-table :data="items" stripe  v-loading="loading" style="flex:1">
       <el-table-column prop="fpNo" label="首件编号" width="180" />
       <el-table-column prop="processName" label="工序" width="140" />
       <el-table-column prop="equipmentName" label="设备" width="140" />
@@ -288,7 +288,7 @@ onMounted(async () => {
     <!-- Create Dialog -->
     <el-dialog v-model="dialogVisible" :title="dialogTitle" width="640px" :close-on-click-modal="false">
       <template v-if="!isSubmit">
-        <el-form :model="form" label-width="100px" size="small">
+        <el-form :model="form" label-width="100px" >
           <el-form-item label="工单ID" required>
             <el-input-number v-model="form.workOrderId" :min="1" style="width:200px" />
           </el-form-item>
@@ -334,7 +334,7 @@ onMounted(async () => {
         </el-form>
       </template>
       <template v-else>
-        <el-form :model="submitForm" label-width="100px" size="small">
+        <el-form :model="submitForm" label-width="100px" >
           <el-form-item label="检验结论" required>
             <el-select v-model="submitForm.conclusion" style="width:200px">
               <el-option v-for="o in IPQC_FIRST_PIECE_CONCLUSION_OPTIONS" :key="o.value" :label="o.label" :value="o.value" />

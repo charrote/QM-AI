@@ -161,17 +161,17 @@ onMounted(() => {
 <template>
   <div class="page-container">
     <div class="toolbar-row">
-      <el-select v-model="query.equipmentId" placeholder="选择设备" clearable style="width: 180px" size="small">
+      <el-select v-model="query.equipmentId" placeholder="选择设备" clearable style="width: 180px" >
         <el-option v-for="eq in equipments" :key="eq.id" :label="`${eq.name} (${eq.code})`" :value="eq.id" />
       </el-select>
-      <el-input v-model="query.keyword" placeholder="搜索设备代码/参数代码" clearable style="width: 220px" size="small" @keyup.enter="handleSearch" />
+      <el-input v-model="query.keyword" placeholder="搜索设备代码/参数代码" clearable style="width: 220px"  @keyup.enter="handleSearch" />
       <el-button @click="handleSearch" size="small">查询</el-button>
       <el-button @click="loadData" size="small">刷新</el-button>
       <div style="flex:1"></div>
       <el-button type="primary" @click="openCreate" size="small">+ 新增映射</el-button>
     </div>
 
-    <el-table :data="mappings" v-loading="loading" stripe border style="width: 100%" size="small">
+    <el-table :data="mappings" v-loading="loading" stripe border style="width: 100%" >
       <el-table-column prop="equipmentId" label="设备ID" width="70" />
       <el-table-column label="设备名称" min-width="150">
         <template #default="{ row }">{{ getEquipmentName(row.equipmentId) }}</template>
@@ -207,7 +207,7 @@ onMounted(() => {
 
     <el-dialog v-model="dialogVisible" :title="dialogTitle" width="560px" :close-on-click-modal="false">
       <el-ref ref="formRef">
-        <el-form :model="form" :rules="formRules" label-width="100px" size="small">
+        <el-form :model="form" :rules="formRules" label-width="100px" >
           <el-form-item label="设备" prop="equipmentId">
             <el-select v-model="form.equipmentId" placeholder="选择设备" style="width: 100%">
               <el-option v-for="eq in equipments" :key="eq.id" :label="`${eq.name} (${eq.code})`" :value="eq.id" />

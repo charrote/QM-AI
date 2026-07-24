@@ -928,7 +928,7 @@ onUnmounted(() => {
               </div>
 
               <!-- Control Limits Info -->
-              <el-descriptions v-if="analysisReport?.controlLimits" title="控制限参数" :column="6" size="small" border class="limits-table">
+              <el-descriptions v-if="analysisReport?.controlLimits" title="控制限参数" :column="6" border class="limits-table">
                 <el-descriptions-item label="X̄ CL">{{ formatNumber(analysisReport.controlLimits.clXbar) }}</el-descriptions-item>
                 <el-descriptions-item label="X̄ UCL">{{ formatNumber(analysisReport.controlLimits.uclXbar) }}</el-descriptions-item>
                 <el-descriptions-item label="X̄ LCL">{{ formatNumber(analysisReport.controlLimits.lclXbar) }}</el-descriptions-item>
@@ -942,7 +942,7 @@ onUnmounted(() => {
                 <span>数据点列表</span>
                 <el-button size="small" text @click="fetchDataPoints">刷新</el-button>
               </div>
-              <el-table :data="dataPoints" stripe size="small" max-height="200" v-loading="loading">
+              <el-table :data="dataPoints" stripe  max-height="200" v-loading="loading">
                 <el-table-column prop="subgroupIndex" label="子组#" width="70" />
                 <el-table-column prop="individualValues" label="测量值" min-width="200">
                   <template #default="{ row }">
@@ -1020,7 +1020,7 @@ onUnmounted(() => {
             <template #label>
               <el-icon><Bell /></el-icon><span>报警记录</span>
             </template>
-            <el-table :data="triggers" stripe size="small" v-loading="loading">
+            <el-table :data="triggers" stripe  v-loading="loading">
               <el-table-column prop="ruleNumber" label="规则" width="60">
                 <template #default="{ row }">{{ `#${row.ruleNumber}` }}</template>
               </el-table-column>
@@ -1085,7 +1085,7 @@ onUnmounted(() => {
                       </el-tag>
                     </div>
                   </template>
-                  <el-descriptions :column="4" size="small" border>
+                  <el-descriptions :column="4" border>
                     <el-descriptions-item label="平方和(SS)">{{ formatNumber(result.sumOfSquares, 2) }}</el-descriptions-item>
                     <el-descriptions-item label="自由度(df)">{{ result.degreesFreedom }}</el-descriptions-item>
                     <el-descriptions-item label="均方(MS)">{{ formatNumber(result.meanSquare, 2) }}</el-descriptions-item>
@@ -1121,7 +1121,7 @@ onUnmounted(() => {
               </div>
 
               <!-- 数据源列表 -->
-              <el-table :data="dataSources" stripe size="small" class="mt-3">
+              <el-table :data="dataSources" stripe  class="mt-3">
                 <el-table-column label="数据源类型" width="160">
                   <template #default="{ row }">
                     <el-tag>{{ getSourceTypeLabel(row.sourceType) }}</el-tag>
@@ -1152,7 +1152,7 @@ onUnmounted(() => {
                 </div>
               </div>
 
-              <el-table :data="businessData" stripe size="small" max-height="300" v-loading="businessDataLoading"
+              <el-table :data="businessData" stripe  max-height="300" v-loading="businessDataLoading"
                 @selection-change="onBusinessDataSelectionChange">
                 <el-table-column type="selection" width="40" />
                 <el-table-column label="来源" width="80">
@@ -1191,7 +1191,7 @@ onUnmounted(() => {
 
     <!-- ── Create/Edit Chart Dialog ── -->
     <el-dialog v-model="chartDialogVisible" :title="chartDialogTitle" width="520px" :close-on-click-modal="false">
-      <el-form :model="chartForm" label-width="120px" size="small">
+      <el-form :model="chartForm" label-width="120px" >
         <el-form-item label="控制图名称" required>
           <el-input v-model="chartForm.name" placeholder="如：精加工-CNC-001 Xbar-R图" />
         </el-form-item>
@@ -1227,7 +1227,7 @@ onUnmounted(() => {
 
     <!-- ── Add Data Point Dialog ── -->
     <el-dialog v-model="dpDialogVisible" title="添加数据点" width="450px" :close-on-click-modal="false">
-      <el-form :model="dpForm" label-width="120px" size="small">
+      <el-form :model="dpForm" label-width="120px" >
         <el-form-item label="测量值" required>
           <el-input v-model="dpForm.individualValues" placeholder="如: 10.01, 10.02, 9.99, 10.00, 10.01" />
           <div class="form-tip">逗号分隔的数值，数量应与子组大小一致</div>
@@ -1266,7 +1266,7 @@ onUnmounted(() => {
 
     <!-- ── Rule Config Dialog ── -->
     <el-dialog v-model="ruleConfigVisible" title="判异规则配置" width="650px">
-      <el-table :data="alertRules" stripe size="small">
+      <el-table :data="alertRules" stripe >
         <el-table-column label="规则" width="50">
           <template #default="{ row }">#{{ row.ruleNumber }}</template>
         </el-table-column>
@@ -1278,12 +1278,12 @@ onUnmounted(() => {
         </el-table-column>
         <el-table-column label="连续点数(N)" width="110">
           <template #default="{ row }">
-            <el-input-number v-model="row.triggerThreshold" :min="1" :max="25" size="small" controls-position="right" style="width:90px" />
+            <el-input-number v-model="row.triggerThreshold" :min="1" :max="25"  controls-position="right" style="width:90px" />
           </template>
         </el-table-column>
         <el-table-column label="σ阈值" width="100">
           <template #default="{ row }">
-            <el-input-number v-model="row.sigmaThreshold" :min="0" :max="5" :step="0.5" size="small" controls-position="right" style="width:80px" />
+            <el-input-number v-model="row.sigmaThreshold" :min="0" :max="5" :step="0.5"  controls-position="right" style="width:80px" />
           </template>
         </el-table-column>
       </el-table>

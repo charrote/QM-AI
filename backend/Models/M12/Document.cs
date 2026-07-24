@@ -11,21 +11,25 @@ public class Document
 {
     [Key]
     [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
+    [Column("id")]
     public long Id { get; set; }
 
     /// <summary>文件标题</summary>
     [Required]
     [MaxLength(500)]
+    [Column("title")]
     public string Title { get; set; } = string.Empty;
 
     /// <summary>文档类型：sop / work_instruction / inspection_standard / 8d_report / audit_report / other</summary>
     [Required]
     [MaxLength(20)]
+    [Column("doc_type")]
     public string DocType { get; set; } = string.Empty;
 
     /// <summary>MinIO 对象键</summary>
     [Required]
     [MaxLength(500)]
+    [Column("minio_key")]
     public string MinioKey { get; set; } = string.Empty;
 
     /// <summary>文件大小（字节）</summary>
@@ -36,11 +40,13 @@ public class Document
     public string? FileHash { get; set; }
 
     /// <summary>版本号</summary>
+    [Column("version")]
     public int Version { get; set; } = 1;
 
     /// <summary>状态：draft / reviewing / approved / archived</summary>
     [Required]
     [MaxLength(10)]
+    [Column("status")]
     public string Status { get; set; } = "draft";
 
     /// <summary>审批人ID</summary>
@@ -58,10 +64,13 @@ public class Document
     /// <summary>有效期</summary>
     public DateOnly? ExpiresAt { get; set; }
 
+    [Column("created_at")]
     public DateTime CreatedAt { get; set; } = DateTime.Now;
+    [Column("updated_at")]
     public DateTime UpdatedAt { get; set; } = DateTime.Now;
 
     /// <summary>创建人</summary>
+    [Column("created_by")]
     public long CreatedBy { get; set; }
 
     // Navigation

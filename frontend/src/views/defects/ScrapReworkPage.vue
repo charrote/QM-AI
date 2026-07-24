@@ -111,7 +111,7 @@ onMounted(loadRecords)
       <el-button type="primary" @click="openCreate">+ 新建记录</el-button>
     </div>
 
-    <el-table :data="records" stripe style="width: 100%" size="small">
+    <el-table :data="records" stripe style="width: 100%" >
       <el-table-column label="类型" width="70">
         <template #default="{ row }">
           <el-tag :type="REWORK_TYPE_OPTIONS.find(o => o.value === row.type)?.type || 'info'" size="small" effect="plain">
@@ -160,7 +160,7 @@ onMounted(loadRecords)
       width="560px"
       :close-on-click-modal="false"
     >
-      <el-form :model="scrapForm" label-width="100px" size="small">
+      <el-form :model="scrapForm" label-width="100px" >
         <el-row :gutter="16">
           <el-col :span="12">
             <el-form-item label="类型" required>
@@ -218,7 +218,7 @@ onMounted(loadRecords)
       width="480px"
       :close-on-click-modal="false"
     >
-      <el-form :model="reworkResultForm" label-width="100px" size="small">
+      <el-form :model="reworkResultForm" label-width="100px" >
         <el-form-item label="返工步骤">
           <el-input v-model="reworkResultForm.reworkSteps" type="textarea" :rows="2" placeholder="返工步骤" />
         </el-form-item>

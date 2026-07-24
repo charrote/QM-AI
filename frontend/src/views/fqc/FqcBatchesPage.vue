@@ -116,7 +116,7 @@ onMounted(fetchList)
     </el-alert>
 
     <div class="toolbar-row">
-      <el-form :inline="true" :model="query" size="small">
+      <el-form :inline="true" :model="query" >
         <el-form-item>
           <el-input v-model="query.keyword" placeholder="搜索批次号/产品" clearable @keyup.enter="fetchList" />
         </el-form-item>
@@ -170,7 +170,7 @@ onMounted(fetchList)
     <!-- 详情抽屉 -->
     <el-drawer v-model="detailVisible" title="批次详情" size="600px">
       <template v-if="detail">
-        <el-descriptions :column="2" border size="small">
+        <el-descriptions :column="2" border>
           <el-descriptions-item label="批次号">{{ detail.batchCode }}</el-descriptions-item>
           <el-descriptions-item label="产品">{{ detail.productName }}</el-descriptions-item>
           <el-descriptions-item label="数量">{{ detail.quantity }}</el-descriptions-item>
@@ -182,7 +182,7 @@ onMounted(fetchList)
         </el-descriptions>
 
         <h4 style="margin-top: 16px">检验记录</h4>
-        <el-table :data="detail.inspections || []" border size="small">
+        <el-table :data="detail.inspections || []" border >
           <el-table-column prop="inspectionNo" label="检验单号" />
           <el-table-column label="结论" width="80">
             <template #default="{ row }">
@@ -197,7 +197,7 @@ onMounted(fetchList)
         </el-table>
 
         <h4 style="margin-top: 16px">放行记录</h4>
-        <el-table :data="detail.releases || []" border size="small">
+        <el-table :data="detail.releases || []" border >
           <el-table-column prop="releaseNumber" label="放行单号" />
           <el-table-column prop="customerName" label="客户" />
           <el-table-column label="状态" width="80">
@@ -221,7 +221,7 @@ onMounted(fetchList)
         手动创建批次为兜底方式。<br>
         常规流程：<strong>IPQC 关单</strong> 或 <strong>工单完工</strong> → 自动生成批次 → 自动进入 FQC 检验队列。
       </el-alert>
-      <el-form :model="createForm" label-width="100px" size="small">
+      <el-form :model="createForm" label-width="100px" >
         <el-form-item label="批次号">
           <el-input v-model="createForm.batchCode" placeholder="留空自动生成 LOT-YYYYMMDD-X">
             <template #append>

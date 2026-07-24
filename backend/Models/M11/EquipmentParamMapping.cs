@@ -12,20 +12,24 @@ public class EquipmentParamMapping
 {
     [Key]
     [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
+    [Column("id")]
     public long Id { get; set; }
 
     /// <summary>关联设备</summary>
     [Required]
+    [Column("equipment_id")]
     public long EquipmentId { get; set; }
 
     /// <summary>MQTT Topic</summary>
     [Required]
     [MaxLength(500)]
+    [Column("mqtt_topic")]
     public string MqttTopic { get; set; } = string.Empty;
 
     /// <summary>系统参数编码</summary>
     [Required]
     [MaxLength(50)]
+    [Column("system_param_code")]
     public string SystemParamCode { get; set; } = string.Empty;
 
     /// <summary>参数分组</summary>
@@ -34,13 +38,17 @@ public class EquipmentParamMapping
     /// <summary>数据类型：numeric / count / status</summary>
     [Required]
     [MaxLength(10)]
+    [Column("data_type")]
     public string DataType { get; set; } = "numeric";
 
     /// <summary>单位</summary>
     [MaxLength(20)]
+    [Column("unit")]
     public string? Unit { get; set; }
 
+    [Column("created_at")]
     public DateTime CreatedAt { get; set; } = DateTime.Now;
+    [Column("updated_at")]
     public DateTime UpdatedAt { get; set; } = DateTime.Now;
 
     // Navigation

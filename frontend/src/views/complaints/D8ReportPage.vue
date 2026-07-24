@@ -244,7 +244,7 @@ onMounted(loadD8List)
       </div>
 
       <!-- Table -->
-      <el-table :data="d8List" stripe style="width: 100%" size="small" v-loading="loading">
+      <el-table :data="d8List" stripe style="width: 100%"  v-loading="loading">
         <el-table-column prop="id" label="ID" width="60" />
         <el-table-column prop="complaintId" label="投诉ID" width="80" />
         <el-table-column label="D0·问题概述" min-width="200" show-overflow-tooltip>
@@ -365,7 +365,7 @@ onMounted(loadD8List)
       width="720px"
       :close-on-click-modal="false"
     >
-      <el-form :model="form" label-width="120px" size="small">
+      <el-form :model="form" label-width="120px" >
         <el-row :gutter="16">
           <el-col :span="12">
             <el-form-item label="投诉ID" required>

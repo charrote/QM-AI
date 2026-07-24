@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using QM_AI.API.DTOs;
 using QM_AI.API.Models.M07;
 using QM_AI.API.Services;
 
@@ -19,15 +20,29 @@ public class DefectsController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<List<Defect>>> GetAll(
+    public async Task<ActionResult<PagedResult<Defect>>> GetAll(
         [FromQuery] string? sourceType,
         [FromQuery] string? severity,
         [FromQuery] string? status,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20)
     {
-        var defects = await _defectService.GetAllAsync(sourceType, severity, status, page, pageSize);
-        return Ok(new { data = defects, total = await _defectService.GetCountAsync(sourceType) });
+        try
+        {
+            var defects = await _defectService.GetAllAsync(sourceType, severity, status, page, pageSize);
+            var total = await _defectService.GetCountAsync(sourceType);
+            return Ok(new PagedResult<Defect>
+            {
+                Items = defects,
+                Total = total,
+                Page = page,
+                PageSize = pageSize
+            });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = "获取缺陷列表失败", detail = ex.Message });
+        }
     }
 
     [HttpGet("{id}")]
@@ -41,30 +56,51 @@ public class DefectsController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<Defect>> Create([FromBody] Defect defect)
     {
-        var created = await _defectService.CreateAsync(defect);
-        return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
+        try
+        {
+            var created = await _defectService.CreateAsync(defect);
+            return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = "创建缺陷记录失败", detail = ex.Message });
+        }
     }
 
     [HttpPut("{id}")]
     public async Task<ActionResult<Defect>> Update(long id, [FromBody] Defect defect)
     {
-        var updated = await _defectService.UpdateAsync(id, defect);
-        if (updated == null) return NotFound();
-        return Ok(updated);
+        try
+        {
+            var updated = await _defectService.UpdateAsync(id, defect);
+            if (updated == null) return NotFound();
+            return Ok(updated);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = "更新缺陷记录失败", detail = ex.Message });
+        }
     }
 
     [HttpDelete("{id}")]
     public async Task<ActionResult> Delete(long id)
     {
-        var result = await _defectService.DeleteAsync(id);
-        if (!result) return NotFound();
-        return NoContent();
+        try
+        {
+            var result = await _defectService.DeleteAsync(id);
+            if (!result) return NotFound();
+            return NoContent();
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = "删除缺陷记录失败", detail = ex.Message });
+        }
     }
 
     [HttpGet("count")]
-    public async Task<ActionResult> GetCount([FromQuery] string? sourceType)
+    public async Task<ActionResult<int>> GetCount([FromQuery] string? sourceType)
     {
         var count = await _defectService.GetCountAsync(sourceType);
-        return Ok(new { count });
+        return Ok(count);
     }
 }

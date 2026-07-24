@@ -13,6 +13,7 @@ public class SpcDataSource
 {
     [Key]
     [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
+    [Column("id")]
     public long Id { get; set; }
 
     /// <summary>关联控制图</summary>
@@ -21,12 +22,14 @@ public class SpcDataSource
     /// <summary>数据源类型：IQC / IPQC / FQC</summary>
     [Required]
     [MaxLength(10)]
+    [Column("source_type")]
     public string SourceType { get; set; } = string.Empty;
 
     /// <summary>关联检验项目（null表示该数据源类型所有项目）</summary>
     public long? InspectionItemId { get; set; }
 
     /// <summary>过滤：产品</summary>
+    [Column("product_id")]
     public long? ProductId { get; set; }
 
     /// <summary>过滤：工序</summary>
@@ -39,8 +42,10 @@ public class SpcDataSource
     public long? CustomerId { get; set; }
 
     /// <summary>过滤：设备</summary>
+    [Column("equipment_id")]
     public long? EquipmentId { get; set; }
 
+    [Column("created_at")]
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     // Navigation
@@ -48,5 +53,6 @@ public class SpcDataSource
     public SpcControlChart? Chart { get; set; }
 
     [ForeignKey(nameof(InspectionItemId))]
+    [Column("inspection_item")]
     public InspectionItem? InspectionItem { get; set; }
 }

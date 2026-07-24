@@ -21,23 +21,44 @@ public class ScrapReworkController : ControllerBase
     [HttpGet]
     public async Task<ActionResult<List<ScrapReworkRecord>>> GetAll([FromQuery] long? defectId)
     {
-        var records = await _capaService.GetScrapReworkRecordsAsync(defectId);
-        return Ok(records);
+        try
+        {
+            var records = await _capaService.GetScrapReworkRecordsAsync(defectId);
+            return Ok(records);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = "查询报废返工记录失败", detail = ex.Message });
+        }
     }
 
     [HttpPost]
     public async Task<ActionResult<ScrapReworkRecord>> Create([FromBody] ScrapReworkRecord record)
     {
-        var created = await _capaService.CreateScrapReworkAsync(record);
-        return CreatedAtAction(nameof(GetAll), new { defectId = created.DefectId }, created);
+        try
+        {
+            var created = await _capaService.CreateScrapReworkAsync(record);
+            return CreatedAtAction(nameof(GetAll), new { defectId = created.DefectId }, created);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = "创建报废返工记录失败", detail = ex.Message });
+        }
     }
 
     [HttpPut("{id}/result")]
     public async Task<ActionResult<ScrapReworkRecord>> UpdateReworkResult(long id, [FromBody] UpdateReworkResultRequest request)
     {
-        var updated = await _capaService.UpdateReworkInspectionResultAsync(id, request.Result);
-        if (updated == null) return NotFound();
-        return Ok(updated);
+        try
+        {
+            var updated = await _capaService.UpdateReworkInspectionResultAsync(id, request.Result);
+            if (updated == null) return NotFound();
+            return Ok(updated);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = "更新返工结果失败", detail = ex.Message });
+        }
     }
 }
 

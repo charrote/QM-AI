@@ -68,7 +68,7 @@ async function searchTrace() {
           <el-icon style="vertical-align: middle"><Box /></el-icon>
           <span style="vertical-align: middle">来料信息</span>
         </template>
-        <el-descriptions :column="3" size="small" border>
+        <el-descriptions :column="3" border>
           <el-descriptions-item label="单号">{{ traceResult.receipt.receiptNo }}</el-descriptions-item>
           <el-descriptions-item label="供应商">{{ traceResult.receipt.supplierName }}</el-descriptions-item>
           <el-descriptions-item label="物料">{{ traceResult.receipt.productName }}</el-descriptions-item>
@@ -87,7 +87,7 @@ async function searchTrace() {
           <el-icon style="vertical-align: middle"><Document /></el-icon>
           <span style="vertical-align: middle">检验记录 ({{ traceResult.inspections.length }})</span>
         </template>
-        <el-table :data="traceResult.inspections" size="small" stripe>
+        <el-table :data="traceResult.inspections"  stripe>
           <el-table-column prop="inspectionNo" label="检验单号" width="180" />
           <el-table-column prop="sampleSize" label="样本量" width="70" />
           <el-table-column label="Ac/Re" width="70">
@@ -113,7 +113,7 @@ async function searchTrace() {
           <el-icon style="vertical-align: middle"><WarningFilled /></el-icon>
           <span style="vertical-align: middle">异常记录 ({{ traceResult.anomalies.length }})</span>
         </template>
-        <el-table :data="traceResult.anomalies" size="small" stripe>
+        <el-table :data="traceResult.anomalies"  stripe>
           <el-table-column prop="anomalyNo" label="异常单号" width="180" />
           <el-table-column label="类型" width="80">
             <template #default="{ row }">{{ statusLabel(row.anomalyType, IQC_ANOMALY_TYPE_OPTIONS) }}</template>
@@ -141,7 +141,7 @@ async function searchTrace() {
           <el-icon style="vertical-align: middle"><DataAnalysis /></el-icon>
           <span style="vertical-align: middle">供应商评分</span>
         </template>
-        <el-descriptions :column="3" size="small" border>
+        <el-descriptions :column="3" border>
           <el-descriptions-item label="评分">{{ traceResult.supplierScore.score }}</el-descriptions-item>
           <el-descriptions-item label="评级">{{ traceResult.supplierScore.grade }} 级</el-descriptions-item>
           <el-descriptions-item label="评估日期">{{ formatDate(traceResult.supplierScore.scoreDate) }}</el-descriptions-item>

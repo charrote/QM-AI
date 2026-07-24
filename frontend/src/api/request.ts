@@ -27,6 +27,89 @@ function processQueue(error: unknown, token: string | null) {
   failedQueue = []
 }
 
+// ─── User-friendly error messages by HTTP status ─────────
+const STATUS_MESSAGES: Record<number, string> = {
+  400: '请求参数错误，请检查后重试',
+  401: '登录已过期，请重新登录',
+  403: '您没有权限执行此操作',
+  404: '请求的资源不存在',
+  408: '请求超时，请稍后重试',
+  409: '资源冲突，请检查后重试',
+  422: '数据验证失败，请检查输入',
+  429: '请求过于频繁，请稍后再试',
+  500: '服务器内部错误，请联系管理员',
+  502: '网关错误，请稍后重试',
+  503: '服务暂时不可用，请稍后重试',
+  504: '网关超时，请稍后重试',
+}
+
+/**
+ * Extract error message from various backend error response formats.
+ * 
+ * Supported formats:
+ * - { message: string, detail?: string }
+ * - { title?: string, detail?: string, status?: number }  (ProblemDetails)
+ * - { errors: string[] }  (validation errors)
+ * - string (plain text)
+ */
+function getErrorMessage(error: AxiosError): string {
+  // 1. Try to extract server-side message from various formats
+  const data = error.response?.data
+  
+  if (data) {
+    // Format: { message: "xxx" }
+    if (typeof data === 'string') return data
+    
+    if (typeof data === 'object') {
+      const obj = data as Record<string, unknown>
+      
+      // Format: { message: "xxx" }
+      if (typeof obj.message === 'string') {
+        return obj.message
+      }
+      
+      // Format: { title: "Bad Request", detail: "xxx" } (ProblemDetails)
+      if (typeof obj.detail === 'string' && obj.detail) {
+        return obj.detail
+      }
+      if (typeof obj.title === 'string' && obj.title) {
+        const status = obj.status as number | undefined
+        if (status && STATUS_MESSAGES[status]) {
+          return `${STATUS_MESSAGES[status]}`
+        }
+        return obj.title
+      }
+      
+      // Format: { errors: ["msg1", "msg2"] } (validation errors)
+      if (Array.isArray(obj.errors) && obj.errors.length > 0) {
+        return obj.errors[0]
+      }
+      
+      // Format: { invalidParams: { paramName: "msg" } }
+      const invalidParams = obj.invalidParams as Record<string, string> | undefined
+      if (invalidParams) {
+        const firstKey = Object.keys(invalidParams)[0]
+        if (firstKey && invalidParams[firstKey]) {
+          return `${firstKey}: ${invalidParams[firstKey]}`
+        }
+      }
+    }
+  }
+
+  // 2. Fall back to HTTP status message
+  const status = error.response?.status
+  if (status && STATUS_MESSAGES[status]) {
+    return STATUS_MESSAGES[status]
+  }
+
+  // 3. Network error or unknown
+  if (!error.response) {
+    return '网络连接异常，请检查网络设置'
+  }
+  
+  return error.message || '请求失败，请稍后重试'
+}
+
 request.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
     const authStore = useAuthStore()
@@ -52,6 +135,7 @@ request.interceptors.response.use(
       return Promise.reject(error)
     }
 
+    // ─── Token refresh flow ──────────────────────────────
     if (error.response?.status === 401 && !originalRequest._retry) {
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
@@ -84,12 +168,13 @@ request.interceptors.response.use(
       }
     }
 
-    const msg =
-      (error.response?.data as { message?: string })?.message ||
-      error.message ||
-      'Request failed'
+    // ─── Show user-friendly error ────────────────────────
+    const msg = getErrorMessage(error)
     if (!originalRequest._silent) {
-      ElMessage.error(msg)
+      // Use ElMessage.error for 4xx/5xx, silent for 401 (already handled)
+      if (error.response?.status && error.response.status >= 400) {
+        ElMessage.error(msg)
+      }
     }
     return Promise.reject(error)
   },

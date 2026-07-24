@@ -11,10 +11,12 @@ public class D8Report
 {
     [Key]
     [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
+    [Column("id")]
     public long Id { get; set; }
 
     /// <summary>关联客诉（唯一）</summary>
     [Required]
+    [Column("complaint_id")]
     public long ComplaintId { get; set; }
 
     /// <summary>D0 问题概述</summary>
@@ -55,14 +57,18 @@ public class D8Report
     public string? D8Thanks { get; set; }
 
     /// <summary>当前步骤 D0~D8</summary>
+    [Column("current_discipline")]
     public int CurrentDiscipline { get; set; } = 0;
 
     /// <summary>状态：in_progress / completed / closed</summary>
     [Required]
     [MaxLength(20)]
+    [Column("status")]
     public string Status { get; set; } = "in_progress";
 
+    [Column("created_at")]
     public DateTime CreatedAt { get; set; } = DateTime.Now;
+    [Column("updated_at")]
     public DateTime UpdatedAt { get; set; } = DateTime.Now;
     public DateTime? CompletedAt { get; set; }
 

@@ -11,11 +11,13 @@ public class Complaint
 {
     [Key]
     [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
+    [Column("id")]
     public long Id { get; set; }
 
     /// <summary>客诉编号 C-yyyyMMdd-NNN</summary>
     [Required]
     [MaxLength(50)]
+    [Column("complaint_no")]
     public string ComplaintCode { get; set; } = string.Empty;
 
     /// <summary>关联客户</summary>
@@ -24,44 +26,55 @@ public class Complaint
     /// <summary>严重程度：critical / major / minor</summary>
     [Required]
     [MaxLength(10)]
+    [Column("severity")]
     public string Severity { get; set; } = "major";
 
     /// <summary>客诉主题</summary>
     [Required]
     [MaxLength(500)]
+    [Column("subject")]
     public string Subject { get; set; } = string.Empty;
 
     /// <summary>详细描述</summary>
     [Required]
+    [Column("description")]
     public string Description { get; set; } = string.Empty;
 
     /// <summary>状态：new / acknowledged / in_progress / overdue / awaiting_verify / closed</summary>
     [Required]
     [MaxLength(20)]
+    [Column("status")]
     public string Status { get; set; } = "new";
 
     /// <summary>5W2H 问题描述（JSON）</summary>
     public string? FiveW2HJson { get; set; }
 
     /// <summary>指派人</summary>
+    [Column("assigned_to")]
     public long? AssignedTo { get; set; }
 
     /// <summary>截止日期</summary>
+    [Column("due_date")]
     public DateOnly? DueDate { get; set; }
 
     /// <summary>确认时间</summary>
+    [Column("acknowledged_at")]
     public DateTime? AcknowledgedAt { get; set; }
 
     /// <summary>关闭时间</summary>
+    [Column("closed_at")]
     public DateTime? ClosedAt { get; set; }
 
     /// <summary>创建人</summary>
+    [Column("created_by")]
     public long CreatedBy { get; set; }
 
     /// <summary>创建时间</summary>
+    [Column("created_at")]
     public DateTime CreatedAt { get; set; } = DateTime.Now;
 
     /// <summary>更新时间</summary>
+    [Column("updated_at")]
     public DateTime UpdatedAt { get; set; } = DateTime.Now;
 
     // Navigation
