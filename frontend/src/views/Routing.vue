@@ -847,32 +847,38 @@ onMounted(async () => {
 /* ── 操作列按钮样式 ── */
 .routes-table :deep(.el-button--primary.is-link) {
   padding: 0 4px;
-  height: 24px;
-  line-height: 24px;
-  font-size: 12px;
-  text-decoration: none;
+  border: none !important;
+  box-shadow: none !important;
 }
 
 .routes-table :deep(.el-button--primary.is-link:hover),
 .routes-table :deep(.el-button--primary.is-link:focus) {
-  background: transparent;
+  border: none !important;
+  box-shadow: none !important;
+  outline: none;
+}
+
+.routes-table :deep(.el-button--primary.is-link:focus-visible) {
+  outline: none;
   box-shadow: none;
-  text-decoration: none;
 }
 
 .routes-table :deep(.el-button--danger.is-link) {
   padding: 0 4px;
-  height: 24px;
-  line-height: 24px;
-  font-size: 12px;
-  text-decoration: none;
+  border: none !important;
+  box-shadow: none !important;
 }
 
 .routes-table :deep(.el-button--danger.is-link:hover),
 .routes-table :deep(.el-button--danger.is-link:focus) {
-  background: transparent;
+  border: none !important;
+  box-shadow: none !important;
+  outline: none;
+}
+
+.routes-table :deep(.el-button--danger.is-link:focus-visible) {
+  outline: none;
   box-shadow: none;
-  text-decoration: none;
 }
 
 /* Loading icon fix */
