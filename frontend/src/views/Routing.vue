@@ -549,7 +549,7 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px 24px;
+  padding: 12px 24px;
   background: var(--el-bg-color);
   border-bottom: 1px solid var(--el-border-color-lighter);
   flex-shrink: 0;
@@ -595,8 +595,8 @@ onMounted(async () => {
   flex: 1;
   display: flex;
   overflow: hidden;
-  gap: 16px;
-  padding: 8px 24px;
+  gap: 12px;
+  padding: 12px 24px;
 }
 
 /* ─── 左侧产品列表 ──────────────────────────────── */
@@ -611,7 +611,7 @@ onMounted(async () => {
 }
 
 .sidebar-header {
-  padding: 16px;
+  padding: 12px 16px;
   border-bottom: 1px solid var(--el-border-color-lighter);
 }
 
