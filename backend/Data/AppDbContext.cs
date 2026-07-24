@@ -30,6 +30,8 @@ public class AppDbContext : DbContext
     public DbSet<Bom> Boms { get; set; } = null!;
     public DbSet<Process> Processes { get; set; } = null!;
     public DbSet<Routing> Routings { get; set; } = null!;
+    public DbSet<RoutingHeader> RoutingHeaders { get; set; } = null!;
+    public DbSet<RoutingStep> RoutingSteps { get; set; } = null!;
     public DbSet<InspectionStandard> InspectionStandards { get; set; } = null!;
     public DbSet<DefectCode> DefectCodes { get; set; } = null!;
     public DbSet<Equipment> Equipment { get; set; } = null!;
@@ -167,6 +169,32 @@ public class AppDbContext : DbContext
                   .WithMany()
                   .HasForeignKey(r => r.ProcessId)
                   .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<RoutingHeader>(entity =>
+        {
+            entity.HasOne(h => h.Product)
+                  .WithMany()
+                  .HasForeignKey(h => h.ProductId)
+                  .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasIndex(h => new { h.RouteCode, h.ProductId }).IsUnique();
+            entity.HasIndex(h => h.RouteType);
+
+            entity.HasMany(h => h.Steps)
+                  .WithOne(s => s.RoutingHeader)
+                  .HasForeignKey(s => s.RoutingHeaderId)
+                  .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<RoutingStep>(entity =>
+        {
+            entity.HasOne(s => s.Process)
+                  .WithMany()
+                  .HasForeignKey(s => s.ProcessId)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasIndex(s => new { s.RoutingHeaderId, s.StepOrder }).IsUnique();
         });
 
         modelBuilder.Entity<InspectionStandard>(entity =>

@@ -175,6 +175,20 @@ function handleSortChange(data: any) {
 
 .el-table th.el-table__cell {
   background: var(--el-fill-color-light) !important;
+  font-weight: var(--font-semibold);
+  color: var(--el-text-color-regular);
+  font-size: var(--font-sm);
+  letter-spacing: 0.02em;
+  height: 42px;
+  padding: 0 12px;
+  border-bottom: 1px solid var(--el-border-color-light);
+}
+
+.el-table td.el-table__cell {
+  padding: 10px 12px;
+  height: 42px;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+  text-align: center;
 }
 
 .index-cell {
@@ -192,5 +206,19 @@ function handleSortChange(data: any) {
 
 :deep(.el-table__empty-block) {
   min-height: 100px;
+}
+
+/* Dark mode overrides */
+html.dark .el-table th.el-table__cell {
+  background: var(--el-fill-color-light) !important;
+  color: var(--el-text-color-regular);
+}
+
+html.dark .el-table td.el-table__cell {
+  border-bottom: 1px solid var(--el-border-color-lighter);
+}
+
+html.dark .el-table__row:hover {
+  background: var(--el-fill-color) !important;
 }
 </style>

@@ -189,6 +189,153 @@ using (var scope = app.Services.CreateScope())
     
     cmd.CommandText = @"CREATE TABLE IF NOT EXISTS `routings` (`id` BIGINT AUTO_INCREMENT PRIMARY KEY, `product_id` BIGINT NOT NULL, `routing_code` VARCHAR(50) NOT NULL, `description` TEXT, `routing_name` VARCHAR(200), `step_order` INT, `process_id` BIGINT, `standard_time_minutes` DECIMAL(10,2), `is_active` TINYINT(1) DEFAULT 1, `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (`product_id`) REFERENCES `products`(`id`) ON DELETE CASCADE, FOREIGN KEY (`process_id`) REFERENCES `processes`(`id`) ON DELETE SET NULL) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;";
     await cmd.ExecuteNonQueryAsync();
+
+    // M02.5 多工艺路线：路由头表
+    cmd.CommandText = @"CREATE TABLE IF NOT EXISTS `routing_headers` (`id` BIGINT AUTO_INCREMENT PRIMARY KEY, `product_id` BIGINT NOT NULL COMMENT '所属产品ID', `route_code` VARCHAR(50) NOT NULL COMMENT '工艺路线编号', `route_name` VARCHAR(200) NOT NULL COMMENT '工艺路线名称', `route_type` VARCHAR(20) NOT NULL DEFAULT 'STD' COMMENT '路线类型: STD/ALT/EMG/CUS', `description` VARCHAR(500) COMMENT '工艺路线描述', `is_default` TINYINT(1) DEFAULT 0 COMMENT '是否默认路线', `is_active` TINYINT(1) DEFAULT 1 COMMENT '是否启用', `sort_order` INT DEFAULT 0 COMMENT '显示排序', `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (`product_id`) REFERENCES `products`(`id`) ON DELETE CASCADE, UNIQUE KEY `uk_route_code_product` (`route_code`, `product_id`), INDEX `idx_routing_headers_product` (`product_id`), INDEX `idx_routing_headers_type` (`route_type`)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;";
+    await cmd.ExecuteNonQueryAsync();
+
+    // M02.5 多工艺路线：路由步骤表（新结构，兼容旧 routing_steps 表迁移）
+    // 策略：先删除旧 routing_steps 表（如有），再创建新表
+    try
+    {
+        cmd.CommandText = @"DROP TABLE IF EXISTS `routing_steps`";
+        await cmd.ExecuteNonQueryAsync();
+        cmd.CommandText = @"CREATE TABLE `routing_steps` (`id` BIGINT AUTO_INCREMENT PRIMARY KEY, `routing_header_id` BIGINT NOT NULL COMMENT '所属路线头ID', `step_order` INT NOT NULL COMMENT '工序顺序', `process_id` BIGINT COMMENT '关联工序ID', `standard_time_minutes` DECIMAL(10,2) DEFAULT 0 COMMENT '标准工时（分钟）', `description` VARCHAR(500) COMMENT '步骤备注', `is_active` TINYINT(1) DEFAULT 1 COMMENT '是否启用', `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (`routing_header_id`) REFERENCES `routing_headers`(`id`) ON DELETE CASCADE, FOREIGN KEY (`process_id`) REFERENCES `processes`(`id`) ON DELETE RESTRICT, UNIQUE KEY `uk_step_order_header` (`routing_header_id`, `step_order`), INDEX `idx_routing_steps_header` (`routing_header_id`), INDEX `idx_routing_steps_process` (`process_id`)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;";
+        await cmd.ExecuteNonQueryAsync();
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"[Program] Warning: Failed to create routing_steps table: {ex.Message}");
+    }
+
+    // M02.5 多工艺路线：从旧 routings 表迁移数据到 routing_headers / routing_steps
+    try
+    {
+        cmd.CommandText = @"SELECT COUNT(*) FROM `routings`";
+        var oldCount = (long)(await cmd.ExecuteScalarAsync())!;
+        if (oldCount > 0)
+        {
+            Console.WriteLine($"[Program] Migrating {oldCount} rows from old routings table...");
+
+            // 3. 迁移路线头：同一 (product_id, routing_code) 视为一条路线
+            cmd.CommandText = @"
+INSERT INTO `routing_headers` (`product_id`, `route_code`, `route_name`, `description`, `is_active`, `sort_order`, `created_at`, `updated_at`)
+SELECT DISTINCT
+    product_id,
+    routing_code,
+    routing_name,
+    description,
+    is_active,
+    ROW_NUMBER() OVER (PARTITION BY product_id ORDER BY MIN(step_order)) AS sort_order,
+    MIN(created_at),
+    MAX(updated_at)
+FROM routings
+GROUP BY product_id, routing_code, routing_name, description, is_active, created_at, updated_at
+ON DUPLICATE KEY UPDATE route_name = VALUES(route_name);";
+            await cmd.ExecuteNonQueryAsync();
+
+            // 4. 迁移步骤
+            cmd.CommandText = @"
+INSERT INTO `routing_steps` (`routing_header_id`, `step_order`, `process_id`, `standard_time_minutes`, `description`, `is_active`, `created_at`, `updated_at`)
+SELECT rh.id, r.step_order, r.process_id, r.standard_time_minutes, r.description, r.is_active, r.created_at, r.updated_at
+FROM routings r
+INNER JOIN routing_headers rh
+    ON r.product_id = rh.product_id
+    AND r.routing_code = rh.route_code
+ORDER BY r.product_id, rh.sort_order, r.step_order;";
+            await cmd.ExecuteNonQueryAsync();
+
+            cmd.CommandText = @"SELECT COUNT(*) FROM `routing_headers`";
+            var headerCount = (long)(await cmd.ExecuteScalarAsync())!;
+            cmd.CommandText = @"SELECT COUNT(*) FROM `routing_steps`";
+            var stepCount = (long)(await cmd.ExecuteScalarAsync())!;
+            Console.WriteLine($"[Program] Migration complete: {headerCount} headers, {stepCount} steps");
+        }
+        else
+        {
+            Console.WriteLine("[Program] Old routings table is empty, skipping migration.");
+        }
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"[Program] Warning: Data migration failed: {ex.Message}");
+    }
+
+    // M02.5 多工艺路线：插入测试数据（用于验证新功能）
+    try
+    {
+        // 检查是否已有测试数据
+        cmd.CommandText = @"SELECT COUNT(*) FROM `routing_headers`";
+        var headerCount = (long)(await cmd.ExecuteScalarAsync())!;
+        if (headerCount == 0)
+        {
+            Console.WriteLine("[Program] Creating test routing data...");
+
+            // 1. 创建测试产品
+            cmd.CommandText = @"INSERT IGNORE INTO `products` (`product_code`, `product_name`, `description`, `is_active`, `created_at`, `updated_at`) VALUES ('TEST-001', '测试产品 A', '用于测试工艺路线功能', 1, NOW(), NOW())";
+            await cmd.ExecuteNonQueryAsync();
+
+            // 2. 创建测试工序
+            cmd.CommandText = @"INSERT IGNORE INTO `processes` (`process_code`, `process_name`, `description`, `is_active`, `created_at`, `updated_at`) VALUES ('WX', '焊接', '焊接工序测试', 1, NOW(), NOW())";
+            await cmd.ExecuteNonQueryAsync();
+            cmd.CommandText = @"INSERT IGNORE INTO `processes` (`process_code`, `process_name`, `description`, `is_active`, `created_at`, `updated_at`) VALUES ('ZZ', '组装', '组装工序测试', 1, NOW(), NOW())";
+            await cmd.ExecuteNonQueryAsync();
+            cmd.CommandText = @"INSERT IGNORE INTO `processes` (`process_code`, `process_name`, `description`, `is_active`, `created_at`, `updated_at`) VALUES ('CS', '测试', '测试工序测试', 1, NOW(), NOW())";
+            await cmd.ExecuteNonQueryAsync();
+            cmd.CommandText = @"INSERT IGNORE INTO `processes` (`process_code`, `process_name`, `description`, `is_active`, `created_at`, `updated_at`) VALUES ('BZ', '包装', '包装工序测试', 1, NOW(), NOW())";
+            await cmd.ExecuteNonQueryAsync();
+            cmd.CommandText = @"INSERT IGNORE INTO `processes` (`process_code`, `process_name`, `description`, `is_active`, `created_at`, `updated_at`) VALUES ('JY', '检验', '检验工序测试', 1, NOW(), NOW())";
+            await cmd.ExecuteNonQueryAsync();
+
+            // 3. 创建测试路线头
+            cmd.CommandText = @"INSERT IGNORE INTO `routing_headers` (`product_id`, `route_code`, `route_name`, `route_type`, `is_active`, `sort_order`, `created_at`, `updated_at`) VALUES (1, 'STD-001', '标准工艺路线', 'STD', 1, 0, NOW(), NOW())";
+            await cmd.ExecuteNonQueryAsync();
+
+            // 4. 获取路线头 ID 和工序 ID
+            cmd.CommandText = @"SELECT id FROM `routing_headers` WHERE `route_code` = 'STD-001' LIMIT 1";
+            var headerId = (long)(await cmd.ExecuteScalarAsync())!;
+
+            var processCodes = new[] { "WX", "ZZ", "CS", "BZ", "JY" };
+            foreach (var code in processCodes)
+            {
+                cmd.CommandText = $@"SELECT id FROM `processes` WHERE `process_code` = '{code}' LIMIT 1";
+                var procId = (long)(await cmd.ExecuteScalarAsync())!;
+
+                // 获取当前最大 step_order
+                cmd.CommandText = @"SELECT COALESCE(MAX(step_order), 0) FROM `routing_steps` WHERE routing_header_id = @headerId";
+                cmd.Parameters.Clear();
+                // MySQL 参数需要使用 @ 前缀，但需要正确添加
+                var param = cmd.CreateParameter();
+                param.ParameterName = "@headerId";
+                param.Value = headerId;
+                cmd.Parameters.Add(param);
+                var maxOrder = (long)(await cmd.ExecuteScalarAsync())!;
+
+                // 插入步骤
+                cmd.CommandText = @"INSERT INTO `routing_steps` (`routing_header_id`, `step_order`, `process_id`, `standard_time_minutes`, `is_active`, `created_at`, `updated_at`) VALUES (@headerId, @order, @processId, @time, 1, NOW(), NOW())";
+                cmd.Parameters.Clear();
+                var p1 = cmd.CreateParameter(); p1.ParameterName = "@headerId"; p1.Value = headerId; cmd.Parameters.Add(p1);
+                var p2 = cmd.CreateParameter(); p2.ParameterName = "@order"; p2.Value = maxOrder + 1; cmd.Parameters.Add(p2);
+                var p3 = cmd.CreateParameter(); p3.ParameterName = "@processId"; p3.Value = procId; cmd.Parameters.Add(p3);
+                var p4 = cmd.CreateParameter(); p4.ParameterName = "@time"; p4.Value = 10.0 + (processCodes.ToList().IndexOf(code)) * 5; cmd.Parameters.Add(p4);
+                await cmd.ExecuteNonQueryAsync();
+            }
+
+            cmd.CommandText = @"SELECT COUNT(*) FROM `routing_headers`";
+            headerCount = (long)(await cmd.ExecuteScalarAsync())!;
+            cmd.CommandText = @"SELECT COUNT(*) FROM `routing_steps`";
+            var stepCount = (long)(await cmd.ExecuteScalarAsync())!;
+            Console.WriteLine($"[Program] Test data created: {headerCount} headers, {stepCount} steps");
+        }
+        else
+        {
+            Console.WriteLine($"[Program] Test data already exists ({headerCount} headers).");
+        }
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"[Program] Warning: Test data creation failed: {ex.Message}");
+    }
     
     cmd.CommandText = @"CREATE TABLE IF NOT EXISTS `inspection_standards` (`id` BIGINT AUTO_INCREMENT PRIMARY KEY, `standard_code` VARCHAR(50) NOT NULL UNIQUE, `standard_name` VARCHAR(200) NOT NULL, `description` VARCHAR(500), `inspection_type` VARCHAR(10), `product_id` BIGINT, `process_id` BIGINT, `item_name` VARCHAR(200), `usl` DECIMAL(10,4), `lsl` DECIMAL(10,4), `target` DECIMAL(10,4), `unit` VARCHAR(20), `inspection_method` VARCHAR(200), `sampling_frequency` VARCHAR(200), `is_active` TINYINT(1) DEFAULT 1, `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (`product_id`) REFERENCES `products`(`id`) ON DELETE SET NULL, FOREIGN KEY (`process_id`) REFERENCES `processes`(`id`) ON DELETE SET NULL) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;";
     await cmd.ExecuteNonQueryAsync();

@@ -49,8 +49,8 @@ const routes: RouteRecordRaw[] = [
       {
         path: 'basic-data/routing',
         name: 'BasicDataRouting',
-        component: () => import('@/views/BasicData.vue'),
-        meta: { title: '工艺路线', keepAlive: true, requiresAuth: true },
+        component: () => import('@/views/Routing.vue'),
+        meta: { title: '产品工艺路线', keepAlive: true, requiresAuth: true },
       },
       {
         path: 'basic-data/bom',

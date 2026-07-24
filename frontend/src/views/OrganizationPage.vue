@@ -5,6 +5,7 @@ import { ref, reactive, computed, onMounted, nextTick } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   Folder, FolderAdd, Search, SetUp, Edit, Delete, Plus, Connection,
+  OfficeBuilding, School, Monitor, Tools,
 } from '@element-plus/icons-vue'
 import { organizationApi } from '@/api/organization'
 import { useOrgStore } from '@/stores/orgStore'
@@ -95,9 +96,13 @@ async function loadNodeDetail(id: number) {
 }
 
 // ─── 节点选择 ────────────────────────────────────────────
-function handleNodeClick(node: OrganizationTreeNode) {
-  selectedNodeId.value = node.id
-  loadNodeDetail(node.id)
+function handleNodeClick(data: OrganizationTreeNode, node: any, instance: any) {
+  selectedNodeId.value = data.id
+  loadNodeDetail(data.id)
+  // 阻止树节点折叠展开 - 调用 toggle 并传入 false
+  if (instance && instance.context && instance.context.toggle) {
+    instance.context.toggle(data.id, false)
+  }
 }
 
 function handleSearchSelect(id: number) {
@@ -217,6 +222,16 @@ function getLevelColor(level: string) {
   return cfg ? cfg.color : '#909399'
 }
 
+function getLevelIcon(level: string) {
+  const iconMap: Record<string, any> = {
+    group: OfficeBuilding,
+    company: School,
+    workshop: Monitor,
+    line: Tools,
+  }
+  return iconMap[level] || Connection
+}
+
 // ─── 初始化 ──────────────────────────────────────────────
 onMounted(() => {
   loadTree()
@@ -279,9 +294,9 @@ onMounted(() => {
             class="search-item"
             @click="handleSearchSelect(item.id)"
           >
-            <el-tag :color="getLevelColor(item.level)" size="small" effect="dark" class="level-tag">
-              {{ getLevelTag(item.level) }}
-            </el-tag>
+            <el-icon :size="14" :color="getLevelColor(item.level)">
+              <component :is="getLevelIcon(item.level)" />
+            </el-icon>
             <span class="search-path">{{ item.path }}</span>
           </div>
           <div v-if="filteredNodes.length === 0" class="search-empty">
@@ -307,6 +322,7 @@ onMounted(() => {
             :props="{ label: 'name', children: 'children' }"
             node-key="id"
             default-expand-all
+            :expand-on-click-node="false"
             highlight-current
             :current-node-key="selectedNodeId"
             @node-click="handleNodeClick"
@@ -314,10 +330,9 @@ onMounted(() => {
           >
             <template #default="{ node, data }">
               <div class="custom-tree-node" :class="'level-' + data.level">
-                <span class="level-indicator" :style="{ borderColor: getLevelColor(data.level) }"></span>
-                <el-tag :color="getLevelColor(data.level)" size="small" effect="dark" class="level-tag">
-                  {{ getLevelTag(data.level) }}
-                </el-tag>
+                <el-icon :size="16" :color="getLevelColor(data.level)">
+                  <component :is="getLevelIcon(data.level)" />
+                </el-icon>
                 <span class="node-name">{{ data.name }}</span>
                 <span class="node-code">{{ data.code }}</span>
                 <span v-if="data.childCount > 0" class="child-count" :style="{ background: getLevelColor(data.level) + '18', color: getLevelColor(data.level) }">
@@ -639,27 +654,22 @@ onMounted(() => {
   border-radius: 8px;
   cursor: pointer;
   transition: background 0.15s;
-  border-left: 3px solid transparent;
   width: 100%;
+  user-select: none;
 }
 .custom-tree-node:hover {
   background: #f5f7fa;
 }
-.custom-tree-node.level-group { border-left-color: #722ed1; }
-.custom-tree-node.level-company { border-left-color: #2f54eb; }
-.custom-tree-node.level-workshop { border-left-color: #f5a623; }
-.custom-tree-node.level-line { border-left-color: #2f9e6b; }
 
-.level-indicator {
-  width: 4px;
-  height: 4px;
-  border-radius: 50%;
-  border: 1.5px solid #dcdfe6;
-  flex-shrink: 0;
+/* 禁止折叠箭头点击 */
+.org-tree :deep(.el-tree-node__expand-icon) {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
 }
 
-.level-tag {
-  flex-shrink: 0;
+.org-tree :deep(.el-tree-node__children) {
+  display: block !important;
 }
 
 .node-name {

@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using QM_AI.API.Models;
 
 namespace QM_AI.API.DTOs.M02;
@@ -103,6 +104,41 @@ public class RoutingListDto
     public double? StandardTimeMinutes { get; set; }
 }
 
+/// <summary>产品工艺路线步骤（含工序信息）</summary>
+public class ProductRouteStepDto
+{
+    public long Id { get; set; }
+    public int StepOrder { get; set; }
+    public long ProcessId { get; set; }
+    [JsonPropertyName("processCode")]
+    public string ProcessCode { get; set; } = string.Empty;
+    [JsonPropertyName("processName")]
+    public string ProcessName { get; set; } = string.Empty;
+    [JsonPropertyName("standardTimeMinutes")]
+    public double? StandardTimeMinutes { get; set; }
+    public string? Description { get; set; }
+}
+
+/// <summary>产品工艺路线（含所有步骤）</summary>
+public class ProductRouteDto
+{
+    [JsonPropertyName("productId")]
+    public long ProductId { get; set; }
+    [JsonPropertyName("productCode")]
+    public string ProductCode { get; set; } = string.Empty;
+    [JsonPropertyName("productName")]
+    public string ProductName { get; set; } = string.Empty;
+    [JsonPropertyName("routeCode")]
+    public string RouteCode { get; set; } = string.Empty;
+    [JsonPropertyName("routeName")]
+    public string? RouteName { get; set; }
+    [JsonPropertyName("totalSteps")]
+    public int TotalSteps { get; set; }
+    [JsonPropertyName("totalStandardTimeMinutes")]
+    public double TotalStandardTimeMinutes { get; set; }
+    public List<ProductRouteStepDto> Steps { get; set; } = new();
+}
+
 public class CreateRoutingDto
 {
     public long ProductId { get; set; }
@@ -114,6 +150,33 @@ public class CreateRoutingDto
 }
 
 public class UpdateRoutingDto : CreateRoutingDto { }
+
+/// <summary>批量更新步骤顺序</summary>
+public class ReorderStepsDto
+{
+    [JsonPropertyName("productId")]
+    public long ProductId { get; set; }
+    [JsonPropertyName("stepIds")]
+    public List<long> StepIds { get; set; } = new();
+}
+
+/// <summary>克隆工艺路线</summary>
+public class CloneRouteDto
+{
+    [JsonPropertyName("sourceProductId")]
+    public long SourceProductId { get; set; }
+    [JsonPropertyName("targetProductId")]
+    public long TargetProductId { get; set; }
+}
+
+/// <summary>创建单个步骤（添加步骤用）</summary>
+public class CreateRouteStepDto
+{
+    public long ProductId { get; set; }
+    public long ProcessId { get; set; }
+    public double? StandardTimeMinutes { get; set; }
+    public string? Description { get; set; }
+}
 
 // ─── InspectionStandard ──────────────────────────────────────
 public class InspectionStandardListDto
