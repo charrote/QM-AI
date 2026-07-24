@@ -596,7 +596,7 @@ onMounted(async () => {
   display: flex;
   overflow: hidden;
   gap: 16px;
-  padding: 16px 24px;
+  padding: 8px 24px;
 }
 
 /* ─── 左侧产品列表 ──────────────────────────────── */
