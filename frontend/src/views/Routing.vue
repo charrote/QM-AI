@@ -555,6 +555,12 @@ onMounted(async () => {
   flex-shrink: 0;
 }
 
+.page-header__main {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
 .page-header__icon {
   font-size: 24px;
   color: var(--el-color-primary);
