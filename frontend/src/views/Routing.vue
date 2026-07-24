@@ -549,7 +549,7 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 24px;
+  padding: 12px 24px 4px;
   background: var(--el-bg-color);
   border-bottom: 1px solid var(--el-border-color-lighter);
   flex-shrink: 0;
@@ -687,8 +687,8 @@ onMounted(async () => {
 /* ── 通用 data-card ── */
 .data-card {
   background: #fff;
-  border-radius: 10px;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+  border-radius: 8px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
   overflow: hidden;
   flex: 1;
   display: flex;
@@ -700,7 +700,7 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 20px;
+  padding: 16px 20px;
   border-bottom: 1px solid var(--el-border-color-lighter);
   background: var(--el-fill-color-blank);
   flex-shrink: 0;
