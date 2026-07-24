@@ -415,36 +415,20 @@ onMounted(async () => {
               </template>
             </el-table-column>
             <el-table-column label="默认" width="60" align="center" :show-overflow-tooltip="false">
-              <template #default="{ row }">
-                <el-tag v-if="row.isDefault" type="primary" size="small" effect="plain">是</el-tag>
-                <span v-else class="text-muted">—</span>
-              </template>
+              <template #default="{ row }"><el-tag v-if="row.isDefault" type="primary" size="small" effect="plain">是</el-tag><span v-else class="text-muted">—</span></template>
             </el-table-column>
             <el-table-column label="启用" width="60" align="center" :show-overflow-tooltip="false">
-              <template #default="{ row }">
-                <el-tag :type="row.isActive ? 'success' : 'info'" size="small" effect="plain">
-                  {{ row.isActive ? '是' : '否' }}
-                </el-tag>
-              </template>
+              <template #default="{ row }"><el-tag :type="row.isActive ? 'success' : 'info'" size="small" effect="plain">{{ row.isActive ? '是' : '否' }}</el-tag></template>
             </el-table-column>
             <el-table-column prop="stepCount" label="步骤数" width="70" align="center" :show-overflow-tooltip="false" />
             <el-table-column prop="totalStandardTimeMinutes" label="总工时" width="80" align="right" :show-overflow-tooltip="false">
-              <template #default="{ row }">
-                {{ row.totalStandardTimeMinutes || '—' }} min
-              </template>
+              <template #default="{ row }">{{ row.totalStandardTimeMinutes || '—' }} min</template>
             </el-table-column>
             <el-table-column label="操作" width="100" align="center" fixed="right" :show-overflow-tooltip="false">
               <template #default="{ row }">
                 <el-button size="small" type="primary" link @click.stop="openEditRoute(row)">编辑</el-button>
-                <el-popconfirm
-                  title="确认删除此路线及其所有步骤？"
-                  confirm-button-text="删除"
-                  cancel-button-text="取消"
-                  @confirm="handleRouteDeleted"
-                >
-                  <template #reference>
-                    <el-button size="small" type="danger" link @click.stop>删除</el-button>
-                  </template>
+                <el-popconfirm title="确认删除此路线及其所有步骤？" confirm-button-text="删除" cancel-button-text="取消" @confirm="handleRouteDeleted">
+                  <template #reference><el-button size="small" type="danger" link @click.stop>删除</el-button></template>
                 </el-popconfirm>
               </template>
             </el-table-column>
