@@ -328,12 +328,6 @@ onMounted(async () => {
         <el-button @click="refreshRoute" text>
           <el-icon><Refresh /></el-icon>刷新
         </el-button>
-        <el-button @click="openCloneDialog">
-          <el-icon><CopyDocument /></el-icon>克隆路线
-        </el-button>
-        <el-button type="primary" @click="openCreateRoute">
-          <el-icon><Plus /></el-icon>新增路线
-        </el-button>
       </div>
     </div>
 
@@ -375,9 +369,14 @@ onMounted(async () => {
         <div v-if="selectedProductId" class="data-card">
           <div class="data-card__header">
             <span class="data-card__title">工艺路线</span>
-            <el-button text size="small" @click="openCreateRoute">
-              <el-icon><Plus /></el-icon>新增路线
-            </el-button>
+            <div class="data-card__actions">
+              <el-button @click="openCloneDialog">
+                <el-icon><CopyDocument /></el-icon>克隆路线
+              </el-button>
+              <el-button type="primary" @click="openCreateRoute">
+                <el-icon><Plus /></el-icon>新增路线
+              </el-button>
+            </div>
           </div>
 
           <!-- 加载 -->
@@ -405,6 +404,7 @@ onMounted(async () => {
             @current-change="selectRoute"
             style="width: 100%"
             size="small"
+            row-height="40"
             class="routes-table"
           >
             <el-table-column prop="routeCode" label="路线编号" width="110" show-overflow-tooltip />
@@ -571,12 +571,6 @@ onMounted(async () => {
   flex-shrink: 0;
 }
 
-.page-header__main {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
 .page-header__icon {
   font-size: 24px;
   color: var(--el-color-primary);
@@ -611,6 +605,8 @@ onMounted(async () => {
   flex: 1;
   display: flex;
   overflow: hidden;
+  gap: 16px;
+  padding: 16px 24px;
 }
 
 /* ─── 左侧产品列表 ──────────────────────────────── */
@@ -735,6 +731,12 @@ onMounted(async () => {
   gap: 6px;
 }
 
+.data-card__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .data-card__loading {
   display: flex;
   align-items: center;
@@ -840,6 +842,33 @@ onMounted(async () => {
 .text-muted {
   color: var(--el-text-color-placeholder);
   font-size: 12px;
+}
+
+/* ── 操作列按钮样式 ── */
+.routes-table :deep(.el-button--primary.is-link) {
+  padding: 0 4px;
+  height: 24px;
+  line-height: 24px;
+  font-size: 12px;
+}
+
+.routes-table :deep(.el-button--primary.is-link:hover),
+.routes-table :deep(.el-button--primary.is-link:focus) {
+  background: transparent;
+  box-shadow: none;
+}
+
+.routes-table :deep(.el-button--danger.is-link) {
+  padding: 0 4px;
+  height: 24px;
+  line-height: 24px;
+  font-size: 12px;
+}
+
+.routes-table :deep(.el-button--danger.is-link:hover),
+.routes-table :deep(.el-button--danger.is-link:focus) {
+  background: transparent;
+  box-shadow: none;
 }
 
 /* Loading icon fix */
