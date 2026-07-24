@@ -549,7 +549,7 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 24px 0;
+  padding: 12px 24px;
   background: var(--el-bg-color);
   border-bottom: 1px solid var(--el-border-color-lighter);
   flex-shrink: 0;
