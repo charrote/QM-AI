@@ -16,9 +16,8 @@ public static class DbInitializer
 {
     public static async Task Initialize(AppDbContext context)
     {
-        // 确保所有表已创建（包括新表）
-        await context.Database.EnsureCreatedAsync();
-
+        Console.WriteLine("[DbInitializer] Initialize started...");
+        
         // 跳过已有完整数据的初始化（检查 Roles 和 Organizations）
         var hasRoles = false;
         var hasOrgs = false;
@@ -28,7 +27,7 @@ public static class DbInitializer
         try { hasDicts = await context.SysDictTypes.AnyAsync(); } catch { /* ignore */ }
 
         // ─── 角色（只在无角色时创建） ────────────────────────────
-        if (!await context.Roles.AnyAsync()) {
+        if (!hasRoles) {
         var adminRole = new Role
         {
             Name = "Administrator",
@@ -254,11 +253,11 @@ public static class DbInitializer
         context.Customers.AddRange(customers);
         await context.SaveChangesAsync();
         #endregion
-        } // end if (!await context.Roles.AnyAsync()) — 以上为首次运行的完整种子数据
+        } // end if (!hasRoles) — 以上为首次运行的完整种子数据
 
         #region M15 企业组织层级种子数据
         // 只有没有组织数据时才创建
-        if (!await context.Organizations.AnyAsync())
+        if (!hasOrgs)
         {
             var hq = new Organization { Code = "HQ", Name = "集团总部", Level = "group", SortOrder = 1 };
             context.Organizations.Add(hq);
@@ -292,7 +291,7 @@ public static class DbInitializer
         #endregion
 
         #region M15 系统字典种子数据
-        if (!await context.SysDictTypes.AnyAsync())
+        if (!hasDicts)
         {
             var dictTypes = new List<SysDictType>
             {
@@ -365,7 +364,9 @@ public static class DbInitializer
         #endregion
 
         #region M02.5 动态参数配置种子数据
-        if (!await context.Set<Models.M02_5.ParamGroup>().AnyAsync())
+        var hasM02_5 = false;
+        try { hasM02_5 = await context.Set<Models.M02_5.ParamGroup>().AnyAsync(); } catch { /* ignore */ }
+        if (!hasM02_5)
         {
         var paramGroups = new List<Models.M02_5.ParamGroup>
         {
@@ -404,7 +405,9 @@ public static class DbInitializer
         #endregion
 
         #region M02.1 检验项目主数据种子 (inspection_items)
-        if (!await context.InspectionItems.AnyAsync())
+        var hasInspectionItems = false;
+        try { hasInspectionItems = await context.InspectionItems.AnyAsync(); } catch { /* ignore */ }
+        if (!hasInspectionItems)
         {
             var now = DateTime.UtcNow;
 
@@ -733,18 +736,19 @@ public static class DbInitializer
         #endregion
     }
 
-    private static List<SpcAlertRule> GetDefaultAlertRules(long chartId, DateTime now)
+private static List<SpcAlertRule> GetDefaultAlertRules(long chartId, DateTime now)
     {
         return new List<SpcAlertRule>
         {
-            new() { ChartId = chartId, RuleNumber = 1, RuleName = "1点超出3σ控制限", RuleDescription = "任何数据点超出UCL或LCL", Enabled = true, TriggerThreshold = 1, SigmaThreshold = 3.0m, CreatedAt = now, UpdatedAt = now },
-            new() { ChartId = chartId, RuleNumber = 2, RuleName = "连续9点在CL同侧", RuleDescription = "连续9个点位于中心线同一侧", Enabled = true, TriggerThreshold = 9, SigmaThreshold = 0m, CreatedAt = now, UpdatedAt = now },
-            new() { ChartId = chartId, RuleNumber = 3, RuleName = "连续6点递增或递减", RuleDescription = "连续6个点单调上升或下降", Enabled = true, TriggerThreshold = 6, SigmaThreshold = 0m, CreatedAt = now, UpdatedAt = now },
-            new() { ChartId = chartId, RuleNumber = 4, RuleName = "连续14点上下交替", RuleDescription = "连续14个点呈现上下交替模式", Enabled = true, TriggerThreshold = 14, SigmaThreshold = 0m, CreatedAt = now, UpdatedAt = now },
-            new() { ChartId = chartId, RuleNumber = 5, RuleName = "连续3点中2点超出2σ", RuleDescription = "连续3点中有2点落在2σ和3σ之间（同一侧）", Enabled = true, TriggerThreshold = 2, SigmaThreshold = 2.0m, CreatedAt = now, UpdatedAt = now },
-            new() { ChartId = chartId, RuleNumber = 6, RuleName = "连续5点中4点超出1σ", RuleDescription = "连续5点中有4点落在1σ和2σ之间（同一侧）", Enabled = true, TriggerThreshold = 4, SigmaThreshold = 1.0m, CreatedAt = now, UpdatedAt = now },
-            new() { ChartId = chartId, RuleNumber = 7, RuleName = "连续15点在1σ内", RuleDescription = "连续15个点落在中心线1σ范围内（任一侧）", Enabled = true, TriggerThreshold = 15, SigmaThreshold = 1.0m, CreatedAt = now, UpdatedAt = now },
-            new() { ChartId = chartId, RuleNumber = 8, RuleName = "连续8点超出1σ", RuleDescription = "连续8个点落在1σ范围外（双侧）", Enabled = true, TriggerThreshold = 8, SigmaThreshold = 1.0m, CreatedAt = now, UpdatedAt = now },
+            new() { ChartId = chartId, RuleNumber = 1, RuleName = "1 点超出 3σ 控制限", RuleDescription = "任何数据点超出 UCL 或 LCL", Enabled = true, TriggerThreshold = 1, SigmaThreshold = 3.0m, CreatedAt = now, UpdatedAt = now },
+            new() { ChartId = chartId, RuleNumber = 2, RuleName = "连续 9 点在 CL 同侧", RuleDescription = "连续 9 个点位于中心线同一侧", Enabled = true, TriggerThreshold = 9, SigmaThreshold = 0m, CreatedAt = now, UpdatedAt = now },
+            new() { ChartId = chartId, RuleNumber = 3, RuleName = "连续 6 点递增或递减", RuleDescription = "连续 6 个点单调上升或下降", Enabled = true, TriggerThreshold = 6, SigmaThreshold = 0m, CreatedAt = now, UpdatedAt = now },
+            new() { ChartId = chartId, RuleNumber = 4, RuleName = "连续 14 点上下交替", RuleDescription = "连续 14 个点呈现上下交替模式", Enabled = true, TriggerThreshold = 14, SigmaThreshold = 0m, CreatedAt = now, UpdatedAt = now },
+            new() { ChartId = chartId, RuleNumber = 5, RuleName = "连续 3 点中 2 点超出 2σ", RuleDescription = "连续 3 点中有 2 点落在 2σ和 3σ之间（同一侧）", Enabled = true, TriggerThreshold = 2, SigmaThreshold = 2.0m, CreatedAt = now, UpdatedAt = now },
+            new() { ChartId = chartId, RuleNumber = 6, RuleName = "连续 5 点中 4 点超出 1σ", RuleDescription = "连续 5 点中有 4 点落在 1σ和 2σ之间（同一侧）", Enabled = true, TriggerThreshold = 4, SigmaThreshold = 1.0m, CreatedAt = now, UpdatedAt = now },
+            new() { ChartId = chartId, RuleNumber = 7, RuleName = "连续 15 点在 1σ内", RuleDescription = "连续 15 个点落在中心线 1σ范围内（任一侧）", Enabled = true, TriggerThreshold = 15, SigmaThreshold = 1.0m, CreatedAt = now, UpdatedAt = now },
+            new() { ChartId = chartId, RuleNumber = 8, RuleName = "连续 8 点超出 1σ", RuleDescription = "连续 8 个点落在 1σ范围外（双侧）", Enabled = true, TriggerThreshold = 8, SigmaThreshold = 1.0m, CreatedAt = now, UpdatedAt = now },
         };
     }
-}
+
+    }

@@ -159,65 +159,103 @@ app.UseMiddleware<AppExceptionHandlerMiddleware>();
 using (var scope = app.Services.CreateScope())
 {
     var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    Console.WriteLine("[Program] Starting table creation...");
 
-    // 自动创建新增的表（organizations, sys_dict_types, sys_dict_items）
-    // 使用 EF Core 的默认 PascalCase 列命名
-    await context.Database.ExecuteSqlRawAsync(@"
-        CREATE TABLE IF NOT EXISTS organizations (
-            id              BIGINT AUTO_INCREMENT PRIMARY KEY,
-            code            VARCHAR(50) NOT NULL,
-            name            VARCHAR(200) NOT NULL,
-            level           VARCHAR(20) NOT NULL,
-            parent_id       BIGINT,
-            sort_order      INT DEFAULT 0,
-            is_active       TINYINT(1) DEFAULT 1,
-            location        VARCHAR(500),
-            contact         JSON,
-            description     TEXT,
-            created_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            updated_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-            created_by      BIGINT,
-            UNIQUE KEY uk_org_code (code),
-            INDEX idx_org_parent (parent_id),
-            INDEX idx_org_level (level)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
-
-    await context.Database.ExecuteSqlRawAsync(@"
-        CREATE TABLE IF NOT EXISTS sys_dict_types (
-            id              BIGINT AUTO_INCREMENT PRIMARY KEY,
-            type_code       VARCHAR(50) UNIQUE NOT NULL,
-            type_name       VARCHAR(200) NOT NULL,
-            is_system       TINYINT(1) DEFAULT 0,
-            status          TINYINT(1) DEFAULT 1,
-            remark          TEXT,
-            created_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
-
-    await context.Database.ExecuteSqlRawAsync(@"
-        CREATE TABLE IF NOT EXISTS sys_dict_items (
-            id              BIGINT AUTO_INCREMENT PRIMARY KEY,
-            type_code       VARCHAR(50) NOT NULL,
-            item_label      VARCHAR(200) NOT NULL,
-            item_value      VARCHAR(100) NOT NULL,
-            sort_order      INT DEFAULT 0,
-            color           VARCHAR(20),
-            is_default      TINYINT(1) DEFAULT 0,
-            status          TINYINT(1) DEFAULT 1,
-            remark          TEXT,
-            created_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            INDEX idx_dict_items_type (type_code),
-            INDEX idx_dict_items_sort (type_code, sort_order)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
-
-    // 如果 organizations 表是新创建的，添加外键约束
-    try
-    {
-        await context.Database.ExecuteSqlRawAsync(@"
-            ALTER TABLE organizations
-            ADD CONSTRAINT fk_org_parent
-            FOREIGN KEY (parent_id) REFERENCES organizations(id) ON DELETE SET NULL");
-    }
-    catch { /* 约束可能已存在 */ }
+    // 创建所有表（按依赖顺序）
+    var connection = context.Database.GetDbConnection();
+    await connection.OpenAsync();
+    using var cmd = connection.CreateCommand();
+    Console.WriteLine("[Program] Connection opened.");
+    
+    // Auth
+    cmd.CommandText = @"CREATE TABLE IF NOT EXISTS `roles` (`id` BIGINT AUTO_INCREMENT PRIMARY KEY, `name` VARCHAR(100) NOT NULL UNIQUE, `description` VARCHAR(500)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;";
+    await cmd.ExecuteNonQueryAsync();
+    
+    cmd.CommandText = @"CREATE TABLE IF NOT EXISTS `permissions` (`id` BIGINT AUTO_INCREMENT PRIMARY KEY, `name` VARCHAR(200) NOT NULL, `code` VARCHAR(200) NOT NULL UNIQUE, `module` VARCHAR(50)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;";
+    await cmd.ExecuteNonQueryAsync();
+    
+    cmd.CommandText = @"CREATE TABLE IF NOT EXISTS `users` (`id` BIGINT AUTO_INCREMENT PRIMARY KEY, `username` VARCHAR(100) NOT NULL UNIQUE, `password_hash` VARCHAR(500) NOT NULL, `display_name` VARCHAR(200), `avatar` VARCHAR(500), `email` VARCHAR(200), `is_active` TINYINT(1) DEFAULT 1, `role_id` BIGINT, `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (`role_id`) REFERENCES `roles`(`id`) ON DELETE SET NULL) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;";
+    await cmd.ExecuteNonQueryAsync();
+    
+    // M02 基础数据
+    cmd.CommandText = @"CREATE TABLE IF NOT EXISTS `products` (`id` BIGINT AUTO_INCREMENT PRIMARY KEY, `code` VARCHAR(50) NOT NULL UNIQUE, `name` VARCHAR(200) NOT NULL, `category` VARCHAR(100), `unit` VARCHAR(20), `default_inspection_level` VARCHAR(10), `default_aql` DECIMAL(5,2)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;";
+    await cmd.ExecuteNonQueryAsync();
+    
+    cmd.CommandText = @"CREATE TABLE IF NOT EXISTS `boms` (`id` BIGINT AUTO_INCREMENT PRIMARY KEY, `product_id` BIGINT NOT NULL, `material_code` VARCHAR(50), `material_name` VARCHAR(200), `quantity` DECIMAL(10,2), `unit` VARCHAR(20), `level` INT, FOREIGN KEY (`product_id`) REFERENCES `products`(`id`) ON DELETE CASCADE) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;";
+    await cmd.ExecuteNonQueryAsync();
+    
+    cmd.CommandText = @"CREATE TABLE IF NOT EXISTS `processes` (`id` BIGINT AUTO_INCREMENT PRIMARY KEY, `code` VARCHAR(50) NOT NULL UNIQUE, `name` VARCHAR(200) NOT NULL, `process_type` VARCHAR(50), `department` VARCHAR(100)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;";
+    await cmd.ExecuteNonQueryAsync();
+    
+    cmd.CommandText = @"CREATE TABLE IF NOT EXISTS `routings` (`id` BIGINT AUTO_INCREMENT PRIMARY KEY, `product_id` BIGINT NOT NULL, `code` VARCHAR(50) NOT NULL, `routing_name` VARCHAR(200), `description` TEXT, `step_order` INT, `process_id` BIGINT, `standard_time_minutes` DECIMAL(10,2), FOREIGN KEY (`product_id`) REFERENCES `products`(`id`) ON DELETE CASCADE, FOREIGN KEY (`process_id`) REFERENCES `processes`(`id`) ON DELETE SET NULL) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;";
+    await cmd.ExecuteNonQueryAsync();
+    
+    cmd.CommandText = @"CREATE TABLE IF NOT EXISTS `inspection_standards` (`id` BIGINT AUTO_INCREMENT PRIMARY KEY, `code` VARCHAR(50) NOT NULL UNIQUE, `name` VARCHAR(200) NOT NULL, `inspection_type` VARCHAR(10), `product_id` BIGINT, `process_id` BIGINT, `item_name` VARCHAR(200), `usl` DECIMAL(10,4), `lsl` DECIMAL(10,4), `target` DECIMAL(10,4), `unit` VARCHAR(20), `inspection_method` VARCHAR(200), `sampling_frequency` VARCHAR(200), FOREIGN KEY (`product_id`) REFERENCES `products`(`id`) ON DELETE SET NULL, FOREIGN KEY (`process_id`) REFERENCES `processes`(`id`) ON DELETE SET NULL) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;";
+    await cmd.ExecuteNonQueryAsync();
+    
+    cmd.CommandText = @"CREATE TABLE IF NOT EXISTS `defect_codes` (`id` BIGINT AUTO_INCREMENT PRIMARY KEY, `code` VARCHAR(50) NOT NULL UNIQUE, `name` VARCHAR(200) NOT NULL, `defect_type` VARCHAR(50), `severity` VARCHAR(10), `is_reworkable` TINYINT(1)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;";
+    await cmd.ExecuteNonQueryAsync();
+    
+    cmd.CommandText = @"CREATE TABLE IF NOT EXISTS `equipment` (`id` BIGINT AUTO_INCREMENT PRIMARY KEY, `code` VARCHAR(50) NOT NULL UNIQUE, `name` VARCHAR(200) NOT NULL, `model` VARCHAR(100), `production_line` VARCHAR(100), `workshop` VARCHAR(100), `status` VARCHAR(20) DEFAULT 'idle', `equipment_type` VARCHAR(50), `has_mqtt_connection` TINYINT(1) DEFAULT 0, `mqtt_topic_prefix` VARCHAR(500)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;";
+    await cmd.ExecuteNonQueryAsync();
+    
+    cmd.CommandText = @"CREATE TABLE IF NOT EXISTS `tools` (`id` BIGINT AUTO_INCREMENT PRIMARY KEY, `code` VARCHAR(50) NOT NULL UNIQUE, `name` VARCHAR(200) NOT NULL, `model` VARCHAR(100), `tool_type` VARCHAR(50), `design_life` DECIMAL(10,2), `life_unit` VARCHAR(20), `current_life` DECIMAL(10,2), `supplier` VARCHAR(200)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;";
+    await cmd.ExecuteNonQueryAsync();
+    
+    cmd.CommandText = @"CREATE TABLE IF NOT EXISTS `suppliers` (`id` BIGINT AUTO_INCREMENT PRIMARY KEY, `code` VARCHAR(50) NOT NULL UNIQUE, `name` VARCHAR(200) NOT NULL, `address` VARCHAR(500), `contact_person` VARCHAR(100), `contact_phone` VARCHAR(50), `email` VARCHAR(200), `grade` VARCHAR(10), `supply_category` VARCHAR(100), `score` INT) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;";
+    await cmd.ExecuteNonQueryAsync();
+    
+    cmd.CommandText = @"CREATE TABLE IF NOT EXISTS `customers` (`id` BIGINT AUTO_INCREMENT PRIMARY KEY, `code` VARCHAR(50) NOT NULL UNIQUE, `name` VARCHAR(200) NOT NULL, `address` VARCHAR(500), `contact_person` VARCHAR(100), `contact_phone` VARCHAR(50), `email` VARCHAR(200)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;";
+    await cmd.ExecuteNonQueryAsync();
+    
+    // M15 企业组织层级 & 字典
+    cmd.CommandText = @"CREATE TABLE IF NOT EXISTS `organizations` (`id` BIGINT AUTO_INCREMENT PRIMARY KEY, `code` VARCHAR(50) NOT NULL UNIQUE, `name` VARCHAR(200) NOT NULL, `level` VARCHAR(20) NOT NULL, `parent_id` BIGINT, `sort_order` INT DEFAULT 0, `is_active` TINYINT(1) DEFAULT 1, `location` VARCHAR(500), `contact` JSON, `description` TEXT, `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, `created_by` BIGINT, FOREIGN KEY (`parent_id`) REFERENCES `organizations`(`id`) ON DELETE SET NULL) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;";
+    await cmd.ExecuteNonQueryAsync();
+    
+    cmd.CommandText = @"CREATE TABLE IF NOT EXISTS `sys_dict_types` (`id` BIGINT AUTO_INCREMENT PRIMARY KEY, `type_code` VARCHAR(50) UNIQUE NOT NULL, `type_name` VARCHAR(200) NOT NULL, `is_system` TINYINT(1) DEFAULT 0, `status` TINYINT(1) DEFAULT 1, `remark` TEXT, `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;";
+    await cmd.ExecuteNonQueryAsync();
+    
+    cmd.CommandText = @"CREATE TABLE IF NOT EXISTS `sys_dict_items` (`id` BIGINT AUTO_INCREMENT PRIMARY KEY, `type_code` VARCHAR(50) NOT NULL, `item_label` VARCHAR(200) NOT NULL, `item_value` VARCHAR(100) NOT NULL, `sort_order` INT DEFAULT 0, `color` VARCHAR(20), `is_default` TINYINT(1) DEFAULT 0, `status` TINYINT(1) DEFAULT 1, `remark` TEXT, `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, INDEX `idx_dict_items_type` (`type_code`), INDEX `idx_dict_items_sort` (`type_code`, `sort_order`)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;";
+    await cmd.ExecuteNonQueryAsync();
+    
+    // M02.5 动态参数配置
+    cmd.CommandText = @"CREATE TABLE IF NOT EXISTS `param_groups` (`id` BIGINT AUTO_INCREMENT PRIMARY KEY, `name` VARCHAR(200) NOT NULL, `code` VARCHAR(50) NOT NULL UNIQUE, `description` TEXT, `sort_order` INT DEFAULT 0, `created_by` BIGINT, `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;";
+    await cmd.ExecuteNonQueryAsync();
+    
+    cmd.CommandText = @"CREATE TABLE IF NOT EXISTS `dynamic_params` (`id` BIGINT AUTO_INCREMENT PRIMARY KEY, `group_id` BIGINT NOT NULL, `name` VARCHAR(200) NOT NULL, `code` VARCHAR(50) NOT NULL UNIQUE, `data_type` VARCHAR(20) NOT NULL, `unit` VARCHAR(20), `target_value` DECIMAL(10,4), `usl` DECIMAL(10,4), `lsl` DECIMAL(10,4), `precision` DECIMAL(10,4), `ai_strategy` TEXT, `sort_order` INT DEFAULT 0, `created_by` BIGINT, FOREIGN KEY (`group_id`) REFERENCES `param_groups`(`id`) ON DELETE CASCADE) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;";
+    await cmd.ExecuteNonQueryAsync();
+    
+    cmd.CommandText = @"CREATE TABLE IF NOT EXISTS `closure_rules` (`id` BIGINT AUTO_INCREMENT PRIMARY KEY, `name` VARCHAR(200) NOT NULL, `code` VARCHAR(50) NOT NULL UNIQUE, `condition_json` TEXT, `logic` VARCHAR(10), `description` TEXT, `created_by` BIGINT) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;";
+    await cmd.ExecuteNonQueryAsync();
+    
+    cmd.CommandText = @"CREATE TABLE IF NOT EXISTS `param_realtime_values` (`id` BIGINT AUTO_INCREMENT PRIMARY KEY, `param_code` VARCHAR(50) NOT NULL, `equipment_id` BIGINT, `value` DECIMAL(10,4), `quality_result` VARCHAR(10), `timestamp` DATETIME NOT NULL, INDEX `idx_param_timestamp` (`param_code`, `timestamp`), INDEX `idx_equip_timestamp` (`equipment_id`, `timestamp`)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;";
+    await cmd.ExecuteNonQueryAsync();
+    
+    // M02.1 检验项目主数据
+    cmd.CommandText = @"CREATE TABLE IF NOT EXISTS `inspection_items` (`id` BIGINT AUTO_INCREMENT PRIMARY KEY, `item_code` VARCHAR(50) NOT NULL UNIQUE, `item_name` VARCHAR(200) NOT NULL, `description` TEXT, `data_type` VARCHAR(20), `unit` VARCHAR(20), `usl` DECIMAL(10,4), `lsl` DECIMAL(10,4), `target_value` DECIMAL(10,4), `chart_type` VARCHAR(20), `subgroup_size` INT, `inspection_method` VARCHAR(200), `sample_size` INT, `is_active` TINYINT(1) DEFAULT 1, `created_by` BIGINT, INDEX `idx_item_code` (`item_code`), INDEX `idx_is_active` (`is_active`)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;";
+    await cmd.ExecuteNonQueryAsync();
+    
+    cmd.CommandText = @"CREATE TABLE IF NOT EXISTS `inspection_plans` (`id` BIGINT AUTO_INCREMENT PRIMARY KEY, `plan_code` VARCHAR(50) NOT NULL UNIQUE, `plan_name` VARCHAR(200) NOT NULL, `inspection_type` VARCHAR(10), `description` TEXT, `product_id` BIGINT, `material_id` BIGINT, `supplier_id` BIGINT, `customer_id` BIGINT, `process_id` BIGINT, `equipment_id` BIGINT, `is_active` TINYINT(1) DEFAULT 1, `created_by` BIGINT, FOREIGN KEY (`product_id`) REFERENCES `products`(`id`) ON DELETE SET NULL, FOREIGN KEY (`supplier_id`) REFERENCES `suppliers`(`id`) ON DELETE SET NULL, FOREIGN KEY (`customer_id`) REFERENCES `customers`(`id`) ON DELETE SET NULL, FOREIGN KEY (`process_id`) REFERENCES `processes`(`id`) ON DELETE SET NULL, FOREIGN KEY (`equipment_id`) REFERENCES `equipment`(`id`) ON DELETE SET NULL) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;";
+    await cmd.ExecuteNonQueryAsync();
+    
+    cmd.CommandText = @"CREATE TABLE IF NOT EXISTS `inspection_plan_items` (`id` BIGINT AUTO_INCREMENT PRIMARY KEY, `plan_id` BIGINT NOT NULL, `inspection_item_id` BIGINT NOT NULL, `sort_order` INT DEFAULT 0, `is_required` TINYINT(1) DEFAULT 1, FOREIGN KEY (`plan_id`) REFERENCES `inspection_plans`(`id`) ON DELETE CASCADE, FOREIGN KEY (`inspection_item_id`) REFERENCES `inspection_items`(`id`) ON DELETE CASCADE) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;";
+    await cmd.ExecuteNonQueryAsync();
+    
+    // M03 IQC 来料检验
+    cmd.CommandText = @"CREATE TABLE IF NOT EXISTS `iqc_receipts` (`id` BIGINT AUTO_INCREMENT PRIMARY KEY, `receipt_no` VARCHAR(50) NOT NULL UNIQUE, `supplier_id` BIGINT, `product_id` BIGINT, `batch_no` VARCHAR(100), `quantity` DECIMAL(10,2), `unit` VARCHAR(20), `receipt_date` DATETIME, `inspector` VARCHAR(100), `status` VARCHAR(20) DEFAULT 'pending', FOREIGN KEY (`supplier_id`) REFERENCES `suppliers`(`id`) ON DELETE SET NULL, FOREIGN KEY (`product_id`) REFERENCES `products`(`id`) ON DELETE SET NULL) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;";
+    await cmd.ExecuteNonQueryAsync();
+    
+    cmd.CommandText = @"CREATE TABLE IF NOT EXISTS `iqc_inspections` (`id` BIGINT AUTO_INCREMENT PRIMARY KEY, `inspection_no` VARCHAR(50) NOT NULL UNIQUE, `receipt_id` BIGINT NOT NULL, `sample_size` INT, `ac` INT, `re` INT, `defect_qty` INT, `sampling_level` VARCHAR(10), `aql_value` DECIMAL(5,2), `result` VARCHAR(10), `inspector` VARCHAR(100), `inspected_at` DATETIME, FOREIGN KEY (`receipt_id`) REFERENCES `iqc_receipts`(`id`) ON DELETE CASCADE) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;";
+    await cmd.ExecuteNonQueryAsync();
+    
+    cmd.CommandText = @"CREATE TABLE IF NOT EXISTS `iqc_inspection_items` (`id` BIGINT AUTO_INCREMENT PRIMARY KEY, `inspection_id` BIGINT NOT NULL, `inspection_item_id` BIGINT, `item_name` VARCHAR(200), `measured_value` DECIMAL(10,4), `usl` DECIMAL(10,4), `lsl` DECIMAL(10,4), `result` VARCHAR(10), `defect_code_id` BIGINT, FOREIGN KEY (`inspection_id`) REFERENCES `iqc_inspections`(`id`) ON DELETE CASCADE, FOREIGN KEY (`defect_code_id`) REFERENCES `defect_codes`(`id`) ON DELETE SET NULL) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;";
+    await cmd.ExecuteNonQueryAsync();
+    
+    cmd.CommandText = @"CREATE TABLE IF NOT EXISTS `iqc_anomalies` (`id` BIGINT AUTO_INCREMENT PRIMARY KEY, `anomaly_no` VARCHAR(50) NOT NULL UNIQUE, `receipt_id` BIGINT, `inspection_id` BIGINT, `anomaly_type` VARCHAR(20), `severity` VARCHAR(10), `description` TEXT, `status` VARCHAR(20) DEFAULT 'open', FOREIGN KEY (`receipt_id`) REFERENCES `iqc_receipts`(`id`) ON DELETE SET NULL) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;";
+    await cmd.ExecuteNonQueryAsync();
+    
+    cmd.CommandText = @"CREATE TABLE IF NOT EXISTS `supplier_scores` (`id` BIGINT AUTO_INCREMENT PRIMARY KEY, `supplier_id` BIGINT NOT NULL, `score` INT, `assessment_date` DATETIME, FOREIGN KEY (`supplier_id`) REFERENCES `suppliers`(`id`) ON DELETE CASCADE) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;";
+    await cmd.ExecuteNonQueryAsync();
 
     await DbInitializer.Initialize(context);
 }
