@@ -406,24 +406,24 @@ onMounted(async () => {
             size="small"
             class="routes-table"
           >
-            <el-table-column prop="routeCode" label="路线编号" width="100" :show-overflow-tooltip="false" />
-            <el-table-column prop="routeName" label="路线名称" width="120" :show-overflow-tooltip="false" />
-            <el-table-column prop="routeType" label="类型" width="70" align="center" :show-overflow-tooltip="false">
+            <el-table-column prop="routeCode" label="路线编号" width="100" />
+            <el-table-column prop="routeName" label="路线名称" min-width="160" show-overflow-tooltip />
+            <el-table-column prop="routeType" label="类型" width="70" align="center">
               <template #default="{ row }">
                 <RouteTypeTag :type="row.routeType" />
               </template>
             </el-table-column>
-            <el-table-column label="默认" width="50" align="center" :show-overflow-tooltip="false">
+            <el-table-column label="默认" width="50" align="center">
               <template #default="{ row }"><el-tag v-if="row.isDefault" type="primary" size="small" effect="plain">是</el-tag><span v-else class="text-muted">—</span></template>
             </el-table-column>
-            <el-table-column label="启用" width="50" align="center" :show-overflow-tooltip="false">
+            <el-table-column label="启用" width="50" align="center">
               <template #default="{ row }"><el-tag :type="row.isActive ? 'success' : 'info'" size="small" effect="plain">{{ row.isActive ? '是' : '否' }}</el-tag></template>
             </el-table-column>
-            <el-table-column prop="stepCount" label="步骤" width="60" align="center" :show-overflow-tooltip="false" />
-            <el-table-column prop="totalStandardTimeMinutes" label="总工时" width="80" align="right" :show-overflow-tooltip="false">
+            <el-table-column prop="stepCount" label="步骤" width="60" align="center" />
+            <el-table-column prop="totalStandardTimeMinutes" label="总工时" width="80" align="right">
               <template #default="{ row }">{{ row.totalStandardTimeMinutes || '—' }} min</template>
             </el-table-column>
-            <el-table-column label="操作" width="90" align="center" fixed="right" :show-overflow-tooltip="false">
+            <el-table-column label="操作" width="120" align="center" fixed="right">
               <template #default="{ row }">
                 <el-button size="small" type="primary" link @click.stop="openEditRoute(row)">编辑</el-button>
                 <el-popconfirm title="确认删除此路线及其所有步骤？" confirm-button-text="删除" cancel-button-text="取消" @confirm="handleRouteDeleted">
