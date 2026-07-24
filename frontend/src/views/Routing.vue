@@ -372,22 +372,22 @@ onMounted(async () => {
       <!-- 右侧工艺路线 -->
       <main class="routing-main">
         <!-- ═══ 上段：工艺路线表格 ═══ -->
-        <div v-if="selectedProductId" class="routes-section">
-          <div class="routes-section__header">
-            <span class="routes-section__title">工艺路线</span>
+        <div v-if="selectedProductId" class="data-card">
+          <div class="data-card__header">
+            <span class="data-card__title">工艺路线</span>
             <el-button text size="small" @click="openCreateRoute">
               <el-icon><Plus /></el-icon>新增路线
             </el-button>
           </div>
 
           <!-- 加载 -->
-          <div v-if="routeLoading" class="routes-section__loading">
+          <div v-if="routeLoading" class="data-card__loading">
             <el-icon class="is-loading" :size="20"><Loading /></el-icon>
             <span>加载中...</span>
           </div>
 
           <!-- 空状态 -->
-          <div v-else-if="routeHeaders.length === 0" class="routes-section__empty">
+          <div v-else-if="routeHeaders.length === 0" class="data-card__empty">
             <el-empty description="暂无工艺路线" :image-size="60" />
             <el-button type="primary" size="small" @click="openCreateRoute">
               <el-icon><Plus /></el-icon>创建第一条
@@ -398,13 +398,17 @@ onMounted(async () => {
           <el-table
             v-else
             :data="routeHeaders"
+            border
+            stripe
             highlight-current-row
+            current-row-key="id"
             @current-change="selectRoute"
-            class="routes-table"
+            style="width: 100%"
             size="small"
+            class="routes-table"
           >
-            <el-table-column prop="routeCode" label="路线编号" width="110" />
-            <el-table-column prop="routeName" label="路线名称" min-width="130" />
+            <el-table-column prop="routeCode" label="路线编号" width="110" show-overflow-tooltip />
+            <el-table-column prop="routeName" label="路线名称" min-width="130" show-overflow-tooltip />
             <el-table-column prop="routeType" label="类型" width="80" align="center">
               <template #default="{ row }">
                 <RouteTypeTag :type="row.routeType" />
@@ -431,9 +435,7 @@ onMounted(async () => {
             </el-table-column>
             <el-table-column label="操作" width="100" align="center" fixed="right">
               <template #default="{ row }">
-                <el-button size="small" text @click.stop="openEditRoute(row)">
-                  <el-icon><Edit /></el-icon>
-                </el-button>
+                <el-button size="small" type="primary" link @click.stop="openEditRoute(row)">编辑</el-button>
                 <el-popconfirm
                   title="确认删除此路线及其所有步骤？"
                   confirm-button-text="删除"
@@ -441,9 +443,7 @@ onMounted(async () => {
                   @confirm="handleRouteDeleted"
                 >
                   <template #reference>
-                    <el-button size="small" text type="danger" @click.stop>
-                      <el-icon><Delete /></el-icon>
-                    </el-button>
+                    <el-button size="small" type="danger" link @click.stop>删除</el-button>
                   </template>
                 </el-popconfirm>
               </template>
@@ -452,15 +452,15 @@ onMounted(async () => {
         </div>
 
         <!-- ═══ 下段：选中路线的步骤流程 ═══ -->
-        <div v-if="selectedProductId && activeRouteId" class="steps-section">
-          <div class="steps-section__header">
-            <span class="steps-section__title">
+        <div v-if="selectedProductId && activeRouteId" class="data-card steps-card">
+          <div class="data-card__header">
+            <span class="data-card__title">
               工序步骤
               <el-tag v-if="currentRoute" type="primary" size="small" effect="plain">
                 {{ currentRoute.routeCode }}
               </el-tag>
             </span>
-            <div class="steps-section__stats">
+            <div class="data-card__stats">
               <el-tag type="info" size="small">{{ totalSteps }} 步</el-tag>
               <el-tag v-if="total工时 > 0" type="warning" size="small">
                 总工时 {{ total工时 }} min
@@ -472,16 +472,13 @@ onMounted(async () => {
           </div>
 
           <!-- 加载 -->
-          <div v-if="routeLoading" class="steps-section__loading">
+          <div v-if="routeLoading" class="data-card__loading">
             <el-icon class="is-loading" :size="20"><Loading /></el-icon>
             <span>加载中...</span>
           </div>
 
           <!-- 空步骤 -->
-          <div
-            v-else-if="activeRouteDetail && activeRouteDetail.steps.length === 0"
-            class="steps-section__empty"
-          >
+          <div v-else-if="activeRouteDetail && activeRouteDetail.steps.length === 0" class="data-card__empty">
             <el-empty description="该路线暂无工序步骤" :image-size="60">
               <el-button type="primary" size="small" @click="openAddStep">
                 <el-icon><Plus /></el-icon>添加第一个步骤
@@ -490,11 +487,7 @@ onMounted(async () => {
           </div>
 
           <!-- 步骤卡片流 -->
-          <div
-            v-else-if="activeRouteDetail"
-            class="steps-flow"
-            @drop.prevent="handleContainerDrop"
-          >
+          <div v-else-if="activeRouteDetail" class="steps-flow" @drop.prevent="handleContainerDrop">
             <template v-for="(step, index) in activeRouteDetail.steps" :key="step.id">
               <RouteStepCard
                 :step="step"
@@ -702,126 +695,89 @@ onMounted(async () => {
   flex-direction: column;
   overflow: hidden;
   background: var(--el-bg-color-page);
+  gap: 0;
 }
 
-/* ── 上段：路线表格 ── */
-.routes-section {
+/* ── 通用 data-card ── */
+.data-card {
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+  overflow: hidden;
   flex: 1;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
-  padding: 12px 20px 8px;
-  border-bottom: 1px solid var(--el-border-color-lighter);
+  min-height: 0;
 }
 
-.routes-section__header {
+.data-card__header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 8px;
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+  background: var(--el-fill-color-blank);
   flex-shrink: 0;
 }
 
-.routes-section__title {
-  font-size: 14px;
+.data-card__title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 15px;
   font-weight: 600;
   color: var(--el-text-color-primary);
 }
 
-.routes-section__loading {
+.data-card__stats {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.data-card__loading {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 12px 0;
+  padding: 20px;
   color: var(--el-text-color-secondary);
   font-size: 13px;
+  justify-content: center;
+  flex: 1;
 }
 
-.routes-section__empty {
+.data-card__empty {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 12px;
-  padding: 24px 0;
+  padding: 24px;
   flex: 1;
   justify-content: center;
 }
 
-.routes-table {
+.data-card__table {
   flex: 1;
-  overflow: hidden;
+  min-height: 0;
 }
 
-.routes-table :deep(.el-table__header-wrapper) {
+.data-card__table :deep(.el-table__header-wrapper) {
   flex-shrink: 0;
 }
 
-.routes-table :deep(.el-table__body-wrapper) {
+.data-card__table :deep(.el-table__body-wrapper) {
   overflow-y: auto;
 }
 
-.text-muted {
-  color: var(--el-text-color-placeholder);
-  font-size: 12px;
-}
-
-/* ── 下段：步骤流程 ── */
-.steps-section {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  padding: 12px 20px 8px;
-}
-
-.steps-section__header {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 8px;
-  flex-shrink: 0;
-}
-
-.steps-section__title {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--el-text-color-primary);
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.steps-section__stats {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.steps-section__loading {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 12px 0;
-  color: var(--el-text-color-secondary);
-  font-size: 13px;
-}
-
-.steps-section__empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-  padding: 20px 0;
-  flex: 1;
-  justify-content: center;
-}
-
+/* ── 下段步骤卡片流 ── */
 .steps-flow {
   flex: 1;
   overflow-x: auto;
   overflow-y: hidden;
+  padding: 12px 20px;
   display: flex;
   align-items: center;
+  min-height: 0;
 }
 
 .flow-container {
@@ -879,6 +835,11 @@ onMounted(async () => {
 
 .flow-add-placeholder .add-icon {
   font-size: 20px;
+}
+
+.text-muted {
+  color: var(--el-text-color-placeholder);
+  font-size: 12px;
 }
 
 /* Loading icon fix */
