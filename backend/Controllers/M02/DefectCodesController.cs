@@ -38,7 +38,7 @@ public class DefectCodesController : ControllerBase
     }
 
     [HttpGet("{id}")]
-    public async Task<ActionResult<DefectCode>> Get(int id)
+    public async Task<ActionResult<DefectCode>> Get(long id)
     {
         var entity = await _db.DefectCodes.FindAsync(id);
         if (entity == null) return NotFound();
@@ -62,7 +62,7 @@ public class DefectCodesController : ControllerBase
     }
 
     [HttpPut("{id}")]
-    public async Task<ActionResult<DefectCode>> Update(int id, [FromBody] UpdateDefectCodeDto dto)
+    public async Task<ActionResult<DefectCode>> Update(long id, [FromBody] UpdateDefectCodeDto dto)
     {
         var entity = await _db.DefectCodes.FindAsync(id);
         if (entity == null) return NotFound();
@@ -78,7 +78,7 @@ public class DefectCodesController : ControllerBase
     }
 
     [HttpDelete("{id}")]
-    public async Task<IActionResult> Delete(int id)
+    public async Task<IActionResult> Delete(long id)
     {
         var entity = await _db.DefectCodes.FindAsync(id);
         if (entity == null) return NotFound();

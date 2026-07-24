@@ -3,6 +3,7 @@ import { ref, reactive, onMounted, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { DocumentChecked, Plus, Back, Refresh } from '@element-plus/icons-vue'
 import { d8ReportApi } from '@/api/d8Report'
+import { complaintApi } from '@/api/complaint'
 import type { D8Report } from '@/types/complaint'
 import {
   D8_DISCIPLINE_LABELS, D8_DISCIPLINE_MAP, D8_STATUS_OPTIONS,
@@ -127,8 +128,8 @@ async function saveD8() {
 async function deleteD8(row: D8Report) {
   try {
     await ElMessageBox.confirm('确定删除8D报告吗？', '确认', { type: 'warning' })
-    ElMessage.info('删除功能待实现')
-    ElMessage.success('已删除')
+    await d8ReportApi.update(row.id, { ...row } as any) // placeholder — delete not yet implemented
+    ElMessage.info('删除功能待后端实现')
     await loadD8List()
   } catch (e: any) {
     if (e !== 'cancel') ElMessage.error(e?.response?.data?.message || '删除失败')
@@ -160,12 +161,7 @@ async function advanceDiscipline() {
 
 function exportPdf() {
   if (!selectedD8.value) return
-  try {
-    d8ReportApi.get(selectedD8.value.id)
-    ElMessage.success('PDF下载中')
-  } catch (e: any) {
-    ElMessage.error(e?.response?.data?.message || '导出失败')
-  }
+  complaintApi.downloadPdf(selectedD8.value.id)
 }
 
 // Get field key for a given discipline index (0-8)

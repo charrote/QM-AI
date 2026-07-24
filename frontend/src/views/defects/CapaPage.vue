@@ -2,6 +2,7 @@
 import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { CircleCheck } from '@element-plus/icons-vue'
 import { defectApi } from '@/api/defect'
 import type { Capa, CreateCapa } from '@/types/defect'
 import {

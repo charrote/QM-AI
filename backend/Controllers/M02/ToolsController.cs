@@ -39,7 +39,7 @@ public class ToolsController : ControllerBase
     }
 
     [HttpGet("{id}")]
-    public async Task<ActionResult<Tool>> Get(int id)
+    public async Task<ActionResult<Tool>> Get(long id)
     {
         var entity = await _db.Tools.FindAsync(id);
         if (entity == null) return NotFound();
@@ -64,7 +64,7 @@ public class ToolsController : ControllerBase
     }
 
     [HttpPut("{id}")]
-    public async Task<ActionResult<Tool>> Update(int id, [FromBody] UpdateToolDto dto)
+    public async Task<ActionResult<Tool>> Update(long id, [FromBody] UpdateToolDto dto)
     {
         var entity = await _db.Tools.FindAsync(id);
         if (entity == null) return NotFound();
@@ -81,7 +81,7 @@ public class ToolsController : ControllerBase
     }
 
     [HttpDelete("{id}")]
-    public async Task<IActionResult> Delete(int id)
+    public async Task<IActionResult> Delete(long id)
     {
         var entity = await _db.Tools.FindAsync(id);
         if (entity == null) return NotFound();

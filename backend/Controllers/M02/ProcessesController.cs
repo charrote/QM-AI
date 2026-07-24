@@ -37,7 +37,7 @@ public class ProcessesController : ControllerBase
     }
 
     [HttpGet("{id}")]
-    public async Task<ActionResult<Process>> Get(int id)
+    public async Task<ActionResult<Process>> Get(long id)
     {
         var entity = await _db.Processes.FindAsync(id);
         if (entity == null) return NotFound();
@@ -61,7 +61,7 @@ public class ProcessesController : ControllerBase
     }
 
     [HttpPut("{id}")]
-    public async Task<ActionResult<Process>> Update(int id, [FromBody] UpdateProcessDto dto)
+    public async Task<ActionResult<Process>> Update(long id, [FromBody] UpdateProcessDto dto)
     {
         var entity = await _db.Processes.FindAsync(id);
         if (entity == null) return NotFound();
@@ -76,7 +76,7 @@ public class ProcessesController : ControllerBase
     }
 
     [HttpDelete("{id}")]
-    public async Task<IActionResult> Delete(int id)
+    public async Task<IActionResult> Delete(long id)
     {
         var entity = await _db.Processes.FindAsync(id);
         if (entity == null) return NotFound();

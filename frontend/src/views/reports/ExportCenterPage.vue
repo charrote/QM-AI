@@ -68,13 +68,8 @@ function formatDate(dateStr: string): string {
   return new Date(dateStr).toLocaleString('zh-CN')
 }
 
-async function handleDownload(record: typeof exportRecords.value[number]) {
-  try {
-    reportsApi.downloadExport(record.id)
-    ElMessage.success('开始下载')
-  } catch {
-    ElMessage.error('下载失败')
-  }
+function handleDownload(record: typeof exportRecords.value[number]) {
+  reportsApi.downloadExport(record.id)
 }
 
 async function handleDelete(record: typeof exportRecords.value[number]) {
@@ -200,18 +195,7 @@ onMounted(() => {
         </el-table-column>
       </el-table>
 
-      <div class="pagination-row">
-        <el-pagination
-          v-model:current-page="page"
-          v-model:page-size="pageSize"
-          :total="total"
-          :page-sizes="[10, 20, 50, 100]"
-          layout="total, sizes, prev, pager, next, jumper"
-          @size-change="loadExports"
-          @current-change="loadExports"
-        />
-      </div>
-    </el-card>
+      </el-card>
   </div>
 </template>
 

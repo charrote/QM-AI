@@ -42,8 +42,12 @@ async function searchTrace() {
   traceResult.value = null
   try {
     traceResult.value = await traceApi.byBatch(traceBatchNo.value.trim())
-  } catch {
-    ElMessage.warning('未找到该批次记录')
+  } catch (e: any) {
+    if (e?.response?.status === 404) {
+      ElMessage.warning('未找到该批次记录')
+    } else {
+      ElMessage.error(e?.response?.data?.message || '追溯查询失败')
+    }
   } finally {
     traceLoading.value = false
   }

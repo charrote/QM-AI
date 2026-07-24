@@ -94,6 +94,8 @@ export interface CreateIpqcPatrolPlan {
 }
 
 export interface UpdateIpqcPatrolPlan {
+  processId?: number
+  equipmentId?: number
   patrolIntervalMin?: number
   autoGenerate?: boolean
   status?: string

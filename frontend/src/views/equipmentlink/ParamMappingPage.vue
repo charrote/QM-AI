@@ -112,7 +112,7 @@ async function handleSave() {
   try {
     await formRef.value.validate()
     if (isEdit.value && editingId.value) {
-      await equipmentLinkApi.createMapping(form)
+      await equipmentLinkApi.updateMapping(editingId.value, form)
       ElMessage.success('更新成功')
     } else {
       await equipmentLinkApi.createMapping(form)
@@ -136,11 +136,11 @@ async function handleDelete(id: number) {
     await ElMessageBox.confirm('确定删除该参数映射？', '确认删除', {
       type: 'warning', confirmButtonText: '删除', cancelButtonText: '取消',
     })
-    equipmentLinkApi.removeMapping(id)
+    await equipmentLinkApi.removeMapping(id)
     ElMessage.success('删除成功')
     loadData()
-  } catch {
-    // cancelled
+  } catch (e: any) {
+    if (e !== 'cancel') ElMessage.error(e?.response?.data?.message || '删除失败')
   }
 }
 

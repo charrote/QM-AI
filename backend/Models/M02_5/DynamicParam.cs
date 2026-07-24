@@ -42,7 +42,7 @@ public class DynamicParam
     public string? Unit { get; set; }
 
     /// <summary>目标值</summary>
-    [Column(TypeName = "decimal(15,6)")]
+    [Column("target_value", TypeName = "decimal(15,6)")]
     public decimal? TargetValue { get; set; }
 
     /// <summary>上规格限</summary>

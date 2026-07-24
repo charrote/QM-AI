@@ -38,7 +38,7 @@ public class BomsController : ControllerBase
     }
 
     [HttpGet("{id}")]
-    public async Task<ActionResult<Bom>> Get(int id)
+    public async Task<ActionResult<Bom>> Get(long id)
     {
         var entity = await _db.Boms.Include(b => b.Product).FirstOrDefaultAsync(b => b.Id == id);
         if (entity == null) return NotFound();
@@ -63,7 +63,7 @@ public class BomsController : ControllerBase
     }
 
     [HttpPut("{id}")]
-    public async Task<ActionResult<Bom>> Update(int id, [FromBody] UpdateBomDto dto)
+    public async Task<ActionResult<Bom>> Update(long id, [FromBody] UpdateBomDto dto)
     {
         var entity = await _db.Boms.FindAsync(id);
         if (entity == null) return NotFound();
@@ -79,7 +79,7 @@ public class BomsController : ControllerBase
     }
 
     [HttpDelete("{id}")]
-    public async Task<IActionResult> Delete(int id)
+    public async Task<IActionResult> Delete(long id)
     {
         var entity = await _db.Boms.FindAsync(id);
         if (entity == null) return NotFound();

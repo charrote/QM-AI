@@ -79,7 +79,7 @@ const entityConfigs: Record<EntityName, EntityConfig<any, any>> = {
     ],
     defaultCreate: (): CreateProduct => ({
       code: '', name: '', description: '', unit: '', category: '',
-      defaultInspectionLevel: 'II', defaultAql: 1.0,
+      defaultInspectionLevel: 'II', defaultAql: 1.0, orgId: undefined,
     }),
   },
   process: {

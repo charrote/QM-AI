@@ -2,6 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
+import { RefreshLeft, Box } from '@element-plus/icons-vue'
 import { traceApi } from '@/api/trace'
 import type { RecallSimulationResult } from '@/types/trace'
 

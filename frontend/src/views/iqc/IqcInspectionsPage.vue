@@ -111,14 +111,14 @@ async function openSubmitInspection(row: IqcInspection) {
       for (const item of allItems) {
         if (!seen.has(item.inspectionItemId)) {
           seen.add(item.inspectionItemId)
-          submitItems.value.push({
-            inspectionItemId: item.inspectionItemId,
-            itemName: `${item.inspectionItemCode} - ${item.inspectionItemName}`,
-            usl: item.usl ?? undefined,
-            lsl: item.lsl ?? undefined,
-            measuredValue: undefined,
-            result: 'pending',
-          })
+submitItems.value.push({
+        paramId: item.inspectionItemId,
+        itemName: `${item.inspectionItemCode} - ${item.inspectionItemName}`,
+        usl: item.usl ?? undefined,
+        lsl: item.lsl ?? undefined,
+        measuredValue: undefined,
+        result: 'pending',
+      })
         }
       }
     }

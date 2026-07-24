@@ -2,7 +2,7 @@
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Search, Refresh, Plus, Edit, Delete, TrendCharts, Box } from '@element-plus/icons-vue'
+import { Search, Refresh, Plus, Edit, Delete, TrendCharts, Box, WarningFilled } from '@element-plus/icons-vue'
 import { defectApi } from '@/api/defect'
 import type { Defect, CreateDefect } from '@/types/defect'
 import {

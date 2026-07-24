@@ -2,7 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { Search, Check, Document, List } from '@element-plus/icons-vue'
+import { Search, Check, Document, List, ArrowLeft, Clock } from '@element-plus/icons-vue'
 import { patrolApi } from '@/api/ipqc'
 import type { IpqcPatrolDetail, IpqcPatrolItemSubmit } from '@/types/ipqc'
 import { IPQC_PATROL_CONCLUSION_OPTIONS, INSPECTION_RESULT_OPTIONS } from '@/types/ipqc'
@@ -253,9 +253,7 @@ function resultTag(r: string) {
   </div>
 </template>
 
-<script lang="ts">
-import { ArrowLeft, Clock } from '@element-plus/icons-vue'
-</script>
+
 
 <style scoped>
 .pda-container {

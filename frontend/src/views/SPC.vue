@@ -23,7 +23,6 @@ defineOptions({ name: 'SPC' })
 // ═════════════════════════════════════════════════════════════════
 
 const activeTab = ref('chart')
-const loading = ref(false)
 const chartsLoading = ref(false)
 const analysisLoading = ref(false)
 
@@ -1014,7 +1013,7 @@ onUnmounted(() => {
                 <span>数据点列表</span>
                 <el-button size="small" text @click="fetchDataPoints">刷新</el-button>
               </div>
-              <el-table :data="dataPoints" stripe  max-height="200" v-loading="loading">
+              <el-table :data="dataPoints" stripe  max-height="200" v-loading="dataPointsLoading">
                 <el-table-column prop="subgroupIndex" label="子组#" width="70" />
                 <el-table-column prop="individualValues" label="测量值" min-width="200">
                   <template #default="{ row }">

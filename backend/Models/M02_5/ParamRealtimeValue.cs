@@ -17,6 +17,7 @@ public class ParamRealtimeValue
     /// <summary>参数编码</summary>
     [Required]
     [MaxLength(50)]
+    [Column("param_code")]
     public string ParamCode { get; set; } = string.Empty;
 
     /// <summary>设备ID</summary>
@@ -28,6 +29,7 @@ public class ParamRealtimeValue
     public decimal? Value { get; set; }
 
     /// <summary>原始值（枚举型/布尔型）</summary>
+    [Column("value_raw")]
     [MaxLength(100)]
     public string? ValueRaw { get; set; }
 
@@ -40,4 +42,10 @@ public class ParamRealtimeValue
     [MaxLength(10)]
     [Column("quality_result")]
     public string? QualityResult { get; set; } = "UNKNOWN";
+
+    [Column("is_active")]
+    public bool IsActive { get; set; } = true;
+
+    [Column("created_at")]
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }

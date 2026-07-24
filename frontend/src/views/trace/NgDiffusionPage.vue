@@ -2,6 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
+import { Connection, Box, DataAnalysis } from '@element-plus/icons-vue'
 import { traceApi } from '@/api/trace'
 import type { NgDiffusionResult } from '@/types/trace'
 import { RISK_LEVEL_CONFIG } from '@/types/trace'

@@ -16,15 +16,19 @@ public class IqcInspectionItem
     public long Id { get; set; }
 
     /// <summary>关联检验单</summary>
+    [Column("inspection_id")]
     public long InspectionId { get; set; }
 
     /// <summary>关联动态参数</summary>
+    [Column("param_id")]
     public long? ParamId { get; set; }
 
     /// <summary>关联检验项目主数据（贯通核心）</summary>
+    [Column("inspection_item_id")]
     public long? InspectionItemId { get; set; }
 
     /// <summary>检验项目名称（冗余）</summary>
+    [Column("item_name")]
     [MaxLength(200)]
     public string? ItemName { get; set; }
 
@@ -47,6 +51,7 @@ public class IqcInspectionItem
     public string Result { get; set; } = "pending";
 
     /// <summary>关联不良代码</summary>
+    [Column("defect_code_id")]
     public long? DefectCodeId { get; set; }
 
     /// <summary>备注</summary>
@@ -58,10 +63,8 @@ public class IqcInspectionItem
     public IqcInspection? Inspection { get; set; }
 
     [ForeignKey(nameof(DefectCodeId))]
-    [Column("defect_code")]
     public DefectCode? DefectCode { get; set; }
 
     [ForeignKey(nameof(InspectionItemId))]
-    [Column("inspection_item")]
     public InspectionItem? InspectionItem { get; set; }
 }

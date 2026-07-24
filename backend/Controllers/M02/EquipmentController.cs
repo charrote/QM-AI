@@ -62,7 +62,7 @@ public class EquipmentController : ControllerBase
     }
 
     [HttpGet("{id}")]
-    public async Task<ActionResult<Equipment>> Get(int id)
+    public async Task<ActionResult<Equipment>> Get(long id)
     {
         var entity = await _db.Equipment.FindAsync(id);
         if (entity == null) return NotFound();
@@ -89,7 +89,7 @@ public class EquipmentController : ControllerBase
     }
 
     [HttpPut("{id}")]
-    public async Task<ActionResult<Equipment>> Update(int id, [FromBody] UpdateEquipmentDto dto)
+    public async Task<ActionResult<Equipment>> Update(long id, [FromBody] UpdateEquipmentDto dto)
     {
         var entity = await _db.Equipment.FindAsync(id);
         if (entity == null) return NotFound();
@@ -107,7 +107,7 @@ public class EquipmentController : ControllerBase
     }
 
     [HttpDelete("{id}")]
-    public async Task<IActionResult> Delete(int id)
+    public async Task<IActionResult> Delete(long id)
     {
         var entity = await _db.Equipment.FindAsync(id);
         if (entity == null) return NotFound();

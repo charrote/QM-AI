@@ -16,9 +16,11 @@ public class InspectionPlanItem
     public long Id { get; set; }
 
     /// <summary>关联检验计划</summary>
+    [Column("plan_id")]
     public long PlanId { get; set; }
 
     /// <summary>关联检验项目主数据</summary>
+    [Column("inspection_item_id")]
     public long InspectionItemId { get; set; }
 
     /// <summary>排序号</summary>
@@ -35,15 +37,15 @@ public class InspectionPlanItem
     public decimal? Lsl { get; set; }
 
     /// <summary>目标值（覆盖主数据）</summary>
-    [Column(TypeName = "decimal(15,6)")]
+    [Column("target_value", TypeName = "decimal(15,6)")]
     public decimal? TargetValue { get; set; }
 
     /// <summary>管理上限（覆盖主数据）</summary>
-    [Column(TypeName = "decimal(15,6)")]
+    [Column("ucl", TypeName = "decimal(15,6)")]
     public decimal? Ucl { get; set; }
 
     /// <summary>管理下限（覆盖主数据）</summary>
-    [Column(TypeName = "decimal(15,6)")]
+    [Column("lcl", TypeName = "decimal(15,6)")]
     public decimal? Lcl { get; set; }
 
     /// <summary>抽样数量（覆盖主数据）</summary>
@@ -56,7 +58,6 @@ public class InspectionPlanItem
 
     // Navigation
     [ForeignKey(nameof(PlanId))]
-    [Column("plan")]
     public InspectionPlan? Plan { get; set; }
 
     [ForeignKey(nameof(InspectionItemId))]

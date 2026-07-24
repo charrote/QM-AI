@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Document, Plus } from '@element-plus/icons-vue'
+import { Document, Plus, Search, Refresh, Setting, Clock, User, Check } from '@element-plus/icons-vue'
 import { patrolPlanApi } from '@/api/ipqc'
 import { processApi, equipmentApi } from '@/api/basicData'
 import type { IpqcPatrolPlan, CreateIpqcPatrolPlan, UpdateIpqcPatrolPlan } from '@/types/ipqc'
@@ -313,10 +313,7 @@ onMounted(async () => {
   </div>
 </template>
 
-<script lang="ts">
-import { Search, Refresh } from '@element-plus/icons-vue'
-import { Setting, Clock, User, Check } from '@element-plus/icons-vue'
-</script>
+
 
 <style scoped>
 .page-container {

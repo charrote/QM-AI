@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { ref, onMounted, nextTick } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { receiptApi, inspectionApi, aiRiskApi } from '@/api/iqc'
+import { receiptApi, inspectionApi, aiRiskApi, traceApi } from '@/api/iqc'
+import { supplierApi, productApi } from '@/api/basicData'
 import { Iphone, Camera, EditPen, Document, Cpu, Search, WarningFilled } from '@element-plus/icons-vue'
 import type { IqcReceipt, IqcReceiptDetail, AiRiskScore } from '@/types/iqc'
 import { IQC_RECEIPT_STATUS_OPTIONS } from '@/types/iqc'
@@ -49,7 +50,6 @@ async function handleScan() {
 
   try {
     // 尝试按批次号查询
-    const { traceApi } = await import('@/api/iqc')
     const trace = await traceApi.byBatch(code)
     if (trace.receipt) {
       currentReceipt.value = trace.receipt
@@ -128,10 +128,26 @@ async function submitManualEntry() {
 
   loading.value = true
   try {
+    // 通过名称查找供应商和产品 ID
+    const [supRes, prodRes] = await Promise.all([
+      supplierApi.list({ keyword: manualForm.value.supplierName, page: 1, pageSize: 1 }),
+      productApi.list({ keyword: manualForm.value.productName, page: 1, pageSize: 1 }),
+    ])
+    const supplierId = supRes.items?.[0]?.id || 0
+    const productId = prodRes.items?.[0]?.id || 0
+    if (!supplierId) {
+      ElMessage.warning('未找到匹配的供应商，请联系管理员')
+      return
+    }
+    if (!productId) {
+      ElMessage.warning('未找到匹配的产品，请联系管理员')
+      return
+    }
+
     const result = await receiptApi.create({
       receiptNo: manualForm.value.receiptNo,
-      supplierId: 0, // PDA 简化模式
-      productId: 0,
+      supplierId,
+      productId,
       batchNo: manualForm.value.batchNo,
       quantity: manualForm.value.quantity || 1,
       receiptDate: new Date().toISOString(),
@@ -152,8 +168,10 @@ async function submitManualEntry() {
 async function startInspection() {
   if (!currentReceipt.value) return
   try {
-    // 触发检验（后端自动创建检验单）
-    await receiptApi.get(currentReceipt.value.id)
+    // 创建检验单
+    const inspection = await inspectionApi.create({
+      receiptId: currentReceipt.value.id,
+    })
     ElMessage.success('检验单已生成')
     scanMode.value = 'scan'
   } catch (e: any) {

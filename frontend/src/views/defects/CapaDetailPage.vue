@@ -2,6 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
+import { CircleCheck, InfoFilled, AlarmClock, Search, Tools, Shield, Select } from '@element-plus/icons-vue'
 import { defectApi } from '@/api/defect'
 import type { Capa, CapaRootCause, CapaCorrectiveAction, CapaPreventiveAction, CapaVerification } from '@/types/defect'
 import {

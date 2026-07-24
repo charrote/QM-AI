@@ -3,7 +3,7 @@ import { ref, reactive, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { reportsApi } from '@/api/reports'
 import { REPORT_TYPE_OPTIONS, REPORT_MODULE_OPTIONS, REPORT_FORMAT_OPTIONS, REPORT_TYPE_MAP } from '@/types/reports'
-import { EditPen, Document, Download } from '@element-plus/icons-vue'
+import { EditPen, Document, Download, Loading, SuccessFilled, InfoFilled } from '@element-plus/icons-vue'
 
 defineOptions({ name: 'ReportBuilderPage' })
 

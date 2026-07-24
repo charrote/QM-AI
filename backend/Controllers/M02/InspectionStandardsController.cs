@@ -43,7 +43,7 @@ public class InspectionStandardsController : ControllerBase
     }
 
     [HttpGet("{id}")]
-    public async Task<ActionResult<InspectionStandard>> Get(int id)
+    public async Task<ActionResult<InspectionStandard>> Get(long id)
     {
         var entity = await _db.InspectionStandards
             .Include(s => s.Product).Include(s => s.Process)
@@ -70,7 +70,7 @@ public class InspectionStandardsController : ControllerBase
     }
 
     [HttpPut("{id}")]
-    public async Task<ActionResult<InspectionStandard>> Update(int id, [FromBody] UpdateInspectionStandardDto dto)
+    public async Task<ActionResult<InspectionStandard>> Update(long id, [FromBody] UpdateInspectionStandardDto dto)
     {
         var entity = await _db.InspectionStandards.FindAsync(id);
         if (entity == null) return NotFound();
@@ -87,7 +87,7 @@ public class InspectionStandardsController : ControllerBase
     }
 
     [HttpDelete("{id}")]
-    public async Task<IActionResult> Delete(int id)
+    public async Task<IActionResult> Delete(long id)
     {
         var entity = await _db.InspectionStandards.FindAsync(id);
         if (entity == null) return NotFound();

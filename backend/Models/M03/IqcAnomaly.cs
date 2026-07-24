@@ -21,14 +21,17 @@ public class IqcAnomaly
     public string AnomalyNo { get; set; } = string.Empty;
 
     /// <summary>关联来料登记</summary>
+    [Column("receipt_id")]
     public long ReceiptId { get; set; }
 
     /// <summary>关联检验单</summary>
+    [Column("inspection_id")]
     public long? InspectionId { get; set; }
 
     /// <summary>异常类型：quality/quantity/document/other</summary>
     [Required]
     [MaxLength(20)]
+    [Column("anomaly_type")]
     public string AnomalyType { get; set; } = "quality";
 
     /// <summary>严重程度：critical/major/minor</summary>
@@ -48,10 +51,12 @@ public class IqcAnomaly
     public string Status { get; set; } = "open";
 
     /// <summary>处理人</summary>
+    [Column("handler")]
     [MaxLength(100)]
     public string? Handler { get; set; }
 
     /// <summary>解决时间</summary>
+    [Column("resolved_at")]
     public DateTime? ResolvedAt { get; set; }
 
     [Column("created_at")]

@@ -77,7 +77,8 @@ async function loadTree() {
   loading.value = true
   try {
     treeData.value = await organizationApi.tree()
-    await orgStore.loadOrgTree()
+    // orgStore.loadOrgTree() is called separately if needed,
+    // as it re-fetches the same API and may not be necessary here
   } finally {
     loading.value = false
   }

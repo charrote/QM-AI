@@ -38,7 +38,7 @@ public class CustomersController : ControllerBase
     }
 
     [HttpGet("{id}")]
-    public async Task<ActionResult<Customer>> Get(int id)
+    public async Task<ActionResult<Customer>> Get(long id)
     {
         var entity = await _db.Customers.FindAsync(id);
         if (entity == null) return NotFound();
@@ -62,7 +62,7 @@ public class CustomersController : ControllerBase
     }
 
     [HttpPut("{id}")]
-    public async Task<ActionResult<Customer>> Update(int id, [FromBody] UpdateCustomerDto dto)
+    public async Task<ActionResult<Customer>> Update(long id, [FromBody] UpdateCustomerDto dto)
     {
         var entity = await _db.Customers.FindAsync(id);
         if (entity == null) return NotFound();
@@ -77,7 +77,7 @@ public class CustomersController : ControllerBase
     }
 
     [HttpDelete("{id}")]
-    public async Task<IActionResult> Delete(int id)
+    public async Task<IActionResult> Delete(long id)
     {
         var entity = await _db.Customers.FindAsync(id);
         if (entity == null) return NotFound();

@@ -8,6 +8,8 @@ import {
   TrendCharts,
   Monitor,
   Setting,
+  Refresh,
+  Document,
 } from '@element-plus/icons-vue'
 import { riskScoreApi } from '@/api/ipqc'
 import { equipmentApi, processApi } from '@/api/basicData'
@@ -294,9 +296,7 @@ onMounted(async () => {
   </div>
 </template>
 
-<script lang="ts">
-import { Refresh, Document } from '@element-plus/icons-vue'
-</script>
+
 
 <style scoped>
 .page-container {

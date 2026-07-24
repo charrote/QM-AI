@@ -38,7 +38,7 @@ public class RoutingsController : ControllerBase
     }
 
     [HttpGet("{id}")]
-    public async Task<ActionResult<Routing>> Get(int id)
+    public async Task<ActionResult<Routing>> Get(long id)
     {
         var entity = await _db.Routings.Include(r => r.Product).Include(r => r.Process).FirstOrDefaultAsync(r => r.Id == id);
         if (entity == null) return NotFound();
@@ -64,7 +64,7 @@ public class RoutingsController : ControllerBase
     }
 
     [HttpPut("{id}")]
-    public async Task<ActionResult<Routing>> Update(int id, [FromBody] UpdateRoutingDto dto)
+    public async Task<ActionResult<Routing>> Update(long id, [FromBody] UpdateRoutingDto dto)
     {
         var entity = await _db.Routings.FindAsync(id);
         if (entity == null) return NotFound();
@@ -81,7 +81,7 @@ public class RoutingsController : ControllerBase
     }
 
     [HttpDelete("{id}")]
-    public async Task<IActionResult> Delete(int id)
+    public async Task<IActionResult> Delete(long id)
     {
         var entity = await _db.Routings.FindAsync(id);
         if (entity == null) return NotFound();
