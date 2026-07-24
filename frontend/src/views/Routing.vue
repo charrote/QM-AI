@@ -850,12 +850,14 @@ onMounted(async () => {
   height: 24px;
   line-height: 24px;
   font-size: 12px;
+  text-decoration: none;
 }
 
 .routes-table :deep(.el-button--primary.is-link:hover),
 .routes-table :deep(.el-button--primary.is-link:focus) {
   background: transparent;
   box-shadow: none;
+  text-decoration: none;
 }
 
 .routes-table :deep(.el-button--danger.is-link) {
@@ -863,12 +865,14 @@ onMounted(async () => {
   height: 24px;
   line-height: 24px;
   font-size: 12px;
+  text-decoration: none;
 }
 
 .routes-table :deep(.el-button--danger.is-link:hover),
 .routes-table :deep(.el-button--danger.is-link:focus) {
   background: transparent;
   box-shadow: none;
+  text-decoration: none;
 }
 
 /* Loading icon fix */
