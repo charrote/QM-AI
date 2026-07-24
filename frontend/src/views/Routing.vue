@@ -741,38 +741,76 @@ onMounted(async () => {
   justify-content: center;
 }
 
-.data-card__table {
+.routes-table {
   flex: 1;
   min-height: 0;
+  width: 100%;
 }
 
 /* ── 表格内容不换行 ── */
-.data-card__table :deep(.el-table__cell) {
+.routes-table :deep(.el-table__cell) {
   white-space: nowrap;
 }
 
-.data-card__table :deep(.el-table__header-wrapper) {
+.routes-table :deep(.el-table__header-wrapper) {
   flex-shrink: 0;
 }
 
-.data-card__table :deep(.el-table__body-wrapper) {
+.routes-table :deep(.el-table__body-wrapper) {
   overflow-y: auto;
 }
 
 /* ── 表格行高与产品管理一致 ── */
-.data-card__table :deep(.el-table__row) {
+.routes-table :deep(.el-table__row) {
   height: 32px;
   line-height: 32px;
 }
 
-.data-card__table :deep(.el-table__header-wrapper .el-table__cell) {
+.routes-table :deep(.el-table__header-wrapper .el-table__cell) {
   height: 32px;
   line-height: 32px;
   padding: 0 8px;
 }
 
-.data-card__table :deep(.el-table__body-wrapper .el-table__cell) {
+.routes-table :deep(.el-table__body-wrapper .el-table__cell) {
   padding: 0 8px;
+}
+
+/* ── 操作列按钮样式 ── */
+.routes-table :deep(.el-button--primary.is-link) {
+  padding: 0 4px;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.routes-table :deep(.el-button--primary.is-link:hover),
+.routes-table :deep(.el-button--primary.is-link:focus) {
+  border: none !important;
+  box-shadow: none !important;
+  outline: none;
+}
+
+.routes-table :deep(.el-button--primary.is-link:focus-visible) {
+  outline: none;
+  box-shadow: none;
+}
+
+.routes-table :deep(.el-button--danger.is-link) {
+  padding: 0 4px;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.routes-table :deep(.el-button--danger.is-link:hover),
+.routes-table :deep(.el-button--danger.is-link:focus) {
+  border: none !important;
+  box-shadow: none !important;
+  outline: none;
+}
+
+.routes-table :deep(.el-button--danger.is-link:focus-visible) {
+  outline: none;
+  box-shadow: none;
 }
 
 /* ── 下段步骤卡片流 ── */
@@ -846,43 +884,6 @@ onMounted(async () => {
 .text-muted {
   color: var(--el-text-color-placeholder);
   font-size: 12px;
-}
-
-/* ── 操作列按钮样式 ── */
-.routes-table :deep(.el-button--primary.is-link) {
-  padding: 0 4px;
-  border: none !important;
-  box-shadow: none !important;
-}
-
-.routes-table :deep(.el-button--primary.is-link:hover),
-.routes-table :deep(.el-button--primary.is-link:focus) {
-  border: none !important;
-  box-shadow: none !important;
-  outline: none;
-}
-
-.routes-table :deep(.el-button--primary.is-link:focus-visible) {
-  outline: none;
-  box-shadow: none;
-}
-
-.routes-table :deep(.el-button--danger.is-link) {
-  padding: 0 4px;
-  border: none !important;
-  box-shadow: none !important;
-}
-
-.routes-table :deep(.el-button--danger.is-link:hover),
-.routes-table :deep(.el-button--danger.is-link:focus) {
-  border: none !important;
-  box-shadow: none !important;
-  outline: none;
-}
-
-.routes-table :deep(.el-button--danger.is-link:focus-visible) {
-  outline: none;
-  box-shadow: none;
 }
 
 /* Loading icon fix */
