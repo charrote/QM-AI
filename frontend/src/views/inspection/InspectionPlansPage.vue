@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { Search } from '@element-plus/icons-vue'
 import { inspectionPlanApi } from '@/api/inspectionPlan'
 import { inspectionItemApi } from '@/api/inspectionItem'
 import type { InspectionPlan, InspectionPlanDetail, InspectionPlanItem, CreateInspectionPlan, CreateInspectionPlanItem, UpdateInspectionPlan } from '@/types/inspectionItem'
@@ -239,27 +240,24 @@ onMounted(() => {
       <p class="text-gray-400 text-sm">定义"什么维度组合→检验哪些项目"，贯通检验项目主数据与业务执行</p>
     </div>
 
-    <el-card shadow="never" class="mb-4">
-      <el-row :gutter="16">
-        <el-col :span="8">
-          <el-input v-model="query.keyword" placeholder="搜索计划编码/名称" clearable @keyup.enter="handleSearch" />
-        </el-col>
-        <el-col :span="4">
-          <el-button type="primary" @click="handleSearch">查询</el-button>
-          <el-button @click="query.keyword = ''; handleSearch()">重置</el-button>
-        </el-col>
-        <el-col :span="12" class="text-right">
-          <el-button type="success" @click="openCreate">+ 新增检验计划</el-button>
-        </el-col>
-      </el-row>
+    <el-card shadow="never" class="search-card">
+      <div class="search-bar">
+        <el-input v-model="query.keyword" placeholder="搜索计划编码/名称" clearable style="width: 240px" @keyup.enter="handleSearch">
+          <template #prefix><el-icon><Search /></el-icon></template>
+        </el-input>
+        <el-button type="primary" @click="handleSearch">查询</el-button>
+        <el-button @click="query.keyword = ''; handleSearch()">重置</el-button>
+        <div class="search-spacer" />
+        <el-button type="success" @click="openCreate">+ 新增检验计划</el-button>
+      </div>
     </el-card>
 
-    <el-card shadow="never">
+    <el-card shadow="never" class="table-card">
       <el-table :data="items" v-loading="loading" stripe border style="width: 100%">
-        <el-table-column prop="planCode" label="计划编码" width="120" />
+        <el-table-column prop="planCode" label="计划编码" width="130" />
         <el-table-column prop="planName" label="计划名称" min-width="150" />
         <el-table-column label="检验类型" width="130">
-          <template #default="{ row }">{{ getTypeLabel(row.inspectionType) }}</template>
+          <template #default="{ row }"><el-tag size="small" effect="plain">{{ getTypeLabel(row.inspectionType) }}</el-tag></template>
         </el-table-column>
         <el-table-column prop="productName" label="产品" min-width="120">
           <template #default="{ row }">{{ row.productName || '-' }}</template>
@@ -275,25 +273,25 @@ onMounted(() => {
         </el-table-column>
         <el-table-column label="状态" width="80">
           <template #default="{ row }">
-            <el-tag :type="row.isActive ? 'success' : 'danger'" size="small">
-              {{ row.isActive ? '启用' : '停用' }}
-            </el-tag>
+            <el-tag :type="row.isActive ? 'success' : 'danger'" size="small" effect="dark">{{ row.isActive ? '启用' : '停用' }}</el-tag>
           </template>
         </el-table-column>
         <el-table-column label="操作" width="150" fixed="right">
           <template #default="{ row }">
-            <el-button size="small" @click="openEdit(row.id)">编辑</el-button>
-            <el-button size="small" type="danger" @click="handleDelete(row.id, row.planName)">删除</el-button>
+            <el-button link size="small" type="primary" @click="openEdit(row.id)">编辑</el-button>
+            <el-button link size="small" type="danger" @click="handleDelete(row.id, row.planName)">删除</el-button>
           </template>
         </el-table-column>
       </el-table>
 
-      <div class="mt-4 flex justify-center">
+      <div class="pagination-row">
         <el-pagination
           v-model:current-page="query.page"
           :page-size="query.pageSize"
           :total="total"
-          layout="prev, pager, next, total"
+          :page-sizes="[10, 20, 50, 100]"
+          layout="total, sizes, prev, pager, next, jumper"
+          @size-change="loadData"
           @current-change="handlePageChange"
         />
       </div>
@@ -427,10 +425,17 @@ onMounted(() => {
 <style scoped>
 .inspection-plans-page { padding: 16px; }
 .page-header { margin-bottom: 16px; }
-.page-header h2 { margin: 0 0 4px; font-size: 20px; }
+.page-header-main { display: flex; align-items: center; gap: 14px; }
+.page-header-icon { width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; background: #e6f7ff; border-radius: 10px; }
+.page-header-text h2 { margin: 0; font-size: 20px; font-weight: 600; color: #303133; }
+.page-header-text p { margin: 2px 0 0; font-size: 13px; color: #909399; }
 .text-gray-400 { color: #909399; }
 .text-right { text-align: right; }
-.mb-4 { margin-bottom: 16px; }
+.search-card { margin-bottom: 12px; }
+.search-bar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.search-spacer { flex: 1; }
+.table-card { flex: 1; }
+.pagination-row { display: flex; justify-content: flex-end; padding: 12px 8px; border-top: 1px solid #f0f0f0; }
 .mt-2 { margin-top: 8px; }
 .mt-4 { margin-top: 16px; }
 .plan-item-row {
@@ -440,7 +445,5 @@ onMounted(() => {
   border: 1px solid #e4e7ed;
   border-radius: 6px;
 }
-.plan-items-section {
-  padding: 8px 0;
-}
+.plan-items-section { padding: 8px 0; }
 </style>

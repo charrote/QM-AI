@@ -2,6 +2,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { Edit, Plus } from '@element-plus/icons-vue'
 import { auditApi } from '@/api/audit'
 import type { PagedResult } from '@/types/basicData'
 import type { Audit } from '@/types/audit'
@@ -147,7 +148,21 @@ onMounted(async () => {
 
 <template>
   <div class="page-container">
-    <!-- Toolbar -->
+    <!-- Page Header -->
+    <div class="page-header">
+      <div class="page-header__main">
+        <el-icon class="page-header__icon" :size="28"><Edit /></el-icon>
+        <div class="page-header__text">
+          <h2 class="page-header__title">审核管理</h2>
+          <p class="page-header__subtitle">质量审核计划与记录管理</p>
+        </div>
+      </div>
+      <div class="page-header__actions">
+        <el-button :icon="Plus" type="primary" @click="openCreate">新建审核</el-button>
+      </div>
+    </div>
+
+    <!-- Search Toolbar -->
     <div class="toolbar-row">
       <el-input
         v-model="searchKeyword"
@@ -156,64 +171,67 @@ onMounted(async () => {
         style="width: 260px"
         @keyup.enter="loadAudits"
       />
-      <el-select v-model="auditTypeFilter" placeholder="审核类型" clearable style="width: 130px" @change="loadAudits">
+      <el-select v-model="auditTypeFilter" placeholder="审核类型" clearable style="width: 140px" @change="loadAudits">
         <el-option v-for="opt in AUDIT_TYPE_OPTIONS" :key="opt.value" :label="opt.label" :value="opt.value" />
       </el-select>
-      <el-select v-model="statusFilter" placeholder="状态" clearable style="width: 130px" @change="loadAudits">
+      <el-select v-model="statusFilter" placeholder="状态" clearable style="width: 140px" @change="loadAudits">
         <el-option v-for="opt in AUDIT_STATUS_OPTIONS" :key="opt.value" :label="opt.label" :value="opt.value" />
       </el-select>
-      <el-button type="primary" @click="openCreate">+ 新建审核</el-button>
       <el-button @click="loadAudits">刷新</el-button>
+      <div class="toolbar-spacer" />
     </div>
 
-    <!-- Table -->
-    <el-table :data="audits" stripe style="width: 100%" >
-      <el-table-column prop="auditCode" label="审核代码" width="140" />
-      <el-table-column label="审核类型" width="100">
-        <template #default="{ row }">
-          <el-tag size="small" effect="plain">{{ AUDIT_TYPE_OPTIONS.find(o => o.value === row.auditType)?.label || row.auditType }}</el-tag>
-        </template>
-      </el-table-column>
-      <el-table-column prop="title" label="标题" min-width="200" show-overflow-tooltip />
-      <el-table-column label="审核人ID" width="80">
-        <template #default="{ row }">{{ row.auditorId || '-' }}</template>
-      </el-table-column>
-      <el-table-column prop="scope" label="范围" min-width="150" show-overflow-tooltip />
-      <el-table-column label="状态" width="100">
-        <template #default="{ row }">
-          <el-tag :type="AUDIT_STATUS_OPTIONS.find(o => o.value === row.status)?.type || 'info'" size="small" effect="plain">
-            {{ AUDIT_STATUS_MAP[row.status] || row.status }}
-          </el-tag>
-        </template>
-      </el-table-column>
-      <el-table-column label="开始日期" width="110">
-        <template #default="{ row }">{{ row.startDate?.slice(0, 10) || '-' }}</template>
-      </el-table-column>
-      <el-table-column label="结束日期" width="110">
-        <template #default="{ row }">{{ row.endDate?.slice(0, 10) || '-' }}</template>
-      </el-table-column>
-      <el-table-column label="创建时间" width="150">
-        <template #default="{ row }">{{ formatDate(row.createdAt) }}</template>
-      </el-table-column>
-      <el-table-column label="操作" width="180" fixed="right">
-        <template #default="{ row }">
-          <el-button link size="small" type="primary" @click="openEdit(row)">编辑</el-button>
-          <el-button link size="small" type="primary" @click="viewDetail(row)">详情</el-button>
-          <el-button link size="small" type="danger" @click="deleteAudit(row)">删除</el-button>
-        </template>
-      </el-table-column>
-    </el-table>
+    <!-- Data Table Card -->
+    <div class="data-card">
+      <el-table :data="audits" stripe style="width: 100%">
+        <el-table-column prop="auditCode" label="审核代码" width="150" />
+        <el-table-column label="审核类型" width="110" align="center">
+          <template #default="{ row }">
+            <el-tag size="small" effect="plain">{{ AUDIT_TYPE_OPTIONS.find(o => o.value === row.auditType)?.label || row.auditType }}</el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column prop="title" label="标题" min-width="220" show-overflow-tooltip />
+        <el-table-column label="审核人ID" width="90" align="center">
+          <template #default="{ row }">{{ row.auditorId || '-' }}</template>
+        </el-table-column>
+        <el-table-column prop="scope" label="范围" min-width="160" show-overflow-tooltip />
+        <el-table-column label="状态" width="110" align="center">
+          <template #default="{ row }">
+            <el-tag :type="AUDIT_STATUS_OPTIONS.find(o => o.value === row.status)?.type || 'info'" size="small" effect="plain">
+              {{ AUDIT_STATUS_MAP[row.status] || row.status }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="开始日期" width="120" align="center">
+          <template #default="{ row }">{{ row.startDate?.slice(0, 10) || '-' }}</template>
+        </el-table-column>
+        <el-table-column label="结束日期" width="120" align="center">
+          <template #default="{ row }">{{ row.endDate?.slice(0, 10) || '-' }}</template>
+        </el-table-column>
+        <el-table-column label="创建时间" width="180">
+          <template #default="{ row }">{{ formatDate(row.createdAt) }}</template>
+        </el-table-column>
+        <el-table-column label="操作" width="200" fixed="right">
+          <template #default="{ row }">
+            <el-button link size="small" type="primary" :icon="Edit" @click="openEdit(row)">编辑</el-button>
+            <el-button link size="small" type="primary" @click="viewDetail(row)">详情</el-button>
+            <el-button link size="small" type="danger" @click="deleteAudit(row)">删除</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
 
-    <!-- Pagination -->
-    <div class="pagination-row">
-      <el-pagination
-        v-model:current-page="page"
-        v-model:page-size="pageSize"
-        :total="total"
-        layout="total, prev, pager, next"
-        size="small"
-        @current-change="loadAudits"
-      />
+      <!-- Pagination -->
+      <div class="pagination-row">
+        <el-pagination
+          v-model:current-page="page"
+          v-model:page-size="pageSize"
+          :total="total"
+          :page-sizes="[10, 20, 50, 100]"
+          layout="total, sizes, prev, pager, next, jumper"
+          size="small"
+          @current-change="loadAudits"
+        />
+      </div>
     </div>
 
     <!-- Dialog -->
@@ -223,7 +241,7 @@ onMounted(async () => {
       width="640px"
       :close-on-click-modal="false"
     >
-      <el-form :model="form" label-width="100px" >
+      <el-form :model="form" label-width="100px">
         <el-row :gutter="16">
           <el-col :span="12">
             <el-form-item label="审核代码" required>
@@ -278,7 +296,49 @@ onMounted(async () => {
 </template>
 
 <style scoped>
-.page-container { display: flex; flex-direction: column; height: 100%; }
-.toolbar-row { display: flex; align-items: center; gap: 8px; margin: 12px 0; flex-wrap: wrap; }
-.pagination-row { display: flex; justify-content: flex-end; padding: 12px 0; }
+.page-container { display: flex; flex-direction: column; height: 100%; gap: 16px; }
+
+/* Page Header */
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--el-bg-color);
+  border-radius: var(--radius-lg, 8px);
+  padding: 16px 20px;
+  border: 1px solid var(--el-border-color-lighter);
+}
+.page-header__main { display: flex; align-items: center; gap: 12px; }
+.page-header__icon { color: var(--el-color-primary); flex-shrink: 0; }
+.page-header__title { margin: 0; font-size: 20px; font-weight: 600; color: var(--el-text-color-primary); line-height: 1.2; }
+.page-header__subtitle { margin: 4px 0 0; font-size: 13px; color: var(--el-text-color-secondary); }
+.page-header__actions { display: flex; gap: 8px; }
+
+/* Toolbar */
+.toolbar-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.toolbar-spacer { flex: 1; }
+
+/* Data Card */
+.data-card {
+  background: var(--el-bg-color);
+  border-radius: var(--radius-lg, 8px);
+  border: 1px solid var(--el-border-color-lighter);
+  overflow: hidden;
+}
+.data-card :deep(.el-table th.el-table__cell) {
+  background: var(--el-fill-color-light) !important;
+}
+
+/* Pagination */
+.pagination-row {
+  display: flex;
+  justify-content: flex-end;
+  padding: var(--space-4, 12px);
+  border-top: 1px solid var(--el-border-color-lighter);
+}
 </style>

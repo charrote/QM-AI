@@ -2,6 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
+import { Search, Check, Document, List } from '@element-plus/icons-vue'
 import { patrolApi } from '@/api/ipqc'
 import type { IpqcPatrolDetail, IpqcPatrolItemSubmit } from '@/types/ipqc'
 import { IPQC_PATROL_CONCLUSION_OPTIONS, INSPECTION_RESULT_OPTIONS } from '@/types/ipqc'
@@ -114,13 +115,22 @@ function resultTag(r: string) {
   <div class="pda-container">
     <!-- Header -->
     <div class="pda-header">
-      <button class="back-btn" @click="goBack">← 返回</button>
-      <h2>IPQC 巡检</h2>
+      <button class="back-btn" @click="goBack">
+        <el-icon :size="22"><ArrowLeft /></el-icon>
+        返回
+      </button>
+      <h2>
+        <el-icon :size="22" color="var(--el-color-primary)"><Document /></el-icon>
+        IPQC 巡检
+      </h2>
     </div>
 
     <!-- Scan Input -->
     <div class="scan-section" v-if="!patrol">
-      <div class="scan-tip">扫描或输入巡检编号</div>
+      <div class="scan-header">
+        <el-icon :size="36" color="var(--el-color-primary)"><Search /></el-icon>
+        <span class="scan-tip">扫描或输入巡检编号</span>
+      </div>
       <div class="scan-input-row">
         <input
           v-model="scanInput"
@@ -130,7 +140,8 @@ function resultTag(r: string) {
           @keyup.enter="handleScan"
           autofocus
         />
-        <button class="pda-btn primary" @click="handleScan" :disabled="loading">
+        <button class="pda-btn pda-btn--primary scan-btn" @click="handleScan" :disabled="loading">
+          <el-icon :size="20"><Search /></el-icon>
           {{ loading ? '加载中...' : '查询' }}
         </button>
       </div>
@@ -138,7 +149,12 @@ function resultTag(r: string) {
 
     <!-- Patrol Form -->
     <div class="patrol-form" v-if="patrol">
+      <!-- Patrol Info -->
       <div class="patrol-info">
+        <div class="patrol-info__header">
+          <el-icon :size="20" color="var(--el-color-primary)"><Document /></el-icon>
+          <span class="patrol-info__title">巡检信息</span>
+        </div>
         <div class="info-row"><span class="label">巡检编号</span><span class="value">{{ patrol.patrolNo }}</span></div>
         <div class="info-row"><span class="label">设备</span><span class="value">{{ patrol.equipmentName || '-' }}</span></div>
         <div class="info-row"><span class="label">工序</span><span class="value">{{ patrol.processName || '-' }}</span></div>
@@ -147,7 +163,10 @@ function resultTag(r: string) {
 
       <!-- Inspection Items -->
       <div class="items-section">
-        <h3>检验项目</h3>
+        <div class="section-header">
+          <el-icon color="var(--el-color-primary)"><List /></el-icon>
+          <span>检验项目</span>
+        </div>
         <div v-for="(item, idx) in items" :key="idx" class="inspect-item">
           <div class="item-header">
             <span class="item-name">{{ item.itemName }}</span>
@@ -155,11 +174,17 @@ function resultTag(r: string) {
               <button
                 :class="['result-btn', { active: item.result === 'pass' }]"
                 @click="item.result = 'pass'"
-              >✓ 合格</button>
+              >
+                <el-icon :size="16"><Check /></el-icon>
+                合格
+              </button>
               <button
-                :class="['result-btn', 'fail', { active: item.result === 'fail' }]"
+                :class="['result-btn', 'result-btn--fail', { active: item.result === 'fail' }]"
                 @click="item.result = 'fail'"
-              >✕ 不合格</button>
+              >
+                <el-icon :size="16"><Close /></el-icon>
+                不合格
+              </button>
             </div>
           </div>
 
@@ -178,13 +203,21 @@ function resultTag(r: string) {
         </div>
       </div>
 
+      <!-- Remarks -->
       <div class="remarks-section">
-        <h3>备注</h3>
-        <textarea v-model="patrolRemarks" class="pda-textarea" rows="2" placeholder="备注信息..." />
+        <div class="section-header">
+          <el-icon color="var(--el-color-primary)"><Document /></el-icon>
+          <span>备注</span>
+        </div>
+        <textarea v-model="patrolRemarks" class="pda-textarea" rows="3" placeholder="备注信息..." />
       </div>
 
+      <!-- Conclusion -->
       <div class="conclusion-section">
-        <h3>检验结论</h3>
+        <div class="section-header">
+          <el-icon color="var(--el-color-primary)"><Check /></el-icon>
+          <span>检验结论</span>
+        </div>
         <div class="conclusion-btns">
           <button
             v-for="opt in IPQC_PATROL_CONCLUSION_OPTIONS"
@@ -197,21 +230,32 @@ function resultTag(r: string) {
         </div>
       </div>
 
+      <!-- Action Buttons -->
       <div class="action-buttons">
-        <button class="pda-btn secondary" @click="patrol = null">取消</button>
-        <button class="pda-btn primary" @click="handleSubmit" :disabled="submitting">
-          {{ submitting ? '提交中...' : '✅ 提交巡检' }}
+        <button class="pda-btn pda-btn--secondary" @click="patrol = null" :disabled="submitting">
+          取消
+        </button>
+        <button class="pda-btn pda-btn--primary" @click="handleSubmit" :disabled="submitting">
+          <el-icon :size="20"><Check /></el-icon>
+          {{ submitting ? '提交中...' : '提交巡检' }}
         </button>
       </div>
     </div>
 
     <!-- Scan History (placeholder) -->
     <div class="history-section" v-if="!patrol">
-      <h3>最近扫描</h3>
+      <div class="section-header">
+        <el-icon color="var(--el-text-secondary)"><Clock /></el-icon>
+        <span>最近扫描</span>
+      </div>
       <div class="history-empty">暂无记录</div>
     </div>
   </div>
 </template>
+
+<script lang="ts">
+import { ArrowLeft, Clock } from '@element-plus/icons-vue'
+</script>
 
 <style scoped>
 .pda-container {
@@ -223,11 +267,13 @@ function resultTag(r: string) {
   background: #f5f7fa;
 }
 
+/* ─── Header ───────────────────────── */
 .pda-header {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 12px;
-  margin-bottom: 16px;
+  margin-bottom: 20px;
   position: sticky;
   top: 0;
   background: #f5f7fa;
@@ -236,33 +282,51 @@ function resultTag(r: string) {
 }
 
 .back-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
   background: none;
   border: none;
   font-size: 16px;
   color: #409eff;
   cursor: pointer;
-  padding: 4px 8px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  min-height: 44px;
 }
 
 .pda-header h2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   font-size: 18px;
   margin: 0;
   color: #303133;
+  font-weight: 600;
 }
 
+/* ─── Scan Section ─────────────────── */
 .scan-section {
   background: #fff;
   border-radius: 12px;
-  padding: 24px 16px;
+  padding: 28px 20px;
   margin-bottom: 16px;
   box-shadow: 0 1px 3px rgba(0,0,0,0.06);
 }
 
+.scan-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
 .scan-tip {
-  font-size: 14px;
+  font-size: 15px;
   color: #606266;
-  margin-bottom: 12px;
   text-align: center;
+  font-weight: 500;
 }
 
 .scan-input-row {
@@ -272,28 +336,39 @@ function resultTag(r: string) {
 
 .pda-input {
   flex: 1;
-  padding: 12px 16px;
+  padding: 14px 16px;
   border: 2px solid #dcdfe6;
-  border-radius: 8px;
-  font-size: 16px;
+  border-radius: 10px;
+  font-size: 17px;
   outline: none;
   transition: border-color 0.2s;
   background: #fff;
+  min-height: 48px;
 }
 
 .pda-input:focus {
   border-color: #409eff;
 }
 
+.scan-btn {
+  min-width: 100px;
+}
+
+/* ─── Buttons ──────────────────────── */
 .pda-btn {
-  padding: 12px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 14px 24px;
   border: none;
-  border-radius: 8px;
+  border-radius: 10px;
   font-size: 16px;
   font-weight: 500;
   cursor: pointer;
   transition: opacity 0.2s;
   white-space: nowrap;
+  min-height: 52px;
 }
 
 .pda-btn:disabled {
@@ -301,16 +376,17 @@ function resultTag(r: string) {
   cursor: not-allowed;
 }
 
-.pda-btn.primary {
+.pda-btn--primary {
   background: #409eff;
   color: #fff;
 }
 
-.pda-btn.secondary {
+.pda-btn--secondary {
   background: #f0f2f5;
   color: #606266;
 }
 
+/* ─── Patrol Form ──────────────────── */
 .patrol-form {
   background: #fff;
   border-radius: 12px;
@@ -320,70 +396,95 @@ function resultTag(r: string) {
 
 .patrol-info {
   background: #f0f9ff;
-  border-radius: 8px;
-  padding: 12px;
-  margin-bottom: 16px;
+  border-radius: 10px;
+  padding: 14px 16px;
+  margin-bottom: 20px;
+}
+
+.patrol-info__header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 10px;
   font-size: 14px;
+  font-weight: 600;
+  color: #303133;
 }
 
 .info-row {
   display: flex;
   justify-content: space-between;
-  padding: 4px 0;
+  padding: 6px 0;
 }
 
 .info-row .label {
   color: #909399;
+  font-size: 14px;
 }
 
 .info-row .value {
   color: #303133;
   font-weight: 500;
+  font-size: 14px;
 }
 
-.items-section h3,
-.remarks-section h3,
-.conclusion-section h3 {
-  font-size: 14px;
+/* ─── Section Headers ──────────────── */
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 15px;
+  font-weight: 600;
   color: #303133;
-  margin: 0 0 8px 0;
+  margin-bottom: 12px;
+}
+
+/* ─── Items ────────────────────────── */
+.items-section {
+  margin-bottom: 20px;
 }
 
 .inspect-item {
   background: #fafafa;
-  border-radius: 8px;
-  padding: 12px;
-  margin-bottom: 8px;
+  border-radius: 10px;
+  padding: 14px;
+  margin-bottom: 10px;
 }
 
 .item-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
 }
 
 .item-name {
   font-weight: 500;
-  font-size: 14px;
+  font-size: 15px;
+  color: #303133;
 }
 
 .item-result {
   display: flex;
-  gap: 6px;
+  gap: 8px;
 }
 
 .result-btn {
-  padding: 4px 12px;
-  border: 1.5px solid #67c23a;
-  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 16px;
+  border: 2px solid #67c23a;
+  border-radius: 24px;
   background: #fff;
   color: #67c23a;
-  font-size: 13px;
+  font-size: 14px;
+  font-weight: 500;
   cursor: pointer;
+  min-height: 44px;
 }
 
-.result-btn.fail {
+.result-btn--fail {
   border-color: #f56c6c;
   color: #f56c6c;
 }
@@ -393,7 +494,7 @@ function resultTag(r: string) {
   color: #fff;
 }
 
-.result-btn.fail.active {
+.result-btn--fail.active {
   background: #f56c6c;
   color: #fff;
 }
@@ -406,8 +507,12 @@ function resultTag(r: string) {
 
 .value-input {
   flex: 1;
-  padding: 8px 12px;
-  font-size: 14px;
+  padding: 12px 14px;
+  font-size: 15px;
+  border: 2px solid #dcdfe6;
+  border-radius: 8px;
+  outline: none;
+  min-height: 44px;
 }
 
 .value-hint {
@@ -415,20 +520,31 @@ function resultTag(r: string) {
   white-space: nowrap;
 }
 
+/* ─── Remarks ──────────────────────── */
+.remarks-section {
+  margin-bottom: 20px;
+}
+
 .pda-textarea {
   width: 100%;
-  padding: 10px 12px;
-  border: 1.5px solid #dcdfe6;
-  border-radius: 8px;
-  font-size: 14px;
+  padding: 12px 14px;
+  border: 2px solid #dcdfe6;
+  border-radius: 10px;
+  font-size: 15px;
   outline: none;
   resize: vertical;
   box-sizing: border-box;
   font-family: inherit;
+  min-height: 80px;
 }
 
 .pda-textarea:focus {
   border-color: #409eff;
+}
+
+/* ─── Conclusion ───────────────────── */
+.conclusion-section {
+  margin-bottom: 24px;
 }
 
 .conclusion-btns {
@@ -438,14 +554,17 @@ function resultTag(r: string) {
 
 .conclusion-btn {
   flex: 1;
-  padding: 10px;
-  border: 1.5px solid #dcdfe6;
-  border-radius: 8px;
+  padding: 14px 12px;
+  border: 2px solid #dcdfe6;
+  border-radius: 10px;
   background: #fff;
   color: #606266;
-  font-size: 14px;
+  font-size: 15px;
+  font-weight: 500;
   cursor: pointer;
   text-align: center;
+  min-height: 52px;
+  transition: all 0.2s;
 }
 
 .conclusion-btn.active {
@@ -455,10 +574,11 @@ function resultTag(r: string) {
   font-weight: 600;
 }
 
+/* ─── Action Buttons ───────────────── */
 .action-buttons {
   display: flex;
   gap: 12px;
-  margin-top: 20px;
+  margin-top: 8px;
 }
 
 .action-buttons .pda-btn {
@@ -466,6 +586,7 @@ function resultTag(r: string) {
   text-align: center;
 }
 
+/* ─── History ──────────────────────── */
 .history-section {
   background: #fff;
   border-radius: 12px;
@@ -473,16 +594,10 @@ function resultTag(r: string) {
   margin-top: 16px;
 }
 
-.history-section h3 {
-  font-size: 14px;
-  margin: 0 0 8px 0;
-  color: #303133;
-}
-
 .history-empty {
   text-align: center;
   color: #c0c4cc;
-  font-size: 13px;
-  padding: 20px 0;
+  font-size: 14px;
+  padding: 24px 0;
 }
 </style>

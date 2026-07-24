@@ -38,25 +38,34 @@ onMounted(() => {})
 
 <template>
   <div class="page-container">
-    <el-card class="search-card" shadow="never">
-      <template #header>
-        <div class="card-header">
-          <span>召回模拟</span>
-          <el-tag size="small" type="danger">风险评估</el-tag>
+    <!-- Page Header -->
+    <div class="page-header">
+      <div class="page-header-main">
+        <div class="page-header-icon">
+          <el-icon :size="28"><RefreshLeft /></el-icon>
         </div>
-      </template>
+        <div class="page-header-text">
+          <h2>召回模拟</h2>
+          <p>模拟批次产品召回的影响范围，辅助决策</p>
+        </div>
+      </div>
+    </div>
+
+    <el-card shadow="never" class="search-card">
+      <div class="search-card-header">
+        <span class="search-card-title">批次号查询</span>
+        <el-tag size="small" type="danger">风险评估</el-tag>
+      </div>
       <div class="search-input-row">
-        <el-input v-model="batchCode" placeholder="请输入批次号" size="large" clearable @keyup.enter="simulate" style="max-width: 400px">
-          <el-icon><Box /></el-icon>
+        <el-input v-model="batchCode" placeholder="请输入批次号" size="large" clearable @keyup.enter="simulate" style="max-width: 420px">
+          <template #prefix><el-icon><Box /></el-icon></template>
         </el-input>
         <el-button type="danger" size="large" @click="simulate" :loading="loading">
           <el-icon><RefreshLeft /></el-icon> 模拟召回
         </el-button>
       </div>
       <div class="search-hints">
-        <el-text type="info">
-          💡 模拟该批次产品召回的影响范围：受影响客户、召回数量、预计损失
-        </el-text>
+        <el-text type="info">模拟该批次产品召回的影响范围：受影响客户、召回数量、预计损失</el-text>
       </div>
       <div v-if="error" class="error-msg">
         <el-alert :title="error" type="error" :closable="false" show-icon />
@@ -64,10 +73,10 @@ onMounted(() => {})
     </el-card>
 
     <div v-if="result && !loading" class="result-container">
-      <!-- Scenario -->
-      <el-card class="info-card" shadow="never">
+      <el-card shadow="never" class="info-card">
         <template #header>
           <span>召回情景</span>
+          <el-tag v-if="result.estimatedRecallCost" size="small" type="danger">预计成本 ¥{{ result.estimatedRecallCost?.toLocaleString() }}</el-tag>
         </template>
         <div class="info-row">
           <div class="info-item">
@@ -84,24 +93,24 @@ onMounted(() => {})
           </div>
           <div class="info-item">
             <span class="info-label">预计召回成本</span>
-            <span class="info-value" style="color: #f56c6c">{{ result.estimatedRecallCost?.toLocaleString() ?? '-' }}</span>
+            <span class="info-value risk-cost">{{ result.estimatedRecallCost?.toLocaleString() ?? '-' }}</span>
           </div>
         </div>
       </el-card>
 
-      <!-- Affected Customers Table -->
       <el-card v-if="result.affectedCustomers?.length" shadow="never">
         <template #header>
           <span>受影响客户列表</span>
+          <el-tag size="small" type="info">{{ result.affectedCustomers.length }} 个客户</el-tag>
         </template>
-        <el-table :data="result.affectedCustomers" stripe >
+        <el-table :data="result.affectedCustomers" stripe>
           <el-table-column prop="name" label="客户名称" min-width="150" />
           <el-table-column prop="region" label="地区" width="120" />
           <el-table-column label="数量" width="100" align="right">
             <template #default="{ row }">{{ row.quantity }} pcs</template>
           </el-table-column>
-          <el-table-column label="预计损失" width="120" align="right">
-            <template #default="{ row }">{{ row.estimatedLoss?.toLocaleString() ?? '-' }}</template>
+          <el-table-column label="预计损失" width="130" align="right">
+            <template #default="{ row }"><span class="loss-value">{{ row.estimatedLoss?.toLocaleString() ?? '-' }}</span></template>
           </el-table-column>
         </el-table>
       </el-card>
@@ -118,65 +127,25 @@ onMounted(() => {})
 </template>
 
 <style scoped>
-.page-container {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  overflow-y: auto;
-  gap: 12px;
-  padding: 8px 16px;
-}
-.search-card {
-  flex-shrink: 0;
-}
-.card-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-.search-input-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-.search-hints {
-  margin-top: 12px;
-}
-.error-msg {
-  margin-top: 12px;
-}
-.result-container {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-.info-card {
-  flex-shrink: 0;
-}
-.info-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 24px;
-}
-.info-item {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-.info-label {
-  font-size: 12px;
-  color: #909399;
-}
-.info-value {
-  font-size: 14px;
-  font-weight: 600;
-  color: #303133;
-}
-.empty-card {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
+.page-container { display: flex; flex-direction: column; height: 100%; overflow-y: auto; gap: 12px; padding: 8px 16px; }
+.page-header { margin-bottom: 4px; }
+.page-header-main { display: flex; align-items: center; gap: 14px; }
+.page-header-icon { width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; background: #fef0f0; border-radius: 10px; }
+.page-header-text h2 { margin: 0; font-size: 20px; font-weight: 600; color: #303133; }
+.page-header-text p { margin: 2px 0 0; font-size: 13px; color: #909399; }
+.search-card { flex-shrink: 0; }
+.search-card-header { display: flex; align-items: center; justify-content: space-between; }
+.search-card-title { font-weight: 600; font-size: 15px; }
+.search-input-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.search-hints { margin-top: 12px; }
+.error-msg { margin-top: 12px; }
+.result-container { display: flex; flex-direction: column; gap: 12px; }
+.info-card { flex-shrink: 0; }
+.info-row { display: flex; flex-wrap: wrap; gap: 24px; }
+.info-item { display: flex; flex-direction: column; gap: 4px; }
+.info-label { font-size: 12px; color: #909399; }
+.info-value { font-size: 14px; font-weight: 600; color: #303133; }
+.risk-cost { color: #f56c6c; font-size: 18px; }
+.loss-value { color: #f56c6c; font-weight: 600; }
+.empty-card { flex: 1; display: flex; align-items: center; justify-content: center; }
 </style>

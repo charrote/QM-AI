@@ -6,7 +6,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   Setting, Box, Monitor, Document, Upload,
-  WarningFilled, Tools, Wrench, Shop, User,
+  WarningFilled, Tools, Shop, User,
   Search, List, Refresh, Plus, Check,
 } from '@element-plus/icons-vue'
 import {
@@ -265,7 +265,7 @@ const entityIcons: Record<EntityName, any> = {
   standard: Document,
   defect: WarningFilled,
   equipment: Tools,
-  tool: Wrench,
+  tool: Tools,
   supplier: Shop,
   customer: User,
 }
@@ -320,6 +320,14 @@ watch(() => route.path, () => {
 
 const config = computed(() => entityConfigs[activeEntity.value])
 
+const entityTabs = computed(() =>
+  Object.entries(entityConfigs).map(([key, cfg]) => ({
+    key: key as EntityName,
+    label: cfg.label,
+    icon: entityIcons[key as EntityName],
+  }))
+)
+
 // ─── 数据状态 ──────────────────────────────────────────
 const tableData = ref<any[]>([])
 const loading = ref(false)
@@ -334,6 +342,7 @@ const isEdit = ref(false)
 const editingId = ref(0)
 const formRef = ref()
 const formData = reactive<any>({})
+const saving = ref(false)
 
 const lookupProducts = ref<Product[]>([])
 const lookupProcesses = ref<Process[]>([])
@@ -478,7 +487,7 @@ async function openEdit(row: any) {
 async function handleSave() {
   const valid = await formRef.value?.validate().catch(() => false)
   if (!valid) return
-
+  saving.value = true
   try {
     if (isEdit.value) {
       await config.value.api.update(editingId.value, formData)
@@ -489,7 +498,9 @@ async function handleSave() {
     }
     dialogVisible.value = false
     loadData()
-  } catch { /* error handled by interceptor */ }
+  } catch { /* error handled by interceptor */ } finally {
+    saving.value = false
+  }
 }
 
 // ─── 删除 ──────────────────────────────────────────────
@@ -601,26 +612,8 @@ onMounted(() => {
           :width="col.width"
           :formatter="col.formatter"
           show-overflow-tooltip
-        >
-          <template v-if="col.prop === 'isActive'" #default="{ row }">
-            <el-tag
-              :type="row.isActive ? 'success' : 'danger'"
-              size="small"
-              effect="light"
-            >
-              {{ row.isActive ? '启用' : '停用' }}
-            </el-tag>
-          </template>
-          <template v-if="col.prop === 'isReworkable'" #default="{ row }">
-            <el-tag
-              :type="row.isReworkable ? 'success' : 'info'"
-              size="small"
-              effect="light"
-            >
-              {{ row.isReworkable ? '是' : '否' }}
-            </el-tag>
-          </template>
-        </template>
+          :class-name="col.prop === 'isActive' || col.prop === 'isReworkable' ? 'status-cell' : ''"
+        />
         <el-table-column label="操作" width="160" fixed="right">
           <template #default="{ row }">
             <el-button size="small" type="primary" link @click.stop="openEdit(row)">编辑</el-button>
@@ -1328,82 +1321,319 @@ onMounted(() => {
 </template>
 
 <style scoped>
+/* ─── Layout ──────────────────────────────── */
 .basic-data {
-  background: var(--bg-white, #fff);
-  border-radius: 8px;
-  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4, 16px);
 }
 
-.toolbar {
+/* ─── Page Header ─────────────────────────── */
+.page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4, 16px);
+}
+
+.page-header__main {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 16px;
+  gap: var(--space-3, 12px);
 }
 
-.btn-add {
-  margin-left: auto;
+.page-header__icon {
+  font-size: 28px;
+  color: var(--primary, #1677ff);
+  background: var(--primary-bg, #f0f7ff);
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-lg, 8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.pagination-wrap {
+.page-header__title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text-primary, #1a1a1a);
+  line-height: 1.3;
+}
+
+.page-header__subtitle {
+  margin: 2px 0 0;
+  font-size: 13px;
+  color: var(--text-secondary, #8c8c8c);
+}
+
+.header-search {
+  width: 260px;
+}
+
+.header-search :deep(.el-input__wrapper) {
+  border-radius: var(--radius-md, 6px);
+  box-shadow: 0 0 0 1px var(--border-color, #dcdfe6) inset;
+}
+
+/* ─── Entity Navigation ───────────────────── */
+.entity-nav {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  background: var(--bg-white, #fff);
+  border-radius: var(--radius-lg, 8px);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.entity-nav::-webkit-scrollbar {
+  display: none;
+}
+
+.entity-nav__item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: var(--radius-md, 6px);
+  cursor: pointer;
+  white-space: nowrap;
+  font-size: 13px;
+  color: var(--text-secondary, #606266);
+  transition: all 0.2s ease;
+  user-select: none;
+  flex-shrink: 0;
+}
+
+.entity-nav__item:hover {
+  background: var(--primary-bg, #f0f7ff);
+  color: var(--primary, #1677ff);
+}
+
+.entity-nav__item--active {
+  background: var(--primary, #1677ff);
+  color: #fff;
+  font-weight: 500;
+  box-shadow: 0 2px 8px rgba(22, 119, 255, 0.25);
+}
+
+.entity-nav__icon {
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+/* ─── Data Card ───────────────────────────── */
+.data-card {
+  background: var(--bg-white, #fff);
+  border-radius: var(--radius-lg, 8px);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+  overflow: hidden;
+}
+
+.data-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-4, 16px) var(--space-5, 20px);
+  border-bottom: 1px solid var(--border-color, #e4e7ed);
+  background: var(--bg-white, #fff);
+}
+
+.data-card__title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2, 8px);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary, #1a1a1a);
+}
+
+.data-card__title .el-icon {
+  color: var(--primary, #1677ff);
+}
+
+.data-card__count {
+  font-weight: 400;
+}
+
+.data-card__toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2, 8px);
+}
+
+/* ─── Table ───────────────────────────────── */
+.data-card__table {
+  border-radius: 0;
+}
+
+.data-card__table :deep(.el-table__row) {
+  transition: background-color 0.15s ease;
+}
+
+.data-card__table :deep(.el-table__row:hover) {
+  background-color: var(--primary-light, #e6f4ff);
+}
+
+.data-card__table :deep(.el-table__row--striped) {
+  --el-table-tr-bg-color: transparent;
+}
+
+.data-card__table :deep(.el-table th.el-table__cell) {
+  background: var(--bg-gray, #fafafa) !important;
+  color: var(--text-primary, #1a1a1a);
+  font-weight: 600;
+  font-size: 12px;
+}
+
+/* ─── Pagination ──────────────────────────── */
+.data-card__footer {
   display: flex;
   justify-content: flex-end;
-  margin-top: 16px;
+  padding: var(--space-3, 12px) var(--space-5, 20px);
+  border-top: 1px solid var(--border-color, #e4e7ed);
+  background: var(--bg-white, #fff);
+}
+
+.data-card__pagination {
+  display: flex;
+  align-items: center;
+}
+
+/* ─── Dialog ──────────────────────────────── */
+.dialog-body-wrap {
+  max-height: 60vh;
+  overflow-y: auto;
+  padding-right: 8px;
+}
+
+.dialog-body-wrap::-webkit-scrollbar {
+  width: 5px;
+}
+
+.dialog-body-wrap::-webkit-scrollbar-thumb {
+  background: var(--border-color, #dcdfe6);
+  border-radius: 3px;
 }
 
 .dialog-form {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0 12px;
-  max-height: 58vh;
-  overflow-y: auto;
-  padding: 4px 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2, 8px);
 }
 
-/* 全宽字段：textarea、单行开关、分组行 */
-.dialog-form :deep(.full-width) {
-  grid-column: 1 / -1;
-}
-
-/* Textarea 在网格中占全宽 */
-.dialog-form :deep(.el-textarea) {
-  grid-column: 1 / -1;
-}
-
-/* 双列行（USL/LSL/Target 内部分三列）不再受网格约束 */
-.dialog-form :deep(.el-row) {
-  grid-column: 1 / -1;
-  width: 100%;
-}
-
-/* 表单内边距微调 */
 .dialog-form :deep(.el-form-item) {
-  margin-bottom: 14px;
+  margin-bottom: 0;
 }
 
 .dialog-form :deep(.el-form-item__label) {
   font-weight: 500;
   color: var(--text-primary, #303133);
+  font-size: 13px;
 }
 
-/* Dialog 头部样式 */
+/* Form sections */
+.form-section {
+  padding: var(--space-4, 16px) 0;
+  border-bottom: 1px dashed var(--border-color-light, #ebeef5);
+}
+
+.form-section:last-child {
+  border-bottom: none;
+}
+
+.form-section__title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2, 8px);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--primary, #1677ff);
+  margin-bottom: var(--space-3, 12px);
+  padding-bottom: var(--space-2, 8px);
+  border-bottom: 1px solid var(--primary-light-5, #8bc5ff);
+}
+
+.form-section__title::before {
+  content: '';
+  width: 3px;
+  height: 14px;
+  background: var(--primary, #1677ff);
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.form-actions {
+  display: flex;
+  align-items: center;
+}
+
+/* Dialog header & footer */
+.data-dialog :deep(.el-dialog) {
+  border-radius: var(--radius-lg, 8px);
+  overflow: hidden;
+}
+
 .data-dialog :deep(.el-dialog__header) {
-  padding: 16px 24px;
+  padding: 18px 24px;
   border-bottom: 1px solid var(--border-color, #e4e7ed);
   margin: 0;
+  background: var(--bg-white, #fff);
+}
+
+.data-dialog :deep(.el-dialog__headerbtn) {
+  top: 18px;
+  right: 24px;
 }
 
 .data-dialog :deep(.el-dialog__title) {
   font-size: 16px;
   font-weight: 600;
+  color: var(--text-primary, #1a1a1a);
 }
 
 .data-dialog :deep(.el-dialog__body) {
-  padding: 20px 24px 0;
+  padding: 0;
+  background: var(--bg-white, #fff);
 }
 
 .data-dialog :deep(.el-dialog__footer) {
-  padding: 12px 24px 16px;
+  padding: 14px 24px 18px;
   border-top: 1px solid var(--border-color, #e4e7ed);
+  background: var(--bg-white, #fff);
+}
+
+/* ─── Dialog Footer Buttons ──────────────── */
+.dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-3, 12px);
+}
+
+/* ─── Status Tags ─────────────────────────── */
+.data-card__table :deep(.el-tag) {
+  border-radius: var(--radius-sm, 4px);
+  font-weight: 500;
+}
+
+/* ─── Responsive ──────────────────────────── */
+@media (max-width: 768px) {
+  .page-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .entity-nav {
+    flex-wrap: nowrap;
+  }
+
+  .data-card__header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-3, 12px);
+  }
 }
 </style>

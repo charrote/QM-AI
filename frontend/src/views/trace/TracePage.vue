@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
+import { Search, Box, Monitor, Connection, RefreshLeft, Check, Document } from '@element-plus/icons-vue'
 import { traceApi } from '@/api/trace'
 import type { TraceResult } from '@/types/trace'
 import { TRACE_METHOD_OPTIONS } from '@/types/trace'
@@ -61,19 +62,67 @@ function goToRecall() {
   }
 }
 
+const treeProps = { children: 'children', label: 'label' }
+
+const traceTreeData = computed(() => {
+  if (!result.value) return []
+  const tree: any[] = [
+    { id: 'product', label: result.value.product?.name || '-', type: 'product', statusType: 'primary', children: [] },
+  ]
+  const product = tree[0]
+  if (result.value.batch) {
+    product.children.push({ id: 'batch', label: result.value.batch.code, type: 'batch', statusType: 'info', children: [] })
+  }
+  if (result.value.materialChain?.length) {
+    product.children[0]?.children.push({ id: 'material', label: `来料 ${result.value.materialChain.length} 条`, type: 'material', statusType: 'primary' })
+  }
+  if (result.value.firstPieces?.length) {
+    product.children[0]?.children.push({ id: 'first', label: `首件 ${result.value.firstPieces.length} 条`, type: 'first', statusType: 'warning' })
+  }
+  if (result.value.patrols?.length) {
+    product.children[0]?.children.push({ id: 'patrol', label: `巡检 ${result.value.patrols.length} 条`, type: 'patrol', statusType: 'warning' })
+  }
+  if (result.value.fqcInspections?.length) {
+    product.children[0]?.children.push({ id: 'fqc', label: `FQC ${result.value.fqcInspections.length} 条`, type: 'fqc', statusType: 'danger' })
+  }
+  if (result.value.oqcReleases?.length) {
+    product.children[0]?.children.push({ id: 'oqc', label: `OQC ${result.value.oqcReleases.length} 条`, type: 'oqc', statusType: 'success' })
+  }
+  return tree
+})
+
+function getTreeNodeIcon(type: string) {
+  const icons: Record<string, any> = {
+    product: Box, batch: Box, material: Box, first: Search,
+    patrol: Monitor, fqc: Check, oqc: Check,
+  }
+  return icons[type] || Document
+}
+
 onMounted(() => {})
 </script>
 
 <template>
   <div class="page-container">
-    <!-- Search Panel -->
-    <el-card class="search-card" shadow="never">
-      <template #header>
-        <div class="card-header">
-          <span>质量追溯查询</span>
-          <el-tag size="small" type="info">6 阶段全流程追溯</el-tag>
+    <!-- Page Header -->
+    <div class="page-header">
+      <div class="page-header-main">
+        <div class="page-header-icon">
+          <el-icon :size="28"><Search /></el-icon>
         </div>
-      </template>
+        <div class="page-header-text">
+          <h2>质量追溯</h2>
+          <p>6 阶段全流程追溯 — 来料 → 领料 → 加工 → 检验 → 批次 → 出货</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Search Panel -->
+    <el-card shadow="never" class="search-card">
+      <div class="search-card-header">
+        <span class="search-card-title">追溯查询</span>
+        <el-tag size="small" type="info">6 阶段全流程追溯</el-tag>
+      </div>
       <div class="search-methods">
         <el-radio-group v-model="method" size="large">
           <el-radio-button v-for="opt in TRACE_METHOD_OPTIONS" :key="opt.value" :value="opt.value">
@@ -83,17 +132,17 @@ onMounted(() => {})
       </div>
       <div class="search-input-row">
         <template v-if="method === 'sn'">
-          <el-input v-model="snInput" placeholder="请输入 SN 编码" size="large" clearable @keyup.enter="trace" style="max-width: 400px">
+          <el-input v-model="snInput" placeholder="请输入 SN 编码" size="large" clearable @keyup.enter="trace" style="max-width: 420px">
             <template #prefix><el-icon><Search /></el-icon></template>
           </el-input>
         </template>
         <template v-else-if="method === 'batch'">
-          <el-input v-model="batchInput" placeholder="请输入批次号" size="large" clearable @keyup.enter="trace" style="max-width: 400px">
+          <el-input v-model="batchInput" placeholder="请输入批次号" size="large" clearable @keyup.enter="trace" style="max-width: 420px">
             <template #prefix><el-icon><Box /></el-icon></template>
           </el-input>
         </template>
         <template v-else>
-          <el-input v-model="equipmentInput" placeholder="请输入设备 ID 或编码" size="large" clearable @keyup.enter="trace" style="max-width: 400px">
+          <el-input v-model="equipmentInput" placeholder="请输入设备 ID 或编码" size="large" clearable @keyup.enter="trace" style="max-width: 420px">
             <template #prefix><el-icon><Monitor /></el-icon></template>
           </el-input>
         </template>
@@ -102,17 +151,33 @@ onMounted(() => {})
         </el-button>
       </div>
       <div class="search-hints">
-        <el-text type="info">💡 输入 SN / 批次号 / 设备编码进行 6 阶段质量追溯：来料→领料→加工→检验→批次→出货</el-text>
+        <el-text type="info">输入 SN / 批次号 / 设备编码进行 6 阶段质量追溯</el-text>
       </div>
       <div v-if="error" class="error-msg">
         <el-alert :title="error" type="error" :closable="false" show-icon />
       </div>
     </el-card>
 
-    <!-- Results -->
-    <div v-if="result" class="result-container">
+    <!-- Trace Tree Visualization -->
+    <div v-if="result" class="trace-tree-container">
+      <!-- Tree Navigation -->
+      <el-card shadow="never" class="tree-card">
+        <div class="tree-header">
+          <span class="tree-title">追溯链路</span>
+        </div>
+        <el-tree :data="traceTreeData" :props="treeProps" :expand-all="false" node-key="id" class="trace-tree">
+          <template #default="{ node, data }">
+            <span class="tree-node-label">
+              <el-icon :class="`tree-icon-${data.type}`"><component :is="getTreeNodeIcon(data.type)" /></el-icon>
+              <span class="tree-node-text">{{ data.label }}</span>
+              <el-tag v-if="data.status" :type="data.statusType" size="small" effect="dark">{{ data.status }}</el-tag>
+            </span>
+          </template>
+        </el-tree>
+      </el-card>
+
       <!-- Product Info Card -->
-      <el-card class="info-card" shadow="never">
+      <el-card shadow="never" class="info-card">
         <div class="info-row">
           <div class="info-item">
             <span class="info-label">产品</span>
@@ -141,7 +206,7 @@ onMounted(() => {})
             <el-tag size="small" type="primary">物料链</el-tag>
           </div>
         </template>
-        <el-table :data="result.materialChain" stripe >
+        <el-table :data="result.materialChain" stripe>
           <el-table-column prop="materialCode" label="物料代码" width="120" />
           <el-table-column prop="materialName" label="物料名称" min-width="150" />
           <el-table-column prop="batchCode" label="批次号" width="120" />
@@ -163,7 +228,7 @@ onMounted(() => {})
             <el-tag size="small" type="warning">首件</el-tag>
           </div>
         </template>
-        <el-table :data="result.firstPieces" stripe >
+        <el-table :data="result.firstPieces" stripe>
           <el-table-column prop="serialNumber" label="SN" width="140" />
           <el-table-column prop="productCode" label="产品代码" width="120" />
           <el-table-column prop="productName" label="产品名称" min-width="120" />
@@ -172,7 +237,7 @@ onMounted(() => {})
           </el-table-column>
           <el-table-column label="结果" width="80">
             <template #default="{ row }">
-              <el-tag :type="row.result === 'pass' ? 'success' : 'danger'" size="small">{{ row.result }}</el-tag>
+              <el-tag :type="row.result === 'pass' ? 'success' : 'danger'" size="small">{{ row.result === 'pass' ? '合格' : '不合格' }}</el-tag>
             </template>
           </el-table-column>
           <el-table-column prop="inspector" label="检验人" width="80" />
@@ -192,7 +257,7 @@ onMounted(() => {})
             <el-tag size="small" type="warning">加工</el-tag>
           </div>
         </template>
-        <el-table :data="result.patrols" stripe >
+        <el-table :data="result.patrols" stripe>
           <el-table-column prop="patrolNo" label="巡检单号" width="140" />
           <el-table-column prop="processName" label="工序" width="120" />
           <el-table-column prop="equipmentName" label="设备" width="120" />
@@ -201,7 +266,7 @@ onMounted(() => {})
           </el-table-column>
           <el-table-column label="结果" width="80">
             <template #default="{ row }">
-              <el-tag :type="row.result === 'pass' ? 'success' : 'danger'" size="small">{{ row.result }}</el-tag>
+              <el-tag :type="row.result === 'pass' ? 'success' : 'danger'" size="small">{{ row.result === 'pass' ? '合格' : '不合格' }}</el-tag>
             </template>
           </el-table-column>
           <el-table-column prop="inspector" label="检验人" width="80" />
@@ -219,7 +284,7 @@ onMounted(() => {})
             <el-tag size="small" type="danger">成品</el-tag>
           </div>
         </template>
-        <el-table :data="result.fqcInspections" stripe >
+        <el-table :data="result.fqcInspections" stripe>
           <el-table-column prop="inspectionNo" label="检验单号" width="140" />
           <el-table-column prop="productName" label="产品名称" min-width="120" />
           <el-table-column label="检验时间" width="150">
@@ -227,7 +292,7 @@ onMounted(() => {})
           </el-table-column>
           <el-table-column label="结果" width="80">
             <template #default="{ row }">
-              <el-tag :type="row.result === 'pass' ? 'success' : 'danger'" size="small">{{ row.result }}</el-tag>
+              <el-tag :type="row.result === 'pass' ? 'success' : 'danger'" size="small">{{ row.result === 'pass' ? '合格' : '不合格' }}</el-tag>
             </template>
           </el-table-column>
           <el-table-column prop="inspector" label="检验人" width="80" />
@@ -245,7 +310,7 @@ onMounted(() => {})
             <el-tag size="small" type="success">出货</el-tag>
           </div>
         </template>
-        <el-table :data="result.oqcReleases" stripe >
+        <el-table :data="result.oqcReleases" stripe>
           <el-table-column prop="releaseNo" label="放行单号" width="140" />
           <el-table-column prop="productName" label="产品名称" min-width="120" />
           <el-table-column prop="customer" label="客户" width="120" />
@@ -299,75 +364,46 @@ onMounted(() => {})
   gap: 12px;
   padding: 8px 16px;
 }
-.search-card {
-  flex-shrink: 0;
+.page-header { margin-bottom: 4px; }
+.page-header-main { display: flex; align-items: center; gap: 14px; }
+.page-header-icon {
+  width: 44px; height: 44px;
+  display: flex; align-items: center; justify-content: center;
+  background: #ecf5ff; border-radius: 10px;
 }
-.card-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+.page-header-text h2 { margin: 0; font-size: 20px; font-weight: 600; color: #303133; }
+.page-header-text p { margin: 2px 0 0; font-size: 13px; color: #909399; }
+.search-card { flex-shrink: 0; }
+.search-card-header {
+  display: flex; align-items: center; justify-content: space-between;
 }
-.search-methods {
-  margin-bottom: 16px;
-  display: flex;
-  justify-content: center;
-}
-.search-input-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-.search-hints {
-  margin-top: 12px;
-}
-.error-msg {
-  margin-top: 12px;
-}
-.result-container {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-.info-card {
-  flex-shrink: 0;
-}
-.info-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 24px;
-}
-.info-item {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-.info-label {
-  font-size: 12px;
-  color: #909399;
-}
-.info-value {
-  font-size: 14px;
-  font-weight: 600;
-  color: #303133;
-}
-.timeline-card {
-  flex-shrink: 0;
-}
-.item-tag {
-  margin: 2px 4px 2px 0;
-}
-.actions-card {
-  flex-shrink: 0;
-}
-.actions-row {
-  display: flex;
-  gap: 12px;
-}
-.empty-card {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
+.search-card-title { font-weight: 600; font-size: 15px; }
+.search-methods { margin-bottom: 16px; display: flex; justify-content: center; }
+.search-input-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.search-hints { margin-top: 12px; }
+.error-msg { margin-top: 12px; }
+.trace-tree-container { display: flex; flex-direction: column; gap: 12px; flex: 1; overflow-y: auto; }
+.tree-card { flex-shrink: 0; }
+.tree-header { display: flex; align-items: center; justify-content: space-between; }
+.tree-title { font-weight: 600; font-size: 15px; }
+.trace-tree { padding: 8px 0; }
+.tree-node-label { display: flex; align-items: center; gap: 6px; }
+.tree-node-text { font-size: 14px; color: #303133; }
+.tree-icon-product { color: #409eff; }
+.tree-icon-batch { color: #409eff; }
+.tree-icon-material { color: #409eff; }
+.tree-icon-first { color: #e6a23c; }
+.tree-icon-patrol { color: #e6a23c; }
+.tree-icon-fqc { color: #f56c6c; }
+.tree-icon-oqc { color: #67c23a; }
+.info-card { flex-shrink: 0; }
+.info-row { display: flex; flex-wrap: wrap; gap: 24px; }
+.info-item { display: flex; flex-direction: column; gap: 4px; }
+.info-label { font-size: 12px; color: #909399; }
+.info-value { font-size: 14px; font-weight: 600; color: #303133; }
+.timeline-card { flex-shrink: 0; }
+.item-tag { margin: 2px 4px 2px 0; }
+.actions-card { flex-shrink: 0; }
+.actions-row { display: flex; gap: 12px; }
+.empty-card { flex: 1; display: flex; align-items: center; justify-content: center; }
 </style>

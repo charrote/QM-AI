@@ -172,61 +172,78 @@ onMounted(loadDefects)
 
 <template>
   <div class="page-container">
-    <!-- Search Toolbar -->
-    <div class="search-bar">
-      <el-input
-        v-model="searchKeyword"
-        placeholder="搜索缺陷代码/描述..."
-        :prefix-icon="Search"
-        clearable
-        style="width: 260px"
-        @keyup.enter="applySearch"
-      />
-      <el-select v-model="sourceTypeFilter" placeholder="来源类型" clearable style="width: 140px" @change="applySearch">
-        <el-option v-for="opt in SOURCE_TYPE_OPTIONS" :key="opt.value" :label="opt.label" :value="opt.value" />
-      </el-select>
-      <el-select v-model="severityFilter" placeholder="严重程度" clearable style="width: 130px" @change="applySearch">
-        <el-option v-for="opt in SEVERITY_OPTIONS" :key="opt.value" :label="opt.label" :value="opt.value" />
-      </el-select>
-      <el-select v-model="statusFilter" placeholder="状态" clearable style="width: 130px" @change="applySearch">
-        <el-option v-for="opt in DEFECT_STATUS_OPTIONS" :key="opt.value" :label="opt.label" :value="opt.value" />
-      </el-select>
-      <el-button :icon="Refresh" @click="loadDefects">刷新</el-button>
-      <div class="search-spacer" />
-      <el-button type="primary" :icon="Plus" @click="openCreate">新建缺陷</el-button>
+    <!-- Page Header -->
+    <div class="page-header">
+      <div class="page-header-main">
+        <div class="page-header-icon">
+          <el-icon :size="28"><WarningFilled /></el-icon>
+        </div>
+        <div class="page-header-text">
+          <h2>缺陷管理</h2>
+          <p>质量缺陷记录、分类与处置的中央管控平台</p>
+        </div>
+      </div>
     </div>
 
+    <!-- Search Toolbar -->
+    <el-card shadow="never" class="search-card">
+      <div class="search-bar">
+        <el-input
+          v-model="searchKeyword"
+          placeholder="搜索缺陷代码/描述..."
+          :prefix-icon="Search"
+          clearable
+          style="width: 260px"
+          @keyup.enter="applySearch"
+        />
+        <el-select v-model="sourceTypeFilter" placeholder="来源类型" clearable style="width: 140px" @change="applySearch">
+          <el-option v-for="opt in SOURCE_TYPE_OPTIONS" :key="opt.value" :label="opt.label" :value="opt.value" />
+        </el-select>
+        <el-select v-model="severityFilter" placeholder="严重程度" clearable style="width: 130px" @change="applySearch">
+          <el-option v-for="opt in SEVERITY_OPTIONS" :key="opt.value" :label="opt.label" :value="opt.value" />
+        </el-select>
+        <el-select v-model="statusFilter" placeholder="状态" clearable style="width: 130px" @change="applySearch">
+          <el-option v-for="opt in DEFECT_STATUS_OPTIONS" :key="opt.value" :label="opt.label" :value="opt.value" />
+        </el-select>
+        <el-button :icon="Refresh" @click="loadDefects">刷新</el-button>
+        <div class="search-spacer" />
+        <el-button type="primary" :icon="Plus" @click="openCreate">新建缺陷</el-button>
+      </div>
+    </el-card>
+
     <!-- Data Table -->
-    <DataTable
-      :data="defects"
-      :columns="tableColumns"
-      :loading="pagination.loading.value"
-      :total="pagination.total.value"
-      :current-page="pagination.currentPage.value"
-      :page-size="pagination.pageSize.value"
-      @update:current-page="handlePageChange"
-      @update:page-size="handleSizeChange"
-      @row-click="(row: Defect) => openEdit(row)"
-    >
-      <template #severity="{ row }">
-        <StatusTag :status="row.severity" :text="SEVERITY_MAP[row.severity] || row.severity" />
-      </template>
-      <template #sourceType="{ row }">
-        {{ SOURCE_TYPE_MAP[row.sourceType] || row.sourceType }}
-      </template>
-      <template #discoveredAt="{ row }">
-        {{ row.discoveredAt ? new Date(row.discoveredAt).toLocaleString('zh-CN') : '-' }}
-      </template>
-      <template #status="{ row }">
-        <StatusTag :status="row.status" :text="DEFECT_STATUS_MAP[row.status] || row.status" />
-      </template>
-      <template #actions="{ row }">
-        <el-button link size="small" type="primary" :icon="Edit" @click.stop="openEdit(row)">编辑</el-button>
-        <el-button link size="small" type="warning" :icon="TrendCharts" @click.stop="goToCapa(row)">CAPA</el-button>
-        <el-button link size="small" type="success" :icon="Box" @click.stop="goToScrapRework(row)">报废/返工</el-button>
-        <el-button link size="small" type="danger" :icon="Delete" @click.stop="deleteDefect(row)">删除</el-button>
-      </template>
-    </DataTable>
+    <el-card shadow="never" class="table-card">
+      <DataTable
+        :data="defects"
+        :columns="tableColumns"
+        :loading="pagination.loading.value"
+        :total="pagination.total.value"
+        :current-page="pagination.currentPage.value"
+        :page-size="pagination.pageSize.value"
+        @update:current-page="handlePageChange"
+        @update:page-size="handleSizeChange"
+        @row-click="(row: Defect) => openEdit(row)"
+      >
+        <template #severity="{ row }">
+          <StatusTag :status="row.severity" :text="SEVERITY_MAP[row.severity] || row.severity" />
+        </template>
+        <template #sourceType="{ row }">
+          {{ SOURCE_TYPE_MAP[row.sourceType] || row.sourceType }}
+        </template>
+        <template #discoveredAt="{ row }">
+          {{ row.discoveredAt ? new Date(row.discoveredAt).toLocaleString('zh-CN') : '-' }}
+        </template>
+        <template #status="{ row }">
+          <StatusTag :status="row.status" :text="DEFECT_STATUS_MAP[row.status] || row.status" />
+        </template>
+        <template #actions="{ row }">
+          <el-button link size="small" type="primary" :icon="Edit" @click.stop="openEdit(row)">编辑</el-button>
+          <el-button link size="small" type="warning" :icon="TrendCharts" @click.stop="goToCapa(row)">CAPA</el-button>
+          <el-button link size="small" type="success" :icon="Box" @click.stop="goToScrapRework(row)">报废/返工</el-button>
+          <el-button link size="small" type="danger" :icon="Delete" @click.stop="deleteDefect(row)">删除</el-button>
+        </template>
+      </DataTable>
+    </el-card>
 
     <!-- Create/Edit Dialog -->
     <FormDialog
@@ -238,6 +255,7 @@ onMounted(loadDefects)
       @submit="saveDefect(defectForm as CreateDefect)"
     >
       <el-form :model="defectForm" label-width="90px" size="default">
+        <el-divider content-position="left">基本信息</el-divider>
         <el-row :gutter="16">
           <el-col :span="12">
             <el-form-item label="缺陷代码" required>
@@ -266,6 +284,7 @@ onMounted(loadDefects)
             </el-form-item>
           </el-col>
         </el-row>
+        <el-divider content-position="left">关联信息</el-divider>
         <el-row :gutter="16">
           <el-col :span="8">
             <el-form-item label="产品ID">
@@ -283,6 +302,7 @@ onMounted(loadDefects)
             </el-form-item>
           </el-col>
         </el-row>
+        <el-divider content-position="left">发现信息</el-divider>
         <el-form-item label="描述" required>
           <el-input v-model="defectForm.description" type="textarea" :rows="3" placeholder="描述不良现象" />
         </el-form-item>

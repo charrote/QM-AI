@@ -98,109 +98,146 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="page-container" v-loading="searchLoading">
-    <!-- Toolbar -->
-    <div class="toolbar-row">
-      <el-select v-model="statusFilter" placeholder="导出状态" clearable  style="width: 140px">
-        <el-option v-for="opt in EXPORT_STATUS_OPTIONS" :key="opt.value" :label="opt.label" :value="opt.value" />
-      </el-select>
-      <el-button type="primary" size="small" @click="loadExports" :loading="tableLoading">
-        <el-icon><Search /></el-icon> 查询
-      </el-button>
-      <el-button size="small" @click="refresh" :loading="tableLoading">
-        <el-icon><Refresh /></el-icon> 刷新
-      </el-button>
+  <div class="page-container">
+    <!-- Page Header -->
+    <div class="page-header">
+      <div class="page-header-main">
+        <div class="page-header-icon">
+          <el-icon :size="28"><Download /></el-icon>
+        </div>
+        <div class="page-header-text">
+          <h2>导出中心</h2>
+          <p>报表导出任务管理与历史记录查询</p>
+        </div>
+      </div>
     </div>
+
+    <!-- Stats -->
+    <el-row :gutter="12" class="stat-row">
+      <el-col :span="6">
+        <el-card shadow="hover" class="stat-card">
+          <div class="stat-value">{{ exportRecords.length }}</div>
+          <div class="stat-label">导出记录</div>
+        </el-card>
+      </el-col>
+      <el-col :span="6">
+        <el-card shadow="hover" class="stat-card">
+          <div class="stat-value text-success">{{ exportRecords.filter(r => r.status === 'completed').length }}</div>
+          <div class="stat-label">已完成</div>
+        </el-card>
+      </el-col>
+      <el-col :span="6">
+        <el-card shadow="hover" class="stat-card">
+          <div class="stat-value text-warning">{{ exportRecords.filter(r => r.status === 'pending').length }}</div>
+          <div class="stat-label">进行中</div>
+        </el-card>
+      </el-col>
+      <el-col :span="6">
+        <el-card shadow="hover" class="stat-card">
+          <div class="stat-value text-danger">{{ exportRecords.filter(r => r.status === 'failed').length }}</div>
+          <div class="stat-label">失败</div>
+        </el-card>
+      </el-col>
+    </el-row>
+
+    <!-- Toolbar -->
+    <el-card shadow="never" class="toolbar-card">
+      <div class="toolbar-row">
+        <el-select v-model="statusFilter" placeholder="导出状态" clearable style="width: 140px">
+          <el-option v-for="opt in EXPORT_STATUS_OPTIONS" :key="opt.value" :label="opt.label" :value="opt.value" />
+        </el-select>
+        <el-button type="primary" size="small" @click="loadExports" :loading="tableLoading">
+          <el-icon><Search /></el-icon> 查询
+        </el-button>
+        <el-button size="small" @click="refresh" :loading="tableLoading">
+          <el-icon><Refresh /></el-icon> 刷新
+        </el-button>
+      </div>
+    </el-card>
 
     <!-- Table -->
-    <el-table
-      :data="exportRecords"
-      stripe
-      size="small"
-      v-loading="tableLoading"
-      style="width: 100%"
-      max-height="480"
-    >
-      <el-table-column prop="id" label="ID" width="60" />
-      <el-table-column prop="reportName" label="报表名称" min-width="200" show-overflow-tooltip />
-      <el-table-column label="报表类型" width="120">
-        <template #default="{ row }">
-          {{ reportTypeLabel(row.reportType) }}
-        </template>
-      </el-table-column>
-      <el-table-column label="格式" width="80" align="center">
-        <template #default="{ row }">
-          <el-tag size="small" effect="plain">{{ formatTypeLabel(row.format) }}</el-tag>
-        </template>
-      </el-table-column>
-      <el-table-column label="状态" width="90">
-        <template #default="{ row }">
-          <el-tag :type="statusType(row.status)" size="small" effect="plain">
-            {{ EXPORT_STATUS_MAP[row.status] || row.status }}
-          </el-tag>
-        </template>
-      </el-table-column>
-      <el-table-column label="创建时间" width="170">
-        <template #default="{ row }">{{ formatDate(row.createdAt) }}</template>
-      </el-table-column>
-      <el-table-column label="完成时间" width="170">
-        <template #default="{ row }">
-          {{ row.completedAt ? formatDate(row.completedAt) : '-' }}
-        </template>
-      </el-table-column>
-      <el-table-column label="操作" width="140" fixed="right">
-        <template #default="{ row }">
-          <el-button
-            link
-            size="small"
-            type="primary"
-            :disabled="row.status !== 'completed'"
-            @click="handleDownload(row)"
-          >
-            <el-icon><Download /></el-icon> 下载
-          </el-button>
-          <el-button
-            link
-            size="small"
-            type="danger"
-            @click="handleDelete(row)"
-          >
-            <el-icon><Delete /></el-icon> 删除
-          </el-button>
-        </template>
-      </el-table-column>
-    </el-table>
+    <el-card shadow="never" class="table-card">
+      <el-table :data="exportRecords" stripe size="small" v-loading="tableLoading" style="width: 100%" :row-class-name="rowStatusClass">
+        <el-table-column prop="id" label="ID" width="60" />
+        <el-table-column prop="reportName" label="报表名称" min-width="200" show-overflow-tooltip />
+        <el-table-column label="报表类型" width="130">
+          <template #default="{ row }">
+            <el-tag size="small" effect="plain">{{ reportTypeLabel(row.reportType) }}</el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="格式" width="85" align="center">
+          <template #default="{ row }">
+            <el-tag size="small" effect="plain" type="info">{{ formatTypeLabel(row.format) }}</el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="状态" width="95">
+          <template #default="{ row }">
+            <div class="status-cell">
+              <el-tag :type="statusType(row.status)" size="small" effect="dark" class="status-tag">
+                {{ EXPORT_STATUS_MAP[row.status] || row.status }}
+              </el-tag>
+              <span v-if="row.status === 'pending'" class="status-dot"></span>
+            </div>
+          </template>
+        </el-table-column>
+        <el-table-column label="创建时间" width="170">
+          <template #default="{ row }">{{ formatDate(row.createdAt) }}</template>
+        </el-table-column>
+        <el-table-column label="完成时间" width="170">
+          <template #default="{ row }">
+            {{ row.completedAt ? formatDate(row.completedAt) : '-' }}
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" width="140" fixed="right">
+          <template #default="{ row }">
+            <el-button link size="small" type="primary" :disabled="row.status !== 'completed'" @click="handleDownload(row)">
+              <el-icon><Download /></el-icon> 下载
+            </el-button>
+            <el-button link size="small" type="danger" @click="handleDelete(row)">
+              <el-icon><Delete /></el-icon> 删除
+            </el-button>
+          </template>
+        </el-table-column>
+      </el-table>
 
-    <!-- Pagination -->
-    <div class="pagination-row">
-      <el-pagination
-        v-model:current-page="page"
-        v-model:page-size="pageSize"
-        :total="total"
-        layout="total, prev, pager, next"
-        size="small"
-        @current-change="loadExports"
-      />
-    </div>
+      <div class="pagination-row">
+        <el-pagination
+          v-model:current-page="page"
+          v-model:page-size="pageSize"
+          :total="total"
+          :page-sizes="[10, 20, 50, 100]"
+          layout="total, sizes, prev, pager, next, jumper"
+          @size-change="loadExports"
+          @current-change="loadExports"
+        />
+      </div>
+    </el-card>
   </div>
 </template>
 
 <style scoped>
-.page-container {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-}
-.toolbar-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 12px;
-  flex-wrap: wrap;
-}
-.pagination-row {
-  display: flex;
-  justify-content: flex-end;
-  padding: 12px 0;
-}
+.page-container { display: flex; flex-direction: column; height: 100%; }
+.page-header { margin-bottom: 16px; }
+.page-header-main { display: flex; align-items: center; gap: 14px; }
+.page-header-icon { width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; background: #e6f7ff; border-radius: 10px; }
+.page-header-text h2 { margin: 0; font-size: 20px; font-weight: 600; color: #303133; }
+.page-header-text p { margin: 2px 0 0; font-size: 13px; color: #909399; }
+.stat-row { margin-bottom: 12px; }
+.stat-card { text-align: center; border-radius: 8px; }
+.stat-card:hover { transform: translateY(-2px); transition: all 0.2s; }
+.stat-value { font-size: 28px; font-weight: 700; }
+.stat-label { font-size: 13px; color: #909399; margin-top: 4px; }
+.text-success { color: #67c23a; }
+.text-warning { color: #e6a23c; }
+.text-danger { color: #f56c6c; }
+.toolbar-card { margin-bottom: 12px; }
+.toolbar-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.table-card { flex: 1; display: flex; flex-direction: column; }
+.table-card >>> .el-card__body { flex: 1; display: flex; flex-direction: column; padding: 0; }
+.table-card >>> .el-table { flex: 1; }
+.pagination-row { display: flex; justify-content: flex-end; padding: 12px 8px; border-top: 1px solid #f0f0f0; }
+.status-cell { display: flex; align-items: center; gap: 6px; }
+.status-tag { display: flex; align-items: center; }
+.status-dot { width: 6px; height: 6px; border-radius: 50%; background: #409eff; animation: pulse 1.5s infinite; }
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
 </style>

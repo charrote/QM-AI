@@ -2,7 +2,7 @@
 import { ref, reactive, onMounted, nextTick, watch, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Search, Plus, Edit, Delete, DataAnalysis, Refresh, DataLine, HelpFilled } from '@element-plus/icons-vue'
+import { Search, Plus, Edit, Delete, DataAnalysis, Refresh, DataLine, HelpFilled, WarningFilled, CircleCheck, CircleCheckFilled, Document, Bell, Connection, TrendCharts, ArrowLeft } from '@element-plus/icons-vue'
 import { spcApi } from '@/api/spc'
 import { inspectionItemApi } from '@/api/inspectionItem'
 import type { SpcControlChart, SpcControlChartDetail, CreateSpcControlChart, UpdateSpcControlChart, SpcDataPoint, SpcAnalysisReport, SpcAlertRule, SpcAlertTrigger, SpcAnovaResult, SpcAnovaRequest, SpcAnovaFactor, SpcDataSource, CreateSpcDataSource, BusinessInspectionData } from '@/types/spc'
@@ -484,50 +484,60 @@ onMounted(loadAll)
     <!-- Header -->
     <div class="detail-header">
       <div class="header-left">
-        <el-button text class="back-btn" @click="goBack">
+        <el-button class="back-btn" @click="goBack" circle>
           <el-icon><ArrowLeft /></el-icon>
         </el-button>
         <div class="header-info">
           <template v-if="selectedChart">
             <div class="header-title-row">
-              <h2>{{ selectedChart.name }}</h2>
-              <el-tag :type="selectedChart.chartType === 'I_MR' ? 'warning' : 'primary'" effect="dark" size="small" class="chart-type-tag">
+              <h2 class="header-name">{{ selectedChart.name }}</h2>
+              <el-tag
+                :type="selectedChart.chartType === 'I_MR' ? 'warning' : 'primary'"
+                effect="dark"
+                size="small"
+                class="chart-type-tag"
+              >
                 <el-icon><DataLine /></el-icon>
                 {{ CHART_TYPE_MAP[selectedChart.chartType] || selectedChart.chartType }}
               </el-tag>
             </div>
             <div class="header-meta">
               <span class="meta-chip"><el-icon><DataAnalysis /></el-icon>n = {{ selectedChart.subgroupSize }}</span>
-              <span class="meta-chip spec-chip" v-if="selectedChart.usl != null">USL: <strong>{{ selectedChart.usl }}</strong></span>
-              <span class="meta-chip spec-chip" v-if="selectedChart.lsl != null">LSL: <strong>{{ selectedChart.lsl }}</strong></span>
+              <span class="meta-chip spec-chip" v-if="selectedChart.usl != null">
+                USL: <strong>{{ selectedChart.usl }}</strong>
+              </span>
+              <span class="meta-chip spec-chip" v-if="selectedChart.lsl != null">
+                LSL: <strong>{{ selectedChart.lsl }}</strong>
+              </span>
             </div>
           </template>
         </div>
       </div>
       <div class="header-right">
-        <el-tooltip content="判异规则配置" placement="bottom">
-          <el-button size="small" text class="action-btn" @click="goToRules"><el-icon><WarningFilled /></el-icon><span class="action-label">规则</span></el-button>
-        </el-tooltip>
-        <el-tooltip content="数据点管理" placement="bottom">
-          <el-button size="small" text class="action-btn" @click="goToDataPoints"><el-icon><DataLine /></el-icon><span class="action-label">数据</span></el-button>
-        </el-tooltip>
-        <el-tooltip content="方差分析" placement="bottom">
-          <el-button size="small" text class="action-btn" @click="goToAnova"><el-icon><Document /></el-icon><span class="action-label">ANOVA</span></el-button>
-        </el-tooltip>
+        <div class="header-nav-group">
+          <el-tooltip content="判异规则配置" placement="bottom">
+            <el-button size="small" @click="goToRules" text class="nav-btn" :icon="WarningFilled">规则</el-button>
+          </el-tooltip>
+          <el-tooltip content="数据点管理" placement="bottom">
+            <el-button size="small" @click="goToDataPoints" text class="nav-btn" :icon="DataLine">数据</el-button>
+          </el-tooltip>
+          <el-tooltip content="方差分析" placement="bottom">
+            <el-button size="small" @click="goToAnova" text class="nav-btn" :icon="Document">ANOVA</el-button>
+          </el-tooltip>
+        </div>
         <el-divider direction="vertical" class="header-divider" />
-        <el-button size="small" @click="openAddDataPoint" type="success" round>
-          <el-icon><Plus /></el-icon>添加数据
-        </el-button>
-        <el-button size="small" @click="runAnalysis" :loading="analysisLoading" type="primary" round>
-          <el-icon><Refresh /></el-icon>重新分析
-        </el-button>
+        <div class="header-actions-group">
+          <el-button size="small" @click="openAddDataPoint" type="success" round :icon="Plus">添加数据</el-button>
+          <el-button size="small" @click="runAnalysis" :loading="analysisLoading" type="primary" round :icon="Refresh">重新分析</el-button>
+        </div>
       </div>
     </div>
 
     <div v-loading="loading" class="detail-body">
       <!-- CPK Cards -->
       <div v-if="analysisReport?.capability" class="cpk-cards">
-        <el-card class="cpk-card cpk-primary" :class="cpkGradeType(analysisReport.capability.grade)">
+        <!-- Cpk Card (Primary) -->
+        <el-card class="cpk-card cpk-primary" :class="cpkGradeType(analysisReport.capability.grade)" shadow="hover">
           <div class="cpk-card-header">
             <span class="cpk-label">
               Cpk
@@ -548,11 +558,18 @@ onMounted(loadAll)
           <div class="cpk-value-wrap">
             <span class="cpk-value">{{ formatNumber(analysisReport.capability.cpk, 2) }}</span>
           </div>
-          <div class="cpk-gauge">
-            <div class="gauge-bar" :style="{ background: cpkGradeType(analysisReport.capability.grade) === 'success' ? 'var(--el-color-success)' : cpkGradeType(analysisReport.capability.grade) === 'danger' ? 'var(--el-color-danger)' : 'var(--el-color-warning)' }" :style="{ width: Math.min(100, (analysisReport.capability.cpk / 2) * 100) + '%' }"></div>
+          <div class="cpk-gauge-track">
+            <div
+              class="cpk-gauge-fill"
+              :class="cpkGradeType(analysisReport.capability.grade)"
+              :style="{ width: Math.min(100, (analysisReport.capability.cpk / 2) * 100) + '%' }"
+            ></div>
           </div>
+          <div class="cpk-scale-label">0 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 2.0</div>
         </el-card>
-        <el-card class="cpk-card">
+
+        <!-- Cp Card -->
+        <el-card class="cpk-card" shadow="hover">
           <div class="cpk-card-header">
             <span class="cpk-label">
               Cp
@@ -571,7 +588,9 @@ onMounted(loadAll)
           </div>
           <div class="cpk-sub">无偏移</div>
         </el-card>
-        <el-card class="cpk-card">
+
+        <!-- Ppk Card -->
+        <el-card class="cpk-card" shadow="hover">
           <div class="cpk-card-header">
             <span class="cpk-label">
               Ppk
@@ -589,7 +608,9 @@ onMounted(loadAll)
           </div>
           <div class="cpk-sub">总变异</div>
         </el-card>
-        <el-card class="cpk-card">
+
+        <!-- Sigma Card -->
+        <el-card class="cpk-card" shadow="hover">
           <div class="cpk-card-header">
             <span class="cpk-label">σ<sub>w</sub></span>
           </div>
@@ -598,7 +619,9 @@ onMounted(loadAll)
           </div>
           <div class="cpk-sub">组内标准差</div>
         </el-card>
-        <el-card class="cpk-card">
+
+        <!-- DPMO Card -->
+        <el-card class="cpk-card" shadow="hover">
           <div class="cpk-card-header">
             <span class="cpk-label">
               DPMO
@@ -627,62 +650,110 @@ onMounted(loadAll)
           <template #label><el-icon><DataLine /></el-icon><span>控制图</span></template>
           <div v-loading="analysisLoading">
             <div class="charts-row">
-              <div ref="chart1Ref" class="chart-box"></div>
-              <div ref="chart2Ref" class="chart-box"></div>
+              <div ref="chart1Ref" class="chart-box">
+                <div v-if="analysisLoading" class="chart-loading">
+                  <el-icon class="is-loading" :size="28"><Refresh /></el-icon>
+                  <span>分析中...</span>
+                </div>
+              </div>
+              <div ref="chart2Ref" class="chart-box">
+                <div v-if="analysisLoading" class="chart-loading">
+                  <el-icon class="is-loading" :size="28"><Refresh /></el-icon>
+                  <span>分析中...</span>
+                </div>
+              </div>
             </div>
 
             <div v-if="analysisReport?.controlLimits" class="limits-info-bar">
               <div class="limits-section">
-                <span class="limits-section-title"><el-icon><DataLine /></el-icon>X̄ 控制限</span>
+                <div class="limits-section-title">
+                  <el-icon><DataLine /></el-icon> X̄ 控制限
+                </div>
                 <div class="limits-values">
-                  <div class="limit-item limit-ucl"><span class="limit-label">UCL</span><span class="limit-val">{{ formatNumber(analysisReport.controlLimits.uclXbar, 4) }}</span></div>
-                  <div class="limit-item limit-cl"><span class="limit-label">CL</span><span class="limit-val">{{ formatNumber(analysisReport.controlLimits.clXbar, 4) }}</span></div>
-                  <div class="limit-item limit-lcl"><span class="limit-label">LCL</span><span class="limit-val">{{ formatNumber(analysisReport.controlLimits.lclXbar, 4) }}</span></div>
+                  <div class="limit-item limit-ucl">
+                    <span class="limit-label">UCL</span>
+                    <span class="limit-val">{{ formatNumber(analysisReport.controlLimits.uclXbar, 4) }}</span>
+                  </div>
+                  <div class="limit-item limit-cl">
+                    <span class="limit-label">CL</span>
+                    <span class="limit-val">{{ formatNumber(analysisReport.controlLimits.clXbar, 4) }}</span>
+                  </div>
+                  <div class="limit-item limit-lcl">
+                    <span class="limit-label">LCL</span>
+                    <span class="limit-val">{{ formatNumber(analysisReport.controlLimits.lclXbar, 4) }}</span>
+                  </div>
                 </div>
               </div>
+              <div class="limits-divider"></div>
               <div class="limits-section">
-                <span class="limits-section-title"><el-icon><TrendCharts /></el-icon>R 控制限</span>
+                <div class="limits-section-title">
+                  <el-icon><TrendCharts /></el-icon> R 控制限
+                </div>
                 <div class="limits-values">
-                  <div class="limit-item limit-ucl"><span class="limit-label">UCL</span><span class="limit-val">{{ formatNumber(analysisReport.controlLimits.uclR, 4) }}</span></div>
-                  <div class="limit-item limit-cl"><span class="limit-label">CL</span><span class="limit-val">{{ formatNumber(analysisReport.controlLimits.clR, 4) }}</span></div>
-                  <div class="limit-item limit-lcl"><span class="limit-label">LCL</span><span class="limit-val">{{ formatNumber(analysisReport.controlLimits.lclR, 4) }}</span></div>
+                  <div class="limit-item limit-ucl">
+                    <span class="limit-label">UCL</span>
+                    <span class="limit-val">{{ formatNumber(analysisReport.controlLimits.uclR, 4) }}</span>
+                  </div>
+                  <div class="limit-item limit-cl">
+                    <span class="limit-label">CL</span>
+                    <span class="limit-val">{{ formatNumber(analysisReport.controlLimits.clR, 4) }}</span>
+                  </div>
+                  <div class="limit-item limit-lcl">
+                    <span class="limit-label">LCL</span>
+                    <span class="limit-val">{{ formatNumber(analysisReport.controlLimits.lclR, 4) }}</span>
+                  </div>
                 </div>
               </div>
             </div>
 
             <div class="section-title">
-              <span>数据点列表</span>
+              <span class="section-title-text">
+                <el-icon><Document /></el-icon> 数据点列表
+              </span>
               <div class="section-actions">
                 <el-button size="small" text @click="goToDataPoints">更多操作</el-button>
                 <el-button size="small" text @click="fetchDataPoints">刷新</el-button>
               </div>
             </div>
-            <el-table :data="dataPoints" stripe class="data-point-table" max-height="200">
-              <el-table-column prop="subgroupIndex" label="子组#" width="70" align="center" />
-              <el-table-column label="测量值" min-width="200" show-overflow-tooltip>
-                <template #default="{ row }">
-                  <code class="values-cell">{{ row.individualValues }}</code>
-                </template>
-              </el-table-column>
-              <el-table-column label="X̄" width="100" align="right">
-                <template #default="{ row }"><span class="stat-value">{{ formatNumber(Number(row.subgroupMean), 4) }}</span></template>
-              </el-table-column>
-              <el-table-column label="R" width="100" align="right">
-                <template #default="{ row }"><span class="stat-value">{{ formatNumber(Number(row.subgroupRange), 4) }}</span></template>
-              </el-table-column>
-              <el-table-column label="测量时间" width="160">
-                <template #default="{ row }"><span class="time-cell">{{ formatDate(row.measuredAt) }}</span></template>
-              </el-table-column>
-              <el-table-column label="操作" width="70" fixed="right" align="center">
-                <template #default="{ row }">
-                  <el-button size="small" link type="danger" @click="spcApi.deleteDataPoint(row.id).then(() => { fetchDataPoints(); runAnalysis() })">
-                    <el-icon><Delete /></el-icon>
-                  </el-button>
-                </template>
-              </el-table-column>
-            </el-table>
+            <div class="table-card">
+              <el-table :data="dataPoints" stripe class="data-point-table" max-height="200">
+                <el-table-column prop="subgroupIndex" label="子组#" width="70" align="center" />
+                <el-table-column label="测量值" min-width="200" show-overflow-tooltip>
+                  <template #default="{ row }">
+                    <code class="values-cell">{{ row.individualValues }}</code>
+                  </template>
+                </el-table-column>
+                <el-table-column label="X̄" width="100" align="right">
+                  <template #default="{ row }"><span class="stat-value">{{ formatNumber(Number(row.subgroupMean), 4) }}</span></template>
+                </el-table-column>
+                <el-table-column label="R" width="100" align="right">
+                  <template #default="{ row }"><span class="stat-value">{{ formatNumber(Number(row.subgroupRange), 4) }}</span></template>
+                </el-table-column>
+                <el-table-column label="测量时间" width="160">
+                  <template #default="{ row }"><span class="time-cell">{{ formatDate(row.measuredAt) }}</span></template>
+                </el-table-column>
+                <el-table-column label="操作" width="70" fixed="right" align="center">
+                  <template #default="{ row }">
+                    <el-popconfirm title="确认删除该数据点？" @confirm="spcApi.deleteDataPoint(row.id).then(() => { fetchDataPoints(); runAnalysis() })">
+                      <template #reference>
+                        <el-button size="small" link type="danger" :icon="Delete" />
+                      </template>
+                    </el-popconfirm>
+                  </template>
+                </el-table-column>
+              </el-table>
+            </div>
             <div class="pagination-row">
-              <el-pagination v-model:current-page="dpQuery.page" v-model:page-size="dpQuery.pageSize" :total="dataPointsTotal" small layout="total, prev, pager, next" @current-change="fetchDataPoints" />
+              <el-pagination
+                v-model:current-page="dpQuery.page"
+                v-model:page-size="dpQuery.pageSize"
+                :total="dataPointsTotal"
+                small
+                layout="total, prev, pager, next, jumper"
+                :page-sizes="[10, 20, 50]"
+                background
+                @current-change="fetchDataPoints"
+              />
             </div>
           </div>
         </el-tab-pane>
@@ -695,39 +766,68 @@ onMounted(loadAll)
               <h3>Western Electric 8大判异规则</h3>
               <div class="rules-header-actions">
                 <el-button size="small" text @click="goToRules">独立页面</el-button>
-                <el-button size="small" type="primary" @click="ruleConfigVisible = true">配置规则</el-button>
+                <el-button size="small" type="primary" @click="ruleConfigVisible = true" round>配置规则</el-button>
               </div>
             </div>
             <div v-if="analysisReport?.violations?.length" class="violation-alert">
-              <el-alert title="检测到判异报警" :description="`共 ${analysisReport.violations.length} 条违规记录`" type="warning" show-icon :closable="false" class="violation-alert-box" />
+              <el-alert
+                title="检测到判异报警"
+                :description="`共 ${analysisReport.violations.length} 条违规记录`"
+                type="warning"
+                show-icon
+                :closable="false"
+                class="violation-alert-box"
+              />
             </div>
             <div class="rules-grid">
-              <el-card v-for="rule in alertRules" :key="rule.id" class="rule-card" :class="{ 'rule-card-active': violationCount(analysisReport?.violations, rule.ruleNumber) > 0 }">
+              <el-card
+                v-for="rule in alertRules"
+                :key="rule.id"
+                class="rule-card"
+                :class="{ 'rule-card-active': violationCount(analysisReport?.violations, rule.ruleNumber) > 0 }"
+                shadow="hover"
+              >
                 <template #header>
                   <div class="rule-card-header">
                     <div class="rule-id">
                       <span class="rule-num">#{{ rule.ruleNumber }}</span>
                       <span class="rule-name">{{ rule.ruleName }}</span>
                     </div>
-                    <el-switch :model-value="rule.enabled" size="default" @change="toggleRule(rule)" :active-color="'#409eff'" :inactive-color="'#c0c4cc'" />
+                    <el-switch
+                      :model-value="rule.enabled"
+                      size="default"
+                      @change="toggleRule(rule)"
+                      :active-color="'#409eff'"
+                      :inactive-color="'#c0c4cc'"
+                    />
                   </div>
                 </template>
                 <div class="rule-card-body">
                   <p class="rule-desc">{{ rule.ruleDescription }}</p>
                   <div class="rule-params">
-                    <el-tag size="small" effect="plain">{{ rule.triggerThreshold }} 点</el-tag>
-                    <el-tag v-if="rule.sigmaThreshold > 0" size="small" effect="plain" type="info">{{ rule.sigmaThreshold }} σ</el-tag>
+                    <el-tag size="small" effect="plain" class="rule-param-tag">
+                      {{ rule.triggerThreshold }} 点
+                    </el-tag>
+                    <el-tag
+                      v-if="rule.sigmaThreshold > 0"
+                      size="small"
+                      effect="plain"
+                      type="info"
+                      class="rule-param-tag"
+                    >
+                      {{ rule.sigmaThreshold }} σ
+                    </el-tag>
                   </div>
                 </div>
                 <div class="rule-card-footer">
                   <div v-if="violationCount(analysisReport?.violations, rule.ruleNumber) > 0" class="violation-badge-wrap">
-                    <el-tag type="danger" effect="dark" round size="large">
+                    <el-tag type="danger" effect="dark" round size="large" class="violation-badge">
                       <el-icon><WarningFilled /></el-icon>
                       触发 {{ violationCount(analysisReport?.violations, rule.ruleNumber) }} 次
                     </el-tag>
                   </div>
                   <div v-else class="safe-badge-wrap">
-                    <el-tag type="success" effect="plain" round size="large">
+                    <el-tag type="success" effect="plain" round size="large" class="safe-badge">
                       <el-icon><CircleCheck /></el-icon>
                       未触发
                     </el-tag>
@@ -741,38 +841,49 @@ onMounted(loadAll)
         <!-- Tab 3: Violation Triggers -->
         <el-tab-pane name="triggers">
           <template #label><el-icon><Bell /></el-icon><span>报警记录</span></template>
-          <el-table :data="triggers" stripe class="triggers-table" empty-text="暂无报警记录">
-            <el-table-column label="规则" width="60" align="center">
-              <template #default="{ row }"><span class="rule-num-sm">#{{ row.ruleNumber }}</span></template>
-            </el-table-column>
-            <el-table-column prop="ruleName" label="规则名称" min-width="160" show-overflow-tooltip />
-            <el-table-column label="违规点" width="100" align="center">
-              <template #default="{ row }"><el-tag size="small" effect="plain">{{ row.violatedPointIndex + 1 }}</el-tag></template>
-            </el-table-column>
-            <el-table-column label="详情" min-width="200" show-overflow-tooltip>
-              <template #default="{ row }">{{ row.detail ? (JSON.parse(row.detail).description || row.detail) : '-' }}</template>
-            </el-table-column>
-            <el-table-column label="触发时间" width="160">
-              <template #default="{ row }"><span class="time-cell">{{ formatDate(row.triggeredAt) }}</span></template>
-            </el-table-column>
-            <el-table-column label="状态" width="90" align="center">
-              <template #default="{ row }">
-                <el-tag :type="row.resolved ? 'success' : 'danger'" size="small" effect="dark" round>
-                  {{ row.resolved ? '已处理' : '待处理' }}
-                </el-tag>
-              </template>
-            </el-table-column>
-            <el-table-column label="操作" width="100" fixed="right" align="center">
-              <template #default="{ row }">
-                <el-button v-if="!row.resolved" size="small" type="primary" link @click="resolveTrigger(row.id)">
-                  <el-icon><CircleCheck /></el-icon>处理
-                </el-button>
-                <span v-else class="resolved-text">—</span>
-              </template>
-            </el-table-column>
-          </el-table>
+          <div class="table-card">
+            <el-table :data="triggers" stripe class="triggers-table" empty-text="暂无报警记录">
+              <el-table-column label="规则" width="60" align="center">
+                <template #default="{ row }"><span class="rule-num-sm">#{{ row.ruleNumber }}</span></template>
+              </el-table-column>
+              <el-table-column prop="ruleName" label="规则名称" min-width="160" show-overflow-tooltip />
+              <el-table-column label="违规点" width="100" align="center">
+                <template #default="{ row }"><el-tag size="small" effect="plain">{{ row.violatedPointIndex + 1 }}</el-tag></template>
+              </el-table-column>
+              <el-table-column label="详情" min-width="200" show-overflow-tooltip>
+                <template #default="{ row }">{{ row.detail ? (JSON.parse(row.detail).description || row.detail) : '-' }}</template>
+              </el-table-column>
+              <el-table-column label="触发时间" width="160">
+                <template #default="{ row }"><span class="time-cell">{{ formatDate(row.triggeredAt) }}</span></template>
+              </el-table-column>
+              <el-table-column label="状态" width="90" align="center">
+                <template #default="{ row }">
+                  <el-tag :type="row.resolved ? 'success' : 'danger'" size="small" effect="dark" round>
+                    {{ row.resolved ? '已处理' : '待处理' }}
+                  </el-tag>
+                </template>
+              </el-table-column>
+              <el-table-column label="操作" width="100" fixed="right" align="center">
+                <template #default="{ row }">
+                  <el-button v-if="!row.resolved" size="small" type="primary" link @click="resolveTrigger(row.id)">
+                    <el-icon><CircleCheck /></el-icon>处理
+                  </el-button>
+                  <span v-else class="resolved-text">—</span>
+                </template>
+              </el-table-column>
+            </el-table>
+          </div>
           <div class="pagination-row">
-            <el-pagination v-model:current-page="triggerQuery.page" v-model:page-size="triggerQuery.pageSize" :total="triggersTotal" small layout="total, prev, pager, next" @current-change="fetchTriggers" />
+            <el-pagination
+              v-model:current-page="triggerQuery.page"
+              v-model:page-size="triggerQuery.pageSize"
+              :total="triggersTotal"
+              small
+              layout="total, prev, pager, next, jumper"
+              :page-sizes="[10, 20, 50]"
+              background
+              @current-change="fetchTriggers"
+            />
           </div>
         </el-tab-pane>
 
@@ -784,7 +895,7 @@ onMounted(loadAll)
               <span class="text-sm text-gray-400">点击下方按钮运行方差分析，或查看已有结果</span>
               <div class="anova-header-actions">
                 <el-button size="small" text @click="goToAnova">独立页面</el-button>
-                <el-button size="small" type="primary" @click="runAnovaAnalysis">运行方差分析</el-button>
+                <el-button size="small" type="primary" @click="runAnovaAnalysis" round>运行方差分析</el-button>
               </div>
             </div>
             <div v-if="anovaResults.length === 0" class="empty-anova">
@@ -837,77 +948,106 @@ onMounted(loadAll)
         <!-- Tab 5: Data Sources -->
         <el-tab-pane name="datasources">
           <template #label><el-icon><Connection /></el-icon><span>数据源</span></template>
-          <div>
+          <div class="datasources-content">
             <div class="datasource-header">
               <span class="text-sm text-gray-400">配置SPC从IQC/IPQC/FQC业务模块自动拉取检验数据</span>
-              <el-button type="primary" size="small" @click="showAddDataSourceDialog">+ 添加数据源</el-button>
+              <el-button type="primary" size="small" @click="showAddDataSourceDialog" round>
+                <el-icon><Plus /></el-icon> 添加数据源
+              </el-button>
             </div>
-            <el-table :data="dataSources" stripe  class="mt-3">
-              <el-table-column label="数据源类型" width="160">
-                <template #default="{ row }"><el-tag>{{ sourceTypeLabel(row.sourceType) }}</el-tag></template>
-              </el-table-column>
-              <el-table-column label="检验项目" min-width="150">
-                <template #default="{ row }">{{ row.inspectionItemName || '全部项目' }}</template>
-              </el-table-column>
-              <el-table-column label="操作" width="80">
-                <template #default="{ row }">
-                  <el-button size="small" type="danger" text @click="removeDataSource(row.id)">删除</el-button>
-                </template>
-              </el-table-column>
-            </el-table>
+            <div class="table-card" v-if="dataSources.length > 0">
+              <el-table :data="dataSources" stripe class="datasource-table">
+                <el-table-column label="数据源类型" width="160" align="center">
+                  <template #default="{ row }"><el-tag effect="dark" class="source-type-tag">{{ sourceTypeLabel(row.sourceType) }}</el-tag></template>
+                </el-table-column>
+                <el-table-column label="检验项目" min-width="150" align="center">
+                  <template #default="{ row }">{{ row.inspectionItemName || '全部项目' }}</template>
+                </el-table-column>
+                <el-table-column label="操作" width="80" align="center">
+                  <template #default="{ row }">
+                    <el-popconfirm title="确认删除该数据源？" @confirm="removeDataSource(row.id)">
+                      <template #reference>
+                        <el-button size="small" type="danger" text :icon="Delete">删除</el-button>
+                      </template>
+                    </el-popconfirm>
+                  </template>
+                </el-table-column>
+              </el-table>
+            </div>
+            <el-empty v-else description="暂无已配置的数据源" :image-size="80" />
             <el-divider />
-            <div class="flex items-center justify-between mb-3">
-              <strong>业务数据预览</strong>
-              <div class="flex gap-2">
-                <el-date-picker v-model="businessDateRange" type="daterange" range-separator="至" start-placeholder="开始日期" end-placeholder="结束日期" />
-                <el-button size="small" type="primary" @click="fetchBusinessData" :loading="businessDataLoading">拉取数据</el-button>
-                <el-button size="small" @click="importBusinessDataToChart">导入到控制图</el-button>
+            <div class="business-data-section">
+              <div class="section-title">
+                <span class="section-title-text"><el-icon><DataLine /></el-icon> 业务数据预览</span>
               </div>
+              <div class="business-data-toolbar">
+                <el-date-picker
+                  v-model="businessDateRange"
+                  type="daterange"
+                  range-separator="至"
+                  start-placeholder="开始日期"
+                  end-placeholder="结束日期"
+                  size="small"
+                />
+                <el-button size="small" type="primary" @click="fetchBusinessData" :loading="businessDataLoading">拉取数据</el-button>
+                <el-button size="small" @click="importBusinessDataToChart" :disabled="selectedBusinessData.length === 0">导入到控制图</el-button>
+              </div>
+              <div class="table-card">
+                <el-table
+                  :data="businessData"
+                  stripe
+                  max-height="300"
+                  v-loading="businessDataLoading"
+                  @selection-change="onBusinessDataSelectionChange"
+                  class="business-table"
+                >
+                  <el-table-column type="selection" width="40" align="center" />
+                  <el-table-column label="来源" width="80" align="center">
+                    <template #default="{ row }">{{ row.sourceType }}</template>
+                  </el-table-column>
+                  <el-table-column prop="sourceNo" label="单据号" width="140" />
+                  <el-table-column prop="inspectionItemName" label="检验项目" min-width="120" />
+                  <el-table-column label="测量值" width="100" align="right">
+                    <template #default="{ row }">{{ row.measuredValue ?? '-' }}</template>
+                  </el-table-column>
+                  <el-table-column label="结果" width="70" align="center">
+                    <template #default="{ row }">
+                      <el-tag :type="row.result === 'pass' ? 'success' : 'danger'" size="small">{{ row.result }}</el-tag>
+                    </template>
+                  </el-table-column>
+                  <el-table-column label="检验时间" width="160" align="center">
+                    <template #default="{ row }">{{ formatDate(row.inspectedAt) }}</template>
+                  </el-table-column>
+                </el-table>
+              </div>
+              <el-empty v-if="businessData.length === 0 && !businessDataLoading" description="点击「拉取数据」从业务模块获取检验数据" :image-size="80" />
             </div>
-            <el-table :data="businessData" stripe  max-height="300" v-loading="businessDataLoading" @selection-change="onBusinessDataSelectionChange">
-              <el-table-column type="selection" width="40" />
-              <el-table-column label="来源" width="80">
-                <template #default="{ row }">{{ row.sourceType }}</template>
-              </el-table-column>
-              <el-table-column prop="sourceNo" label="单据号" width="140" />
-              <el-table-column prop="inspectionItemName" label="检验项目" min-width="120" />
-              <el-table-column label="测量值" width="100" align="right">
-                <template #default="{ row }">{{ row.measuredValue ?? '-' }}</template>
-              </el-table-column>
-              <el-table-column label="结果" width="70">
-                <template #default="{ row }">
-                  <el-tag :type="row.result === 'pass' ? 'success' : 'danger'" size="small">{{ row.result }}</el-tag>
-                </template>
-              </el-table-column>
-              <el-table-column label="检验时间" width="160">
-                <template #default="{ row }">{{ formatDate(row.inspectedAt) }}</template>
-              </el-table-column>
-            </el-table>
-            <el-empty v-if="businessData.length === 0 && !businessDataLoading" description="点击「拉取数据」从业务模块获取检验数据" />
           </div>
         </el-tab-pane>
       </el-tabs>
     </div>
 
     <!-- Add Data Point Dialog -->
-    <el-dialog v-model="dpDialogVisible" title="添加数据点" width="450px" :close-on-click-modal="false">
-      <el-form :model="dpForm" label-width="120px" >
+    <el-dialog v-model="dpDialogVisible" title="添加数据点" width="480px" :close-on-click-modal="false" class="styled-dialog">
+      <el-form :model="dpForm" label-width="96px" label-position="left">
         <el-form-item label="测量值" required>
           <el-input v-model="dpForm.individualValues" placeholder="如: 10.01, 10.02, 9.99, 10.00, 10.01" />
-          <div class="form-tip">逗号分隔的数值，数量应与子组大小一致</div>
+          <div class="form-tip">逗号分隔的数值，数量应与子组大小 (n={{ selectedChart?.subgroupSize }}) 一致</div>
         </el-form-item>
         <el-form-item label="测量时间">
           <el-date-picker v-model="dpForm.measuredAt" type="datetime" placeholder="选择时间" style="width:100%" />
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="dpDialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="addDataPoint">添加</el-button>
+        <div class="dialog-footer">
+          <el-button @click="dpDialogVisible = false">取消</el-button>
+          <el-button type="primary" @click="addDataPoint">添加</el-button>
+        </div>
       </template>
     </el-dialog>
 
     <!-- Data Source Dialog -->
-    <el-dialog v-model="dsDialogVisible" title="添加数据源" width="500px">
+    <el-dialog v-model="dsDialogVisible" title="添加数据源" width="500px" class="styled-dialog">
       <el-form label-width="100px">
         <el-form-item label="数据源类型">
           <el-select v-model="dsForm.sourceType" style="width: 100%">
@@ -922,37 +1062,43 @@ onMounted(loadAll)
         <p class="text-gray-400 text-sm">提示：不选择检验项目则拉取该业务模块的所有检验数据</p>
       </el-form>
       <template #footer>
-        <el-button @click="dsDialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="addDataSource">添加</el-button>
+        <div class="dialog-footer">
+          <el-button @click="dsDialogVisible = false">取消</el-button>
+          <el-button type="primary" @click="addDataSource">添加</el-button>
+        </div>
       </template>
     </el-dialog>
 
     <!-- Rule Config Dialog -->
-    <el-dialog v-model="ruleConfigVisible" title="判异规则配置" width="650px">
-      <el-table :data="alertRules" stripe >
-        <el-table-column label="规则" width="50">
-          <template #default="{ row }">#{{ row.ruleNumber }}</template>
-        </el-table-column>
-        <el-table-column prop="ruleName" label="规则名称" min-width="150" />
-        <el-table-column label="启用" width="60">
-          <template #default="{ row }">
-            <el-switch v-model="row.enabled" size="small" />
-          </template>
-        </el-table-column>
-        <el-table-column label="连续点数(N)" width="110">
-          <template #default="{ row }">
-            <el-input-number v-model="row.triggerThreshold" :min="1" :max="25"  controls-position="right" style="width:90px" />
-          </template>
-        </el-table-column>
-        <el-table-column label="σ阈值" width="100">
-          <template #default="{ row }">
-            <el-input-number v-model="row.sigmaThreshold" :min="0" :max="5" :step="0.5"  controls-position="right" style="width:80px" />
-          </template>
-        </el-table-column>
-      </el-table>
+    <el-dialog v-model="ruleConfigVisible" title="判异规则配置" width="680px" class="styled-dialog">
+      <div class="table-card">
+        <el-table :data="alertRules" stripe class="rule-config-table">
+          <el-table-column label="规则" width="50" align="center">
+            <template #default="{ row }">#{{ row.ruleNumber }}</template>
+          </el-table-column>
+          <el-table-column prop="ruleName" label="规则名称" min-width="160" />
+          <el-table-column label="启用" width="70" align="center">
+            <template #default="{ row }">
+              <el-switch v-model="row.enabled" size="small" />
+            </template>
+          </el-table-column>
+          <el-table-column label="连续点数(N)" width="120" align="center">
+            <template #default="{ row }">
+              <el-input-number v-model="row.triggerThreshold" :min="1" :max="25" controls-position="right" style="width:100px" />
+            </template>
+          </el-table-column>
+          <el-table-column label="σ阈值" width="110" align="center">
+            <template #default="{ row }">
+              <el-input-number v-model="row.sigmaThreshold" :min="0" :max="5" :step="0.5" controls-position="right" style="width:90px" />
+            </template>
+          </el-table-column>
+        </el-table>
+      </div>
       <template #footer>
-        <el-button @click="ruleConfigVisible = false">取消</el-button>
-        <el-button type="primary" @click="saveRuleConfig">保存配置</el-button>
+        <div class="dialog-footer">
+          <el-button @click="ruleConfigVisible = false">取消</el-button>
+          <el-button type="primary" @click="saveRuleConfig">保存配置</el-button>
+        </div>
       </template>
     </el-dialog>
   </div>
@@ -964,55 +1110,140 @@ onMounted(loadAll)
   flex-direction: column;
   height: 100%;
   overflow: hidden;
+  background: var(--el-bg-color, #f5f7fa);
 }
+
+/* ─── Header ─────────────────────────────────── */
 
 .detail-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 8px 16px;
-  border-bottom: 1px solid var(--el-border-color-light, #e4e7ed);
+  padding: 14px 20px;
+  background: #fff;
+  border-bottom: 1px solid var(--el-border-color-lighter, #ebeef5);
+  flex-shrink: 0;
+  gap: 16px;
+}
+
+.back-btn {
+  color: var(--el-text-color-regular, #606266);
+  border: 1px solid var(--el-border-color-light, #e4e7ed);
+  flex-shrink: 0;
+}
+.back-btn:hover {
+  color: var(--el-color-primary, #409eff);
+  border-color: var(--el-color-primary-light-5, #c6e2ff);
+  background: #ecf5ff;
+}
+
+.header-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.header-title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.header-name {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--el-text-color-primary, #303133);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.3;
+}
+
+.chart-type-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  font-size: 12px;
+  border-radius: 6px;
   flex-shrink: 0;
 }
 
-.header-left {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.header-left h2 {
-  margin: 0;
-  font-size: 16px;
+.header-meta {
   display: flex;
   align-items: center;
   gap: 8px;
+  margin-top: 6px;
+  flex-wrap: wrap;
+}
+
+.meta-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--el-text-color-secondary, #909399);
+  background: var(--el-fill-color-light, #f0f2f5);
+  padding: 3px 10px;
+  border-radius: 20px;
+}
+
+.spec-chip strong {
+  color: var(--el-color-primary, #409eff);
+  font-weight: 600;
 }
 
 .header-right {
   display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
 }
 
-.spec-badge {
-  font-size: 12px;
-  color: var(--el-text-color-secondary, #909399);
-  background: var(--el-fill-color, #f0f2f5);
-  padding: 2px 6px;
-  border-radius: 4px;
+.header-nav-group {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px 4px;
+  background: var(--el-fill-color-lighter, #f2f3f5);
+  border-radius: 8px;
 }
+
+.nav-btn {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--el-text-color-regular, #606266);
+  border-radius: 6px;
+}
+.nav-btn:hover {
+  color: var(--el-color-primary, #409eff);
+  background: #fff;
+}
+
+.header-divider {
+  margin: 0 4px;
+}
+
+.header-actions-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ─── Body ────────────────────────────────────── */
 
 .detail-body {
   flex: 1;
   overflow-y: auto;
-  padding: 12px 16px;
+  padding: 12px 20px 20px;
   display: flex;
   flex-direction: column;
   gap: 12px;
 }
 
-/* Tabs */
+/* ─── Tabs ────────────────────────────────────── */
+
 .spc-tabs {
   flex: 1;
   display: flex;
@@ -1022,39 +1253,93 @@ onMounted(loadAll)
 .spc-tabs :deep(.el-tabs__content) {
   flex: 1;
   overflow-y: auto;
+  padding: 12px;
 }
 
 .spc-tabs :deep(.el-tabs__item) {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 5px;
+  font-size: 13px;
+  font-weight: 500;
 }
 
-/* CPK Cards */
+.spc-tabs :deep(.el-tabs__header) {
+  margin-bottom: 0;
+}
+
+/* ─── CPK Cards ──────────────────────────────── */
+
 .cpk-cards {
   display: flex;
   gap: 12px;
-  margin-bottom: 12px;
+  margin-bottom: 4px;
   flex-wrap: wrap;
 }
 
 .cpk-card {
   flex: 1;
-  min-width: 120px;
-  text-align: center;
+  min-width: 130px;
+  max-width: 180px;
+  border-radius: 12px;
+  transition: all 0.25s ease;
+  overflow: hidden;
+}
+.cpk-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1) !important;
 }
 
 .cpk-card :deep(.el-card__body) {
-  padding: 12px;
+  padding: 16px 12px 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.cpk-card-primary :deep(.el-card__body) {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #fff;
+}
+.cpk-card-primary .cpk-label,
+.cpk-card-primary .cpk-sub {
+  color: rgba(255, 255, 255, 0.85);
+}
+.cpk-card-primary .cpk-value {
+  color: #fff;
+  font-size: 30px;
+}
+.cpk-card-primary .cpk-help-icon {
+  color: rgba(255, 255, 255, 0.7);
+}
+.cpk-card-primary .cpk-help-icon:hover {
+  color: #fff;
+}
+.cpk-card-primary.success :deep(.el-card__body) {
+  background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+}
+.cpk-card-primary.danger :deep(.el-card__body) {
+  background: linear-gradient(135deg, #f97066 0%, #fd7272 100%);
+}
+.cpk-card-primary.warning :deep(.el-card__body) {
+  background: linear-gradient(135deg, #f7971e 0%, #ffd200 100%);
+}
+
+.cpk-card-header {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
 .cpk-label {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--el-text-color-secondary, #909399);
-  margin-bottom: 4px;
+  font-weight: 500;
   display: inline-flex;
   align-items: center;
-  gap: 2px;
+  gap: 3px;
 }
 
 .cpk-help-icon {
@@ -1063,9 +1348,76 @@ onMounted(loadAll)
   cursor: help;
   transition: color 0.2s;
 }
-
 .cpk-help-icon:hover {
   color: var(--el-color-primary, #409eff);
+}
+
+.cpk-grade-tag {
+  font-size: 11px;
+  padding: 2px 8px;
+}
+
+.cpk-value-wrap {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.cpk-value {
+  font-size: 28px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: var(--el-text-color-primary, #303133);
+  line-height: 1.1;
+}
+
+.cpk-unit {
+  font-size: 11px;
+  color: var(--el-text-color-secondary, #909399);
+  font-weight: 500;
+}
+
+.cpk-sub {
+  font-size: 10px;
+  color: var(--el-text-color-placeholder, #c0c4cc);
+  margin-top: 2px;
+}
+
+.cpk-gauge-track {
+  width: 100%;
+  height: 6px;
+  background: rgba(0, 0, 0, 0.06);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-top: 6px;
+}
+.cpk-card-primary .cpk-gauge-track {
+  background: rgba(255, 255, 255, 0.25);
+}
+.cpk-gauge-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.8s ease;
+  min-width: 4px;
+}
+.cpk-gauge-fill.success {
+  background: #67c23a;
+}
+.cpk-gauge-fill.warning {
+  background: #e6a23c;
+}
+.cpk-gauge-fill.danger {
+  background: #f56c6c;
+}
+
+.cpk-scale-label {
+  font-size: 9px;
+  color: var(--el-text-color-placeholder, #c0c4cc);
+  letter-spacing: 1px;
+  margin-top: 2px;
+}
+.cpk-card-primary .cpk-scale-label {
+  color: rgba(255, 255, 255, 0.6);
 }
 
 :global(.cpk-tooltip) {
@@ -1101,18 +1453,8 @@ onMounted(loadAll)
   font-size: 11px;
 }
 
-.cpk-value {
-  font-size: 20px;
-  font-weight: 700;
-  margin-bottom: 4px;
-}
+/* ─── Charts ─────────────────────────────────── */
 
-.cpk-unit {
-  font-size: 11px;
-  color: var(--el-text-color-secondary, #909399);
-}
-
-/* Charts */
 .charts-row {
   display: flex;
   gap: 12px;
@@ -1120,19 +1462,186 @@ onMounted(loadAll)
 }
 
 .chart-box {
-  border: 1px solid var(--el-border-color-light, #e4e7ed);
-  border-radius: 4px;
-  background: var(--el-bg-color, #fff);
+  flex: 1;
+  height: 340px;
+  border: 1px solid var(--el-border-color-lighter, #ebeef5);
+  border-radius: 10px;
+  background: #fff;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  position: relative;
 }
 
-/* Sections */
+.chart-loading {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  color: var(--el-text-color-secondary, #909399);
+  font-size: 13px;
+  z-index: 1;
+}
+
+/* ─── Control Limits Info Bar ────────────────── */
+
+.limits-info-bar {
+  display: flex;
+  gap: 0;
+  padding: 14px 18px;
+  background: linear-gradient(135deg, #ecf5ff 0%, #f0f9ff 100%);
+  border: 1px solid #d9ecff;
+  border-radius: 10px;
+  margin-bottom: 14px;
+  align-items: center;
+  flex-wrap: wrap;
+  box-shadow: inset 0 1px 3px rgba(64, 158, 255, 0.06);
+}
+
+.limits-section {
+  flex: 1;
+  min-width: 220px;
+}
+
+.limits-section-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--el-color-primary, #409eff);
+  margin-bottom: 8px;
+}
+
+.limits-values {
+  display: flex;
+  gap: 8px;
+}
+
+.limit-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 6px 12px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.9);
+  min-width: 70px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.limit-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  margin-bottom: 3px;
+}
+
+.limit-val {
+  font-size: 14px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.limit-ucl .limit-label,
+.limit-ucl .limit-val {
+  color: var(--el-color-danger, #f56c6c);
+}
+
+.limit-cl .limit-label {
+  color: var(--el-color-success, #67c23a);
+}
+
+.limit-cl .limit-val {
+  color: var(--el-color-success, #67c23a);
+}
+
+.limit-lcl .limit-label,
+.limit-lcl .limit-val {
+  color: var(--el-color-danger, #f56c6c);
+}
+
+.limits-divider {
+  width: 1px;
+  height: 60px;
+  background: linear-gradient(to bottom, transparent, #d9ecff, transparent);
+  flex-shrink: 0;
+  margin: 0 8px;
+}
+
+/* ─── Data Point Table ───────────────────────── */
+
+.table-card {
+  border-radius: 8px;
+  border: 1px solid var(--el-border-color-lighter, #ebeef5);
+  background: #fff;
+  overflow: hidden;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.03);
+}
+
+.data-point-table :deep(.el-table__header-wrapper th) {
+  background: #f5f7fa !important;
+  font-weight: 600;
+  font-size: 12px;
+  color: var(--el-text-color-regular, #606266);
+}
+
+.data-point-table :deep(.el-table__row) {
+  transition: background-color 0.2s;
+}
+.data-point-table :deep(.el-table__row:hover) {
+  background-color: #ecf5ff !important;
+}
+
+.values-cell {
+  font-family: 'Courier New', Consolas, monospace;
+  font-size: 12px;
+  color: var(--el-text-color-regular, #606266);
+  background: var(--el-fill-color-lighter, #f2f3f5);
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+
+.stat-value {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--el-text-color-primary, #303133);
+}
+
+.time-cell {
+  font-size: 12px;
+  color: var(--el-text-color-secondary, #909399);
+}
+
+.pagination-row {
+  display: flex;
+  justify-content: flex-end;
+  padding: 10px 0;
+}
+
+/* ─── Sections ───────────────────────────────── */
+
 .section-title {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  margin: 10px 0 6px;
+}
+
+.section-title-text {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   font-weight: 600;
   font-size: 13px;
-  margin: 8px 0 4px;
+  color: var(--el-text-color-primary, #303133);
+}
+
+.section-title-text .el-icon {
+  color: var(--el-color-primary, #409eff);
+  font-size: 14px;
 }
 
 .section-actions {
@@ -1140,21 +1649,12 @@ onMounted(loadAll)
   gap: 4px;
 }
 
-.limits-table {
-  margin-bottom: 12px;
-}
+/* ─── Rules ──────────────────────────────────── */
 
-.pagination-row {
-  display: flex;
-  justify-content: flex-end;
-  padding: 8px 0;
-}
-
-/* Rules */
 .rules-section {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 14px;
 }
 
 .rules-header {
@@ -1166,6 +1666,20 @@ onMounted(loadAll)
 .rules-header h3 {
   margin: 0;
   font-size: 15px;
+  font-weight: 600;
+  color: var(--el-text-color-primary, #303133);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.rules-header h3::before {
+  content: '';
+  width: 3px;
+  height: 16px;
+  background: var(--el-color-warning, #e6a23c);
+  border-radius: 2px;
+  display: inline-block;
 }
 
 .rules-header-actions {
@@ -1175,72 +1689,198 @@ onMounted(loadAll)
 
 .rules-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+  gap: 14px;
 }
 
-.rule-item {
-  border: 1px solid var(--el-border-color-light, #e4e7ed);
-  border-radius: 8px;
-  padding: 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
+.rule-card {
+  border-radius: 10px;
+  transition: all 0.25s;
+  overflow: hidden;
+}
+.rule-card:hover {
+  transform: translateY(-2px);
 }
 
-.rule-header {
+.rule-card-active {
+  border-color: var(--el-color-danger, #f56c6c) !important;
+}
+.rule-card-active :deep(.el-card__header) {
+  background: #fef0f0;
+  border-bottom-color: #fde2e2;
+}
+
+.rule-card :deep(.el-card__header) {
+  padding: 12px 16px;
+  background: var(--el-fill-color-light, #f5f7fa);
+  border-bottom: 1px solid var(--el-border-color-lighter, #ebeef5);
+}
+
+.rule-card-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
+}
+
+.rule-id {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .rule-num {
   font-weight: 700;
   color: var(--el-color-primary, #409eff);
   font-size: 14px;
+  font-family: 'Courier New', monospace;
 }
 
 .rule-name {
   font-weight: 500;
   font-size: 13px;
+  color: var(--el-text-color-primary, #303133);
+}
+
+.rule-card-body {
+  padding: 12px 16px;
 }
 
 .rule-desc {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--el-text-color-secondary, #909399);
+  line-height: 1.6;
+  margin: 0 0 10px 0;
 }
 
-.rule-meta {
+.rule-params {
   display: flex;
-  gap: 12px;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.rule-param-tag {
   font-size: 11px;
-  color: var(--el-text-color-secondary, #909399);
 }
 
-.rule-violation, .rule-safe {
-  margin-top: auto;
+.rule-card-footer {
+  padding: 10px 16px 14px;
+  border-top: 1px solid var(--el-border-color-lighter, #ebeef5);
+  display: flex;
+  justify-content: center;
+  background: #fafbfc;
 }
 
-.violation-alert {
-  margin-bottom: 8px;
+.violation-badge-wrap,
+.safe-badge-wrap {
+  display: flex;
+  justify-content: center;
 }
 
-/* ANOVA */
+.violation-badge {
+  box-shadow: 0 2px 8px rgba(245, 108, 108, 0.2);
+}
+
+.safe-badge {
+  box-shadow: 0 2px 8px rgba(103, 194, 58, 0.15);
+}
+
+.violation-alert-box {
+  border-radius: 8px;
+}
+
+/* ─── Triggers Table ─────────────────────────── */
+
+.triggers-table :deep(.el-table__header-wrapper th) {
+  background: #f5f7fa !important;
+  font-weight: 600;
+  font-size: 12px;
+  color: var(--el-text-color-regular, #606266);
+}
+
+.triggers-table :deep(.el-table__row) {
+  transition: background-color 0.2s;
+}
+.triggers-table :deep(.el-table__row:hover) {
+  background-color: #ecf5ff !important;
+}
+
+.rule-num-sm {
+  font-weight: 700;
+  color: var(--el-color-primary, #409eff);
+  font-family: 'Courier New', monospace;
+  font-size: 13px;
+}
+
+.resolved-text {
+  color: var(--el-text-color-placeholder, #c0c4cc);
+  font-size: 12px;
+}
+
+/* ─── ANOVA ──────────────────────────────────── */
+
 .anova-item {
-  margin-bottom: 12px;
+  margin-bottom: 14px;
+  border-radius: 10px;
+  overflow: hidden;
+  transition: all 0.25s;
+}
+.anova-item:hover {
+  transform: translateY(-2px);
+}
+
+.anova-item-significant {
+  box-shadow: 0 0 0 1px rgba(245, 108, 108, 0.15), 0 4px 12px rgba(245, 108, 108, 0.06);
+}
+.anova-item-significant :deep(.el-card__header) {
+  background: #fef0f0;
+  border-bottom-color: #fde2e2;
 }
 
 .anova-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 8px;
+}
+
+.anova-header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.anova-source-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--el-text-color-primary, #303133);
+}
+
+.anova-descriptions :deep(.el-descriptions__label) {
+  width: 120px;
+  font-weight: 500;
+  color: var(--el-text-color-regular, #606266);
+  background: #fafbfc;
+}
+
+.anova-val {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--el-text-color-primary, #303133);
+}
+
+.text-danger {
+  color: var(--el-color-danger, #f56c6c) !important;
 }
 
 .anova-header-bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
+  padding: 10px 14px;
+  background: #fff;
+  border-radius: 8px;
+  border: 1px solid var(--el-border-color-lighter, #ebeef5);
 }
 
 .anova-header-actions {
@@ -1253,16 +1893,88 @@ onMounted(loadAll)
   align-items: center;
   justify-content: center;
   min-height: 300px;
+  background: #fff;
+  border-radius: 8px;
+  border: 1px solid var(--el-border-color-lighter, #ebeef5);
 }
 
-/* Data Sources */
+/* ─── Data Sources ───────────────────────────── */
+
+.datasources-content {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
 .datasource-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
 }
 
-/* Utilities */
+.datasource-table :deep(.el-table__header-wrapper th) {
+  background: #f5f7fa !important;
+  font-weight: 600;
+  font-size: 12px;
+  color: var(--el-text-color-regular, #606266);
+}
+
+.source-type-tag {
+  font-weight: 500;
+}
+
+.business-data-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.business-data-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.business-table :deep(.el-table__header-wrapper th) {
+  background: #f5f7fa !important;
+  font-weight: 600;
+  font-size: 12px;
+  color: var(--el-text-color-regular, #606266);
+}
+
+.business-table :deep(.el-table__row) {
+  transition: background-color 0.2s;
+}
+.business-table :deep(.el-table__row:hover) {
+  background-color: #ecf5ff !important;
+}
+
+/* ─── Dialogs ────────────────────────────────── */
+
+.dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.styled-dialog :deep(.el-dialog__header) {
+  border-bottom: 1px solid var(--el-border-color-lighter, #ebeef5);
+  padding: 14px 20px;
+  margin-right: 0;
+}
+
+.styled-dialog :deep(.el-dialog__body) {
+  padding: 20px;
+}
+
+.styled-dialog :deep(.el-dialog__footer) {
+  border-top: 1px solid var(--el-border-color-lighter, #ebeef5);
+  padding: 12px 20px;
+}
+
+/* ─── Utilities ──────────────────────────────── */
+
 .form-tip {
   font-size: 11px;
   color: var(--el-text-color-secondary, #909399);
@@ -1271,10 +1983,4 @@ onMounted(loadAll)
 
 .text-sm { font-size: 13px; }
 .text-gray-400 { color: #909399; }
-.mt-3 { margin-top: 12px; }
-.mb-3 { margin-bottom: 12px; }
-.flex { display: flex; }
-.items-center { align-items: center; }
-.justify-between { justify-content: space-between; }
-.gap-2 { gap: 8px; }
 </style>
