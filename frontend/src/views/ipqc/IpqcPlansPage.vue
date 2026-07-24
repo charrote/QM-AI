@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { Document, Plus, Search, Refresh, Setting, Clock, User, Check } from '@element-plus/icons-vue'
 import { patrolPlanApi } from '@/api/ipqc'
 import { processApi, equipmentApi } from '@/api/basicData'
 import type { IpqcPatrolPlan, CreateIpqcPatrolPlan, UpdateIpqcPatrolPlan } from '@/types/ipqc'
@@ -146,87 +147,288 @@ onMounted(async () => {
 
 <template>
   <div class="page-container">
-    <!-- Toolbar -->
-    <div class="toolbar-row">
-      <el-input v-model="searchKeyword" placeholder="搜索计划编号..." clearable style="width:260px" @clear="loadData" @keyup.enter="loadData" />
-      <el-select v-model="statusFilter" placeholder="状态" clearable style="width:120px" @change="loadData">
-        <el-option v-for="o in IPQC_PATROL_PLAN_STATUS_OPTIONS" :key="o.value" :label="o.label" :value="o.value" />
-      </el-select>
-      <el-button type="primary" @click="openCreate">+ 新建计划</el-button>
-      <el-button @click="loadData">刷新</el-button>
+    <!-- Page Header -->
+    <div class="page-header">
+      <div class="page-header__icon-wrapper">
+        <el-icon :size="28"><Document /></el-icon>
+      </div>
+      <div class="page-header__info">
+        <h1 class="page-header__title">巡检计划管理</h1>
+        <p class="page-header__subtitle">配置巡检规则，自动生成巡检任务</p>
+      </div>
     </div>
 
-    <!-- Table -->
-    <el-table :data="items" stripe  v-loading="loading" style="flex:1">
-      <el-table-column prop="planNo" label="计划编号" width="180" />
-      <el-table-column prop="processName" label="工序" width="140" />
-      <el-table-column prop="equipmentName" label="设备" width="140" />
-      <el-table-column prop="patrolIntervalMin" label="间隔(分钟)" width="110" />
-      <el-table-column label="自动生成" width="90">
-        <template #default="{ row }">
-          <el-tag :type="row.autoGenerate ? 'success' : 'info'" size="small">{{ row.autoGenerate ? '是' : '否' }}</el-tag>
-        </template>
-      </el-table-column>
-      <el-table-column label="状态" width="90">
-        <template #default="{ row }">
-          <el-tag :type="statusTag(row.status)" size="small">{{ statusLabel(row.status) }}</el-tag>
-        </template>
-      </el-table-column>
-      <el-table-column prop="inspector" label="检验员" width="120" />
-      <el-table-column label="操作" width="220" fixed="right">
-        <template #default="{ row }">
-          <el-button link size="small" type="primary" @click="handleGenerate(row.id)">生成任务</el-button>
-          <el-button link size="small" type="primary" @click="openEdit(row.id)">编辑</el-button>
-          <el-button link size="small" type="danger" @click="handleDelete(row.id)">删除</el-button>
-        </template>
-      </el-table-column>
-    </el-table>
+    <!-- Toolbar -->
+    <div class="action-bar">
+      <div class="action-bar__left">
+        <el-input
+          v-model="searchKeyword"
+          placeholder="搜索计划编号"
+          :prefix-icon="Search"
+          clearable
+          style="width: 260px"
+          @clear="loadData"
+          @keyup.enter="loadData"
+        />
+        <el-select
+          v-model="statusFilter"
+          placeholder="状态筛选"
+          clearable
+          style="width: 140px"
+          @change="loadData"
+        >
+          <el-option v-for="o in IPQC_PATROL_PLAN_STATUS_OPTIONS" :key="o.value" :label="o.label" :value="o.value" />
+        </el-select>
+        <el-button @click="loadData">
+          <el-icon><Refresh /></el-icon>
+          刷新
+        </el-button>
+      </div>
+      <div class="action-bar__right">
+        <el-button type="primary" @click="openCreate">
+          <el-icon><Plus /></el-icon>
+          新建计划
+        </el-button>
+      </div>
+    </div>
 
-    <!-- Pagination -->
-    <div class="pagination-row">
-      <el-pagination
-        v-model:current-page="page"
-        v-model:page-size="pageSize"
-        :total="total"
-        layout="total, prev, pager, next"
-        size="small"
-        @current-change="loadData"
-      />
+    <!-- Table Card -->
+    <div class="data-card">
+      <el-table
+        :data="items"
+        stripe
+        v-loading="loading"
+        :row-class-name="() => 'data-card__row'"
+        style="width: 100%"
+        @row-click="() => {}"
+      >
+        <el-table-column prop="planNo" label="计划编号" min-width="180" show-overflow-tooltip />
+        <el-table-column prop="processName" label="工序" min-width="140" show-overflow-tooltip />
+        <el-table-column prop="equipmentName" label="设备" min-width="140" show-overflow-tooltip />
+        <el-table-column prop="patrolIntervalMin" label="间隔(分钟)" width="120" align="center" />
+        <el-table-column label="自动生成" width="100" align="center">
+          <template #default="{ row }">
+            <el-tag :type="row.autoGenerate ? 'success' : 'info'" size="small" effect="dark">
+              {{ row.autoGenerate ? '是' : '否' }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="状态" width="100" align="center">
+          <template #default="{ row }">
+            <el-tag :type="statusTag(row.status)" size="small" effect="dark">{{ statusLabel(row.status) }}</el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column prop="inspector" label="检验员" min-width="120" show-overflow-tooltip />
+        <el-table-column label="操作" width="260" fixed="right" align="center">
+          <template #default="{ row }">
+            <el-button link size="small" type="primary" @click.stop="handleGenerate(row.id)">生成任务</el-button>
+            <el-divider direction="vertical" />
+            <el-button link size="small" type="primary" @click.stop="openEdit(row.id)">编辑</el-button>
+            <el-divider direction="vertical" />
+            <el-button link size="small" type="danger" @click.stop="handleDelete(row.id)">删除</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+
+      <!-- Pagination -->
+      <div class="data-card__footer">
+        <el-pagination
+          v-model:current-page="page"
+          v-model:page-size="pageSize"
+          :total="total"
+          :page-sizes="[10, 20, 50, 100]"
+          :sizes-layout="'first, prev, pager, next'"
+          :pager-count="7"
+          layout="total, sizes, prev, pager, next, jumper"
+          background
+          @current-change="loadData"
+        />
+      </div>
     </div>
 
     <!-- Dialog -->
-    <el-dialog v-model="dialogVisible" :title="editingId ? '编辑巡检计划' : '新建巡检计划'" width="500px" :close-on-click-modal="false">
-      <el-form :model="form" label-width="110px" >
-        <el-form-item label="工序" required>
-          <el-select v-model="form.processId" filterable style="width:250px">
-            <el-option v-for="p in processes" :key="p.id" :label="p.name" :value="p.id" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="设备" required>
-          <el-select v-model="form.equipmentId" filterable style="width:250px">
-            <el-option v-for="e in equipmentList" :key="e.id" :label="e.name" :value="e.id" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="巡检间隔(分钟)" required>
-          <el-input-number v-model="form.patrolIntervalMin" :min="10" :max="1440" style="width:250px" />
-        </el-form-item>
-        <el-form-item label="自动生成">
-          <el-switch v-model="form.autoGenerate" />
-        </el-form-item>
-        <el-form-item label="检验员">
-          <el-input v-model="form.inspector" style="width:250px" />
-        </el-form-item>
-      </el-form>
+    <el-dialog
+      v-model="dialogVisible"
+      :title="editingId ? '编辑巡检计划' : '新建巡检计划'"
+      width="560px"
+      :close-on-click-modal="false"
+      top="8vh"
+    >
+      <div v-if="dialogVisible">
+        <div class="dialog-section">
+          <div class="dialog-section__title">
+            <el-icon><Setting /></el-icon>
+            <span>基础配置</span>
+          </div>
+          <el-form :model="form" label-width="110px" label-position="left">
+            <el-form-item label="工序" required>
+              <el-select v-model="form.processId" filterable placeholder="请选择工序" style="width:100%">
+                <el-option v-for="p in processes" :key="p.id" :label="p.name" :value="p.id" />
+              </el-select>
+            </el-form-item>
+            <el-form-item label="设备" required>
+              <el-select v-model="form.equipmentId" filterable placeholder="请选择设备" style="width:100%">
+                <el-option v-for="e in equipmentList" :key="e.id" :label="e.name" :value="e.id" />
+              </el-select>
+            </el-form-item>
+          </el-form>
+        </div>
+
+        <div class="dialog-section">
+          <div class="dialog-section__title">
+            <el-icon><Clock /></el-icon>
+            <span>巡检参数</span>
+          </div>
+          <el-form :model="form" label-width="110px" label-position="left">
+            <el-form-item label="巡检间隔(分钟)" required>
+              <el-input-number v-model="form.patrolIntervalMin" :min="10" :max="1440" style="width:100%" controls-position="right" />
+            </el-form-item>
+            <el-form-item label="自动生成">
+              <el-switch v-model="form.autoGenerate" active-text="开启" inactive-text="关闭" />
+            </el-form-item>
+          </el-form>
+        </div>
+
+        <div class="dialog-section">
+          <div class="dialog-section__title">
+            <el-icon><User /></el-icon>
+            <span>人员信息</span>
+          </div>
+          <el-form :model="form" label-width="110px" label-position="left">
+            <el-form-item label="检验员">
+              <el-input v-model="form.inspector" placeholder="输入检验员姓名" clearable style="width:100%" />
+            </el-form-item>
+          </el-form>
+        </div>
+      </div>
+
       <template #footer>
         <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="handleSave">保存</el-button>
+        <el-button type="primary" @click="handleSave">
+          <el-icon><Check /></el-icon>
+          保存
+        </el-button>
       </template>
     </el-dialog>
   </div>
 </template>
 
+
+
 <style scoped>
-.page-container { display: flex; flex-direction: column; height: 100%; }
-.toolbar-row { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
-.pagination-row { display: flex; justify-content: flex-end; padding: 12px 0; }
+.page-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  gap: 16px;
+}
+
+/* ─── Page Header ──────────────────── */
+.page-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 0 4px;
+}
+
+.page-header__icon-wrapper {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  background: var(--el-color-primary-light-9, #ecf5ff);
+  color: var(--el-color-primary, #409eff);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.page-header__info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.page-header__title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text-primary, #303133);
+  line-height: 1.3;
+}
+
+.page-header__subtitle {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-secondary, #909399);
+  line-height: 1.4;
+}
+
+/* ─── Action Bar ───────────────────── */
+.action-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.action-bar__left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.action-bar__right {
+  display: flex;
+  gap: 8px;
+}
+
+/* ─── Data Card ────────────────────── */
+.data-card {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-card, #fff);
+  border-radius: 8px;
+  box-shadow: var(--shadow-sm, 0 1px 2px rgba(0,0,0,0.06));
+  overflow: hidden;
+}
+
+.data-card__row {
+  transition: background-color 0.2s;
+}
+
+.data-card__row:hover {
+  background-color: var(--el-fill-color-light, #f5f7fa) !important;
+}
+
+.data-card__footer {
+  display: flex;
+  justify-content: flex-end;
+  padding: 12px 16px;
+  border-top: 1px solid var(--el-border-color-lighter, #ebeef5);
+}
+
+/* ─── Dialog Sections ──────────────── */
+.dialog-section {
+  margin-bottom: 20px;
+}
+
+.dialog-section__title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary, #303133);
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--el-border-color-lighter, #ebeef5);
+}
+
+.dialog-section__title .el-icon {
+  color: var(--el-color-primary, #409eff);
+}
 </style>

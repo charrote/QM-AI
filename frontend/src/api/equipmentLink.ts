@@ -29,9 +29,14 @@ export const equipmentLinkApi = {
     return request.post(`${BASE}/map`, dto).then(r => r.data)
   },
 
+  /** Update param mapping */
+  updateMapping(id: number, dto: CreateParamMapping): Promise<EquipmentParamMapping> {
+    return request.put(`${BASE}/map/${id}`, dto).then(r => r.data)
+  },
+
   /** Remove param mapping */
-  removeMapping(id: number): void {
-    request.delete(`${BASE}/map/${id}`)
+  removeMapping(id: number): Promise<void> {
+    return request.delete(`${BASE}/map/${id}`)
   },
 
   /** Get equipment status history */

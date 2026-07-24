@@ -7,6 +7,7 @@ import type { IqcAnomaly, CreateIqcAnomaly, ResolveIqcAnomaly } from '@/types/iq
 import {
   IQC_ANOMALY_TYPE_OPTIONS, IQC_SEVERITY_OPTIONS, IQC_ANOMALY_STATUS_OPTIONS,
 } from '@/types/iqc'
+import { WarningFilled, Search, Plus, Refresh } from '@element-plus/icons-vue'
 
 defineOptions({ name: 'IqcAnomaliesPage' })
 
@@ -111,73 +112,111 @@ onMounted(async () => {
 
 <template>
   <div class="page-container">
-    <div class="toolbar-row">
-      <el-input
-        v-model="searchKeyword"
-        placeholder="搜索异常单号..."
-        clearable
-        style="width: 300px"
-        @keyup.enter="loadAnomalies"
-      />
-      <el-button type="primary" @click="openCreateAnomaly()">+ 新建异常单</el-button>
-      <el-button @click="loadAnomalies">刷新</el-button>
+    <!-- Page Header -->
+    <div class="page-header">
+      <div class="page-header-left">
+        <el-icon class="page-header-icon"><WarningFilled /></el-icon>
+        <div class="page-header-text">
+          <h1>异常管理</h1>
+          <p>管理来料异常记录与处理流程</p>
+        </div>
+      </div>
+      <div class="page-header-right">
+        <el-button type="primary" :icon="Plus" @click="openCreateAnomaly()">新建异常单</el-button>
+        <el-button :icon="Refresh" circle @click="loadAnomalies" title="刷新" />
+      </div>
     </div>
 
-    <el-table :data="anomalies" stripe style="width: 100%" >
-      <el-table-column prop="anomalyNo" label="异常单号" width="180" />
-      <el-table-column prop="receiptNo" label="来料单号" width="150" />
-      <el-table-column label="类型" width="90">
-        <template #default="{ row }">{{ statusLabel(row.anomalyType, IQC_ANOMALY_TYPE_OPTIONS) }}</template>
-      </el-table-column>
-      <el-table-column label="严重程度" width="80">
-        <template #default="{ row }">
-          <el-tag :type="row.severity === 'critical' ? 'danger' : row.severity === 'major' ? 'warning' : 'info'" size="small">
-            {{ statusLabel(row.severity, IQC_SEVERITY_OPTIONS) }}
-          </el-tag>
-        </template>
-      </el-table-column>
-      <el-table-column prop="description" label="描述" min-width="200" show-overflow-tooltip />
-      <el-table-column label="状态" width="90">
-        <template #default="{ row }">
-          <el-tag :type="calculateResultColor(row.status)" size="small" effect="plain">
-            {{ statusLabel(row.status, IQC_ANOMALY_STATUS_OPTIONS) }}
-          </el-tag>
-        </template>
-      </el-table-column>
-      <el-table-column prop="handler" label="处理人" width="90" />
-      <el-table-column label="操作" width="120" fixed="right">
-        <template #default="{ row }">
-          <el-button
-            v-if="row.status === 'open' || row.status === 'processing'"
-            link size="small" type="success"
-            @click="openResolveAnomaly(row)"
-          >解决</el-button>
-        </template>
-      </el-table-column>
-    </el-table>
+    <!-- Toolbar -->
+    <div class="toolbar-row">
+      <div class="toolbar-left">
+        <el-input
+          v-model="searchKeyword"
+          placeholder="搜索异常单号..."
+          clearable
+          :prefix-icon="Search"
+          style="width: 300px"
+          @keyup.enter="loadAnomalies"
+          @clear="loadAnomalies"
+        />
+      </div>
+    </div>
 
-    <div class="pagination-row">
-      <el-pagination
-        v-model:current-page="page"
-        v-model:page-size="pageSize"
-        :total="total"
-        layout="total, prev, pager, next"
-        size="small"
-        @current-change="loadAnomalies"
-      />
+    <!-- Data Card (Table Wrapper) -->
+    <div class="data-card">
+      <div class="data-card-header">
+        <span class="data-card-title">
+          <el-icon><WarningFilled /></el-icon>
+          异常记录
+        </span>
+        <span class="data-card-count">共 {{ total }} 条</span>
+      </div>
+
+      <el-table
+        :data="anomalies"
+        stripe
+        class="styled-table"
+        style="width: 100%"
+      >
+        <el-table-column prop="anomalyNo" label="异常单号" width="180" />
+        <el-table-column prop="receiptNo" label="来料单号" width="150" />
+        <el-table-column label="类型" width="90">
+          <template #default="{ row }">{{ statusLabel(row.anomalyType, IQC_ANOMALY_TYPE_OPTIONS) }}</template>
+        </el-table-column>
+        <el-table-column label="严重程度" width="90">
+          <template #default="{ row }">
+            <el-tag :type="row.severity === 'critical' ? 'danger' : row.severity === 'major' ? 'warning' : 'info'" size="small" effect="dark">
+              {{ statusLabel(row.severity, IQC_SEVERITY_OPTIONS) }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column prop="description" label="描述" min-width="200" show-overflow-tooltip />
+        <el-table-column label="状态" width="90">
+          <template #default="{ row }">
+            <el-tag :type="calculateResultColor(row.status)" size="small" effect="dark">
+              {{ statusLabel(row.status, IQC_ANOMALY_STATUS_OPTIONS) }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column prop="handler" label="处理人" width="90" />
+        <el-table-column label="操作" width="120" fixed="right">
+          <template #default="{ row }">
+            <el-button
+              v-if="row.status === 'open' || row.status === 'processing'"
+              link size="small" type="success"
+              @click="openResolveAnomaly(row)"
+            >解决</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+
+      <div class="pagination-row">
+        <el-pagination
+          v-model:current-page="page"
+          v-model:page-size="pageSize"
+          :total="total"
+          :page-sizes="[10, 20, 50, 100]"
+          layout="total, sizes, prev, pager, next, jumper"
+          @size-change="loadAnomalies"
+          @current-change="loadAnomalies"
+        />
+      </div>
     </div>
 
     <!-- Dialog: 新建异常单 -->
     <el-dialog
       v-model="anomalyDialogVisible"
       title="新建异常单"
-      width="520px"
+      width="540px"
       :close-on-click-modal="false"
     >
-      <el-form :model="anomalyForm" label-width="100px" >
+      <el-form :model="anomalyForm" label-width="100px">
+        <el-divider content-position="left">来料信息</el-divider>
         <el-form-item label="来料登记ID" required>
           <el-input-number v-model="anomalyForm.receiptId" :min="1" style="width: 100%" />
         </el-form-item>
+
+        <el-divider content-position="left">异常信息</el-divider>
         <el-row :gutter="16">
           <el-col :span="12">
             <el-form-item label="异常类型">
@@ -195,10 +234,10 @@ onMounted(async () => {
           </el-col>
         </el-row>
         <el-form-item label="描述">
-          <el-input v-model="anomalyForm.description" type="textarea" :rows="3" />
+          <el-input v-model="anomalyForm.description" type="textarea" :rows="3" placeholder="请描述异常详情..." />
         </el-form-item>
         <el-form-item label="处理人">
-          <el-input v-model="anomalyForm.handler" />
+          <el-input v-model="anomalyForm.handler" placeholder="请输入处理人姓名" />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -211,15 +250,16 @@ onMounted(async () => {
     <el-dialog
       v-model="resolveAnomalyVisible"
       title="解决异常单"
-      width="480px"
+      width="500px"
       :close-on-click-modal="false"
     >
-      <el-form :model="resolveForm" label-width="100px" >
+      <el-form :model="resolveForm" label-width="100px">
+        <el-divider content-position="left">解决方案</el-divider>
         <el-form-item label="解决方案" required>
           <el-input v-model="resolveForm.resolution" type="textarea" :rows="4" placeholder="请描述解决方案..." />
         </el-form-item>
         <el-form-item label="处理人">
-          <el-input v-model="resolveForm.handler" />
+          <el-input v-model="resolveForm.handler" placeholder="请输入处理人姓名" />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -232,6 +272,121 @@ onMounted(async () => {
 
 <style scoped>
 .page-container { display: flex; flex-direction: column; height: 100%; }
-.toolbar-row { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
-.pagination-row { display: flex; justify-content: flex-end; padding: 12px 0; }
+
+/* ─── Page Header ─────────────────────────────── */
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+}
+.page-header-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.page-header-icon {
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--el-color-danger-light-9);
+  border-radius: 10px;
+  color: var(--el-color-danger);
+  font-size: 22px;
+}
+.page-header-text h1 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--el-text-color-primary);
+  line-height: 1.3;
+}
+.page-header-text p {
+  margin: 2px 0 0;
+  font-size: 13px;
+  color: var(--el-text-color-secondary);
+}
+.page-header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* ─── Toolbar ─────────────────────────────────── */
+.toolbar-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+.toolbar-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* ─── Data Card ──────────────────────────────── */
+.data-card {
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+  overflow: hidden;
+  margin-bottom: 16px;
+}
+.data-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+  background: var(--el-fill-color-blank);
+}
+.data-card-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+.data-card-count {
+  font-size: 13px;
+  color: var(--el-text-color-regular);
+}
+
+/* ─── Styled Table ────────────────────────────── */
+.styled-table {
+  width: 100%;
+}
+.styled-table :deep(.el-table__header-wrapper th) {
+  background: #f5f7fa !important;
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--el-text-color-regular);
+}
+.styled-table :deep(.el-table__row) {
+  transition: background-color 0.2s;
+}
+.styled-table :deep(.el-table__row:hover) {
+  background-color: #fef0f0 !important;
+}
+.styled-table :deep(.el-table__row--striped) {
+  background-color: var(--el-fill-color-blank);
+}
+
+/* ─── Pagination ──────────────────────────────── */
+.pagination-row {
+  display: flex;
+  justify-content: flex-end;
+  padding: 14px 20px;
+  border-top: 1px solid var(--el-border-color-lighter);
+  background: var(--el-fill-color-blank);
+}
 </style>

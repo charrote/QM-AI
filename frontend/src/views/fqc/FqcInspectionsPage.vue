@@ -7,6 +7,7 @@ import type { FqcInspection, FqcInspectionDetail, CreateFqcInspection, SubmitFqc
 import type { ProductBatch } from '@/types/fqc'
 import type { PagedRequest, PagedResult } from '@/types/basicData'
 import { FQC_CONCLUSION_OPTIONS, FQC_INSPECTION_TYPE_OPTIONS } from '@/types/fqc'
+import { Search, Plus, DocumentChecked, Edit, Check } from '@element-plus/icons-vue'
 
 defineOptions({ name: 'FqcInspectionsPage' })
 

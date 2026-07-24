@@ -2,6 +2,7 @@
 import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { CircleCheck } from '@element-plus/icons-vue'
 import { defectApi } from '@/api/defect'
 import type { Capa, CreateCapa } from '@/types/defect'
 import {
@@ -136,6 +137,22 @@ function viewDetail(row: Capa) {
   router.push({ name: 'CapaDetail', params: { id: String(row.id) } })
 }
 
+function isOverdue(row: Capa): boolean {
+  if (!row.dueDate) return false
+  return new Date(row.dueDate) < new Date() && row.status !== 'completed'
+}
+
+function rowClassName({ row }: { row: Capa }) {
+  return isOverdue(row) ? 'overdue-row' : ''
+}
+
+const formRules = {
+  title: [{ required: true, message: '请输入CAPA标题', trigger: 'blur' }],
+  assignedTo: [{ required: true, message: '请输入负责人', trigger: 'blur' }],
+}
+
+const capaFormRef = ref()
+
 onMounted(() => {
   loadCapas()
   if (route.query.defectId) {
@@ -146,96 +163,120 @@ onMounted(() => {
 
 <template>
   <div class="page-container">
-    <div class="toolbar-row">
-      <el-input
-        v-model="searchKeyword"
-        placeholder="搜索CAPA编号/标题..."
-        clearable
-        style="width: 240px"
-        @keyup.enter="loadCapas"
-      />
-      <el-select v-model="statusFilter" placeholder="状态" clearable style="width: 110px" @change="loadCapas">
-        <el-option v-for="opt in CAPA_STATUS_OPTIONS" :key="opt.value" :label="opt.label" :value="opt.value" />
-      </el-select>
-      <el-select v-model="phaseFilter" placeholder="阶段" clearable style="width: 130px" @change="loadCapas">
-        <el-option v-for="opt in CAPA_PHASE_LABELS" :key="opt.phase" :label="opt.label" :value="opt.phase" />
-      </el-select>
-      <el-button type="primary" @click="openCreate">+ 新建CAPA</el-button>
-      <el-button @click="loadCapas">刷新</el-button>
+    <!-- Page Header -->
+    <div class="page-header">
+      <div class="page-header-main">
+        <div class="page-header-icon">
+          <el-icon :size="28"><CircleCheck /></el-icon>
+        </div>
+        <div class="page-header-text">
+          <h2>CAPA 纠正预防措施</h2>
+          <p>缺陷纠正与预防措施的全流程跟踪管理</p>
+        </div>
+      </div>
     </div>
 
-    <el-table :data="capas" stripe style="width: 100%" >
-      <el-table-column prop="capaCode" label="CAPA编号" width="140" />
-      <el-table-column prop="title" label="标题" min-width="180" show-overflow-tooltip />
-      <el-table-column label="严重程度" width="80">
-        <template #default="{ row }">
-          <el-tag :type="SEVERITY_OPTIONS.find(o => o.value === row.severity)?.type || 'info'" size="small" effect="plain">
-            {{ SEVERITY_MAP[row.severity] || row.severity }}
-          </el-tag>
-        </template>
-      </el-table-column>
-      <el-table-column label="阶段" width="120">
-        <template #default="{ row }">
-          <el-steps :active="row.currentPhase" finish-status="success" simple>
-            <el-step
-              v-for="step in CAPA_PHASE_LABELS"
-              :key="step.phase"
-              :title="step.label"
-              :status="row.currentPhase > step.phase ? 'success' : row.currentPhase === step.phase ? step.phase <= 2 ? 'warning' : 'primary' : ''"
-            />
-          </el-steps>
-        </template>
-      </el-table-column>
-      <el-table-column label="阶段名" width="110">
-        <template #default="{ row }">
-          <el-tag :type="phaseColor(row.currentPhase)" size="small">
-            {{ phaseLabel(row.currentPhase) }}
-          </el-tag>
-        </template>
-      </el-table-column>
-      <el-table-column prop="assignedTo" label="负责人" width="90" />
-      <el-table-column label="截止日期" width="110">
-        <template #default="{ row }">{{ row.dueDate?.slice(0, 10) || '-' }}</template>
-      </el-table-column>
-      <el-table-column label="状态" width="80">
-        <template #default="{ row }">
-          <el-tag :type="CAPA_STATUS_OPTIONS.find(o => o.value === row.status)?.type || 'info'" size="small" effect="plain">
-            {{ CAPA_STATUS_MAP[row.status] || row.status }}
-          </el-tag>
-        </template>
-      </el-table-column>
-      <el-table-column label="操作" width="200" fixed="right">
-        <template #default="{ row }">
-          <el-button link size="small" type="primary" @click="viewDetail(row)">详情</el-button>
-          <el-button link size="small" type="primary" @click="openEdit(row)">编辑</el-button>
-          <el-button
-            v-if="row.currentPhase < 6 && row.status === 'active'"
-            link size="small" type="success"
-            @click="advancePhase(row)"
-          >推进阶段</el-button>
-          <el-button link size="small" type="danger" @click="deleteCapa(row)">删除</el-button>
-        </template>
-      </el-table-column>
-    </el-table>
+    <!-- Search Toolbar -->
+    <el-card shadow="never" class="search-card">
+      <div class="search-bar">
+        <el-input
+          v-model="searchKeyword"
+          placeholder="搜索CAPA编号/标题..."
+          clearable
+          style="width: 240px"
+          @keyup.enter="loadCapas"
+        />
+        <el-select v-model="statusFilter" placeholder="状态" clearable style="width: 110px" @change="loadCapas">
+          <el-option v-for="opt in CAPA_STATUS_OPTIONS" :key="opt.value" :label="opt.label" :value="opt.value" />
+        </el-select>
+        <el-select v-model="phaseFilter" placeholder="阶段" clearable style="width: 130px" @change="loadCapas">
+          <el-option v-for="opt in CAPA_PHASE_LABELS" :key="opt.phase" :label="opt.label" :value="opt.phase" />
+        </el-select>
+        <el-button type="primary" @click="openCreate">+ 新建CAPA</el-button>
+        <el-button @click="loadCapas">刷新</el-button>
+      </div>
+    </el-card>
 
-    <div class="pagination-row">
-      <el-pagination
-        v-model:current-page="page"
-        v-model:page-size="pageSize"
-        :total="total"
-        layout="total, prev, pager, next"
-        size="small"
-        @current-change="loadCapas"
-      />
-    </div>
+    <!-- Data Table -->
+    <el-card shadow="never" class="table-card">
+      <el-table :data="capas" stripe style="width: 100%" :row-class-name="rowClassName">
+        <el-table-column prop="capaCode" label="CAPA编号" width="140" />
+        <el-table-column prop="title" label="标题" min-width="180" show-overflow-tooltip />
+        <el-table-column label="严重程度" width="90">
+          <template #default="{ row }">
+            <el-tag :type="SEVERITY_OPTIONS.find(o => o.value === row.severity)?.type || 'info'" size="small" effect="plain">
+              {{ SEVERITY_MAP[row.severity] || row.severity }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="阶段" width="130">
+          <template #default="{ row }">
+            <el-steps :active="row.currentPhase" finish-status="success" simple>
+              <el-step
+                v-for="step in CAPA_PHASE_LABELS"
+                :key="step.phase"
+                :title="step.label"
+                :status="row.currentPhase > step.phase ? 'success' : row.currentPhase === step.phase ? step.phase <= 2 ? 'warning' : 'primary' : ''"
+              />
+            </el-steps>
+          </template>
+        </el-table-column>
+        <el-table-column label="阶段名" width="120">
+          <template #default="{ row }">
+            <el-tag :type="phaseColor(row.currentPhase)" size="small" effect="dark">
+              {{ phaseLabel(row.currentPhase) }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column prop="assignedTo" label="负责人" width="90" />
+        <el-table-column label="截止日期" width="115">
+          <template #default="{ row }">
+            <span :class="{ 'overdue-text': isOverdue(row) }">{{ row.dueDate?.slice(0, 10) || '-' }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="状态" width="85">
+          <template #default="{ row }">
+            <el-tag :type="CAPA_STATUS_OPTIONS.find(o => o.value === row.status)?.type || 'info'" size="small" effect="plain">
+              {{ CAPA_STATUS_MAP[row.status] || row.status }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" width="230" fixed="right">
+          <template #default="{ row }">
+            <el-button link size="small" type="primary" @click="viewDetail(row)">详情</el-button>
+            <el-button link size="small" type="primary" @click="openEdit(row)">编辑</el-button>
+            <el-button
+              v-if="row.currentPhase < 6 && row.status === 'active'"
+              link size="small" type="success"
+              @click="advancePhase(row)"
+            >推进阶段</el-button>
+            <el-button link size="small" type="danger" @click="deleteCapa(row)">删除</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
 
+      <div class="pagination-row">
+        <el-pagination
+          v-model:current-page="page"
+          v-model:page-size="pageSize"
+          :total="total"
+          :page-sizes="[10, 20, 50, 100]"
+          layout="total, sizes, prev, pager, next, jumper"
+          @size-change="loadCapas"
+          @current-change="loadCapas"
+        />
+      </div>
+    </el-card>
+
+    <!-- Create/Edit Dialog -->
     <el-dialog
       v-model="dialogVisible"
       :title="isEditing ? '编辑CAPA' : '新建CAPA'"
       width="600px"
       :close-on-click-modal="false"
     >
-      <el-form :model="capaForm" label-width="100px" >
+      <el-form :model="capaForm" label-width="100px" :rules="formRules" ref="capaFormRef">
+        <el-divider content-position="left">基本信息</el-divider>
         <el-row :gutter="16">
           <el-col :span="12">
             <el-form-item label="缺陷ID">
@@ -243,27 +284,28 @@ onMounted(() => {
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="严重程度" required>
+            <el-form-item label="严重程度" prop="severity" required>
               <el-select v-model="capaForm.severity" style="width: 100%">
                 <el-option v-for="opt in SEVERITY_OPTIONS" :key="opt.value" :label="opt.label" :value="opt.value" />
               </el-select>
             </el-form-item>
           </el-col>
         </el-row>
-        <el-form-item label="标题" required>
+        <el-form-item label="标题" prop="title" required>
           <el-input v-model="capaForm.title" placeholder="CAPA标题" />
         </el-form-item>
         <el-form-item label="描述">
           <el-input v-model="capaForm.description" type="textarea" :rows="3" placeholder="问题描述" />
         </el-form-item>
+        <el-divider content-position="left">责任人信息</el-divider>
         <el-row :gutter="16">
           <el-col :span="12">
-            <el-form-item label="负责人" required>
+            <el-form-item label="负责人" prop="assignedTo" required>
               <el-input v-model="capaForm.assignedTo" placeholder="负责人姓名" />
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="截止日期" required>
+            <el-form-item label="截止日期" prop="dueDate" required>
               <el-date-picker v-model="capaForm.dueDate" type="date" style="width: 100%" />
             </el-form-item>
           </el-col>
@@ -279,6 +321,20 @@ onMounted(() => {
 
 <style scoped>
 .page-container { display: flex; flex-direction: column; height: 100%; }
-.toolbar-row { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
-.pagination-row { display: flex; justify-content: flex-end; padding: 12px 0; }
+.page-header { margin-bottom: 16px; }
+.page-header-main { display: flex; align-items: center; gap: 14px; }
+.page-header-icon {
+  width: 44px; height: 44px;
+  display: flex; align-items: center; justify-content: center;
+  background: #ecf5ff; border-radius: 10px;
+}
+.page-header-text h2 { margin: 0; font-size: 20px; font-weight: 600; color: #303133; }
+.page-header-text p { margin: 2px 0 0; font-size: 13px; color: #909399; }
+.search-card { margin-bottom: 12px; }
+.search-bar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.table-card { flex: 1; display: flex; flex-direction: column; }
+.table-card >>> .el-card__body { flex: 1; display: flex; flex-direction: column; padding: 0; }
+.table-card >>> .el-table { flex: 1; }
+.pagination-row { display: flex; justify-content: flex-end; padding: 12px 8px; border-top: 1px solid #f0f0f0; }
+.overdue-text { color: #f56c6c; font-weight: 600; }
 </style>

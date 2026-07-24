@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
+import { Monitor } from '@element-plus/icons-vue'
 import { equipmentLinkApi } from '@/api/equipmentLink'
 import { equipmentApi } from '@/api/basicData'
 import { SIGNAL_OPTIONS } from '@/types/equipmentLink'
@@ -84,56 +85,79 @@ onMounted(() => {
 </script>
 <template>
   <div class="page-container">
-    <div class="toolbar-row">
-      <el-select v-model="query.equipmentId" placeholder="选择设备" clearable style="width: 200px"  @change="handleSearch">
-        <el-option v-for="eq in equipments" :key="eq.id" :label="`${eq.name} (${eq.code})`" :value="eq.id" />
-      </el-select>
-      <el-date-picker
-        v-model="query.dateStart"
-        type="date"
-        placeholder="开始日期"
-        size="small"
-        value-format="YYYY-MM-DD"
-        style="width: 150px"
-      />
-      <span style="line-height: 28px">至</span>
-      <el-date-picker
-        v-model="query.dateEnd"
-        type="date"
-        placeholder="结束日期"
-        size="small"
-        value-format="YYYY-MM-DD"
-        style="width: 150px"
-      />
-      <el-button @click="handleSearch" size="small">查询</el-button>
-      <el-button @click="resetQuery" size="small">重置</el-button>
+    <!-- Page Header -->
+    <div class="page-header">
+      <div class="page-header-main">
+        <div class="page-header-icon"><el-icon :size="28"><Monitor /></el-icon></div>
+        <div class="page-header-text">
+          <h2>设备状态历史</h2>
+          <p>设备运行信号的历史记录查询与分析</p>
+        </div>
+      </div>
     </div>
 
-    <el-table :data="records" v-loading="loading" stripe border style="width: 100%" >
-      <el-table-column prop="equipmentId" label="设备ID" width="70" />
-      <el-table-column label="设备名称" min-width="150">
-        <template #default="{ row }">{{ getEquipmentName(row.equipmentId) }}</template>
-      </el-table-column>
-      <el-table-column label="信号" width="80">
-        <template #default="{ row }">
-          <el-tag :type="getSignalType(row.signal)" size="small" effect="plain">
-            {{ getSignalLabel(row.signal) }}
-          </el-tag>
-        </template>
-      </el-table-column>
-      <el-table-column prop="signalData" label="信号数据" min-width="160" show-overflow-tooltip />
-      <el-table-column prop="recordedAt" label="记录时间" min-width="170">
-        <template #default="{ row }">{{ formatDate(row.recordedAt) }}</template>
-      </el-table-column>
-    </el-table>
+    <!-- Toolbar -->
+    <el-card shadow="never" class="search-card">
+      <div class="search-bar">
+        <el-select v-model="query.equipmentId" placeholder="选择设备" clearable style="width: 220px" @change="handleSearch">
+          <el-option v-for="eq in equipments" :key="eq.id" :label="`${eq.name} (${eq.code})`" :value="eq.id" />
+        </el-select>
+        <el-date-picker
+          v-model="query.dateStart"
+          type="date"
+          placeholder="开始日期"
+          value-format="YYYY-MM-DD"
+          style="width: 160px"
+        />
+        <span class="date-separator">至</span>
+        <el-date-picker
+          v-model="query.dateEnd"
+          type="date"
+          placeholder="结束日期"
+          value-format="YYYY-MM-DD"
+          style="width: 160px"
+        />
+        <el-button type="primary" @click="handleSearch">查询</el-button>
+        <el-button @click="resetQuery">重置</el-button>
+      </div>
+    </el-card>
 
-    <div v-if="!loading && records.length === 0 && query.equipmentId" class="empty-hint">
-      暂无状态记录
-    </div>
+    <!-- Table -->
+    <el-card shadow="never" class="table-card">
+      <el-table :data="records" v-loading="loading" stripe border style="width: 100%">
+        <el-table-column label="设备" min-width="160">
+          <template #default="{ row }"><span class="equipment-name">{{ getEquipmentName(row.equipmentId) }}</span></template>
+        </el-table-column>
+        <el-table-column label="信号" width="90">
+          <template #default="{ row }">
+            <el-tag :type="getSignalType(row.signal)" size="small" effect="dark">
+              {{ getSignalLabel(row.signal) }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column prop="signalData" label="信号数据" min-width="160" show-overflow-tooltip />
+        <el-table-column label="记录时间" min-width="175">
+          <template #default="{ row }">{{ formatDate(row.recordedAt) }}</template>
+        </el-table-column>
+      </el-table>
+
+      <div v-if="!loading && records.length === 0 && query.equipmentId" class="empty-hint">
+        暂无状态记录
+      </div>
+    </el-card>
   </div>
 </template>
 <style scoped>
 .page-container { display: flex; flex-direction: column; height: 100%; }
-.toolbar-row { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+.page-header { margin-bottom: 16px; }
+.page-header-main { display: flex; align-items: center; gap: 14px; }
+.page-header-icon { width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; background: #e6f7ff; border-radius: 10px; }
+.page-header-text h2 { margin: 0; font-size: 20px; font-weight: 600; color: #303133; }
+.page-header-text p { margin: 2px 0 0; font-size: 13px; color: #909399; }
+.search-card { margin-bottom: 12px; }
+.search-bar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.date-separator { color: #909399; line-height: 36px; }
+.table-card { flex: 1; }
 .empty-hint { text-align: center; padding: 40px; color: #909399; font-size: 14px; }
+.equipment-name { font-weight: 500; color: #303133; }
 </style>

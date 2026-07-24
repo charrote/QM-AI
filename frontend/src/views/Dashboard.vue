@@ -1,7 +1,7 @@
 <script setup lang="ts">
 defineOptions({ name: 'Dashboard' })
 
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import {
   DataAnalysis, TrendCharts, Warning, CircleCheck,
   Bell, ArrowRight, Box, Monitor, Checked, Service,
@@ -19,6 +19,18 @@ const formatDate = (date: Date) => {
 }
 
 const currentTime = ref(new Date())
+
+// Time-based greeting
+const greeting = computed(() => {
+  const hour = currentTime.value.getHours()
+  if (hour < 6) return '夜深了'
+  if (hour < 9) return '早上好'
+  if (hour < 12) return '上午好'
+  if (hour < 14) return '中午好'
+  if (hour < 18) return '下午好'
+  if (hour < 22) return '晚上好'
+  return '夜深了'
+})
 
 // Stats data
 const stats = ref([
@@ -130,14 +142,20 @@ function navigateTo(path: string) {
 
 <template>
   <div class="dashboard-page">
+    <!-- Decorative gradient bar -->
+    <div class="dashboard-gradient-bar"></div>
+
     <!-- Welcome Section -->
     <div class="dashboard-header">
       <div class="header-left">
-        <h2 class="welcome-title">质量概览</h2>
-        <p class="welcome-subtitle">实时掌握全厂质量动态</p>
+        <div class="greeting-group">
+          <span class="greeting-emoji">👋</span>
+          <h2 class="welcome-title">{{ greeting }}</h2>
+        </div>
+        <p class="welcome-subtitle">质量概览 · 实时掌握全厂质量动态</p>
       </div>
       <div class="header-right">
-        <div class="date-display">
+        <div class="date-pill">
           <el-icon><Calendar /></el-icon>
           <span>{{ formatDate(currentTime) }}</span>
         </div>
@@ -147,7 +165,7 @@ function navigateTo(path: string) {
     <!-- Stats Cards -->
     <el-row :gutter="16" class="stats-row">
       <el-col :xs="12" :sm="6" v-for="stat in stats" :key="stat.label">
-        <el-card shadow="never" class="stat-card">
+        <el-card shadow="never" class="stat-card" :class="'stat-card--' + stat.color.replace('#', '')">
           <div class="stat-content">
             <div class="stat-icon" :style="{ background: stat.color + '15', color: stat.color }">
               <el-icon :size="22">
@@ -232,8 +250,18 @@ function navigateTo(path: string) {
 <style scoped>
 .dashboard-page {
   padding: 0;
+  overflow: hidden;
 }
 
+/* Decorative gradient bar */
+.dashboard-gradient-bar {
+  height: 4px;
+  background: linear-gradient(90deg, #1677ff 0%, #52c41a 33%, #faad14 66%, #ff4d4f 100%);
+  border-radius: 0 0 8px 8px;
+  margin: -20px -20px 20px;
+}
+
+/* ═══ Header ═══ */
 .dashboard-header {
   display: flex;
   align-items: center;
@@ -243,11 +271,29 @@ function navigateTo(path: string) {
   gap: var(--space-3);
 }
 
+.header-left {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+}
+
+.greeting-group {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.greeting-emoji {
+  font-size: 24px;
+  line-height: 1;
+}
+
 .welcome-title {
-  font-size: var(--font-2xl);
-  font-weight: var(--font-semibold);
+  font-size: var(--font-3xl);
+  font-weight: var(--font-bold);
   color: var(--text-primary, #1a1a1a);
   margin: 0;
+  line-height: 1.2;
 }
 
 .welcome-subtitle {
@@ -261,17 +307,20 @@ function navigateTo(path: string) {
   align-items: center;
 }
 
-.date-display {
+.date-pill {
   display: flex;
   align-items: center;
   gap: 6px;
   font-size: var(--font-sm);
   color: var(--text-regular, #4a4a4a);
-  background: var(--el-fill-color-light);
-  padding: 6px 12px;
-  border-radius: var(--radius-md);
+  background: var(--el-bg-color);
+  padding: 8px 14px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--el-border-color-lighter);
+  box-shadow: var(--shadow-xs);
 }
 
+/* ═══ Stats Cards ═══ */
 .stats-row {
   margin-bottom: var(--space-5);
 }
@@ -280,12 +329,30 @@ function navigateTo(path: string) {
   margin-bottom: 0;
   border-radius: var(--radius-lg);
   border: 1px solid var(--el-border-color-lighter);
-  transition: all 0.2s ease;
+  transition: all 0.25s ease;
+  position: relative;
+  overflow: hidden;
 }
 
+.stat-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  border-radius: 4px 0 0 4px;
+}
+
+.stat-card--1677ff::before { background: #1677ff; }
+.stat-card--52c41a::before { background: #52c41a; }
+.stat-card--faad14::before { background: #faad14; }
+.stat-card--ff4d4f::before { background: #ff4d4f; }
+
 .stat-card:hover {
-  border-color: var(--primary-light-5, #8bc5ff);
-  box-shadow: var(--shadow-sm);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+  border-color: transparent;
 }
 
 .stat-card :deep(.el-card__body) {
@@ -349,10 +416,11 @@ function navigateTo(path: string) {
 }
 
 .trend--down {
-  color: #52c41a;
-  background: #f6ffed;
+  color: #ff4d4f;
+  background: #fff2f0;
 }
 
+/* ═══ Activity Card ═══ */
 .activity-card,
 .modules-card {
   margin-bottom: 0;
@@ -377,6 +445,7 @@ function navigateTo(path: string) {
   gap: var(--space-3);
   padding: var(--space-3) 0;
   border-bottom: 1px solid var(--el-border-color-lighter);
+  position: relative;
 }
 
 .activity-item:last-child {
@@ -384,11 +453,12 @@ function navigateTo(path: string) {
 }
 
 .activity-dot {
-  width: 7px;
-  height: 7px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
   margin-top: 6px;
   flex-shrink: 0;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.8);
 }
 
 .activity-content {
@@ -408,6 +478,7 @@ function navigateTo(path: string) {
   margin-top: 3px;
 }
 
+/* ═══ Module Cards ═══ */
 .modules-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
@@ -422,19 +493,19 @@ function navigateTo(path: string) {
   border-radius: var(--radius-lg);
   border: 1px solid var(--el-border-color-lighter);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.25s ease;
 }
 
 .module-item:hover {
-  border-color: var(--primary, #1677ff);
+  border-color: transparent;
   background: var(--primary-bg, #f0f7ff);
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-xs);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
 }
 
 .module-icon {
-  width: 34px;
-  height: 34px;
+  width: 36px;
+  height: 36px;
   border-radius: var(--radius-md);
   display: flex;
   align-items: center;
@@ -459,7 +530,7 @@ function navigateTo(path: string) {
   margin-top: 1px;
 }
 
-/* Dark mode */
+/* ═══ Dark mode ═══ */
 html.dark .trend--up,
 html.dark .trend--down {
   background: rgba(82, 196, 26, 0.15);
@@ -481,8 +552,9 @@ html.dark .module-item:hover {
   background: rgba(22, 119, 255, 0.1);
 }
 
-html.dark .date-display {
-  background: var(--el-fill-color);
+html.dark .date-pill {
+  background: var(--el-bg-color);
   color: var(--text-regular, #d4d4d9);
+  border-color: var(--el-border-color);
 }
 </style>

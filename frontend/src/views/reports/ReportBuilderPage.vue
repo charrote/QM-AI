@@ -3,7 +3,7 @@ import { ref, reactive, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { reportsApi } from '@/api/reports'
 import { REPORT_TYPE_OPTIONS, REPORT_MODULE_OPTIONS, REPORT_FORMAT_OPTIONS, REPORT_TYPE_MAP } from '@/types/reports'
-import { EditPen, Document, Download } from '@element-plus/icons-vue'
+import { EditPen, Document, Download, Loading, SuccessFilled, InfoFilled } from '@element-plus/icons-vue'
 
 defineOptions({ name: 'ReportBuilderPage' })
 
@@ -68,17 +68,31 @@ onMounted(() => {
 
 <template>
   <div class="page-container">
+    <!-- Page Header -->
+    <div class="page-header">
+      <div class="page-header-main">
+        <div class="page-header-icon">
+          <el-icon :size="28"><Document /></el-icon>
+        </div>
+        <div class="page-header-text">
+          <h2>报表定制</h2>
+          <p>按需定制质量报表，支持多种格式导出</p>
+        </div>
+      </div>
+    </div>
+
     <el-row :gutter="24">
       <!-- Form Card -->
       <el-col :span="14">
-        <el-card shadow="hover">
+        <el-card shadow="hover" class="form-card">
           <template #header>
             <div class="card-header">
-              <span><el-icon><EditPen /></el-icon> 报表定制</span>
+              <span>报表配置</span>
               <el-button size="small" @click="resetForm">重置</el-button>
             </div>
           </template>
-          <el-form :model="form" label-width="100px" size="default">
+          <el-form :model="form" label-width="100px" label-position="left">
+            <el-divider content-position="left">基本设置</el-divider>
             <el-row :gutter="16">
               <el-col :span="16">
                 <el-form-item label="报表类型" required>
@@ -96,6 +110,7 @@ onMounted(() => {
               </el-col>
             </el-row>
 
+            <el-divider content-position="left">时间范围</el-divider>
             <el-row :gutter="16">
               <el-col :span="12">
                 <el-form-item label="开始日期" required>
@@ -109,6 +124,7 @@ onMounted(() => {
               </el-col>
             </el-row>
 
+            <el-divider content-position="left">高级设置</el-divider>
             <el-form-item label="模块">
               <el-select v-model="form.module" placeholder="选择模块" style="width: 100%">
                 <el-option v-for="opt in REPORT_MODULE_OPTIONS" :key="opt.value" :label="opt.label" :value="opt.value" />
@@ -116,7 +132,7 @@ onMounted(() => {
             </el-form-item>
 
             <el-form-item>
-              <el-button type="primary" @click="handleGenerate" :loading="generating" :icon="Document">
+              <el-button type="primary" @click="handleGenerate" :loading="generating" :icon="EditPen">
                 生成报表
               </el-button>
             </el-form-item>
@@ -126,7 +142,7 @@ onMounted(() => {
 
       <!-- Result Card -->
       <el-col :span="10">
-        <el-card shadow="hover">
+        <el-card shadow="hover" class="result-card">
           <template #header>
             <div class="card-header">
               <span><el-icon><Download /></el-icon> 生成结果</span>
@@ -137,20 +153,28 @@ onMounted(() => {
             <p>正在生成报表，请稍候...</p>
           </div>
           <div v-else-if="generateResult" class="result-success">
-            <el-icon :size="48" color="#67c23a"><SuccessFilled /></el-icon>
+            <div class="result-icon-wrap">
+              <el-icon :size="48" color="#67c23a"><SuccessFilled /></el-icon>
+            </div>
             <p class="result-title">报表已提交</p>
-            <p class="result-detail">
-              <strong>报表类型：</strong>{{ REPORT_TYPE_MAP[form.reportType] || form.reportType }}
-            </p>
-            <p class="result-detail">
-              <strong>格式：</strong>{{ REPORT_FORMAT_OPTIONS.find(o => o.value === form.format)?.label }}
-            </p>
-            <p class="result-detail">
-              <strong>时间范围：</strong>{{ form.startDate }} ~ {{ form.endDate }}
-            </p>
-            <p class="result-detail">
-              <strong>任务 ID：</strong><code>{{ generateResult.jobId }}</code>
-            </p>
+            <div class="result-detail-list">
+              <div class="result-detail-item">
+                <span class="detail-label">报表类型</span>
+                <span class="detail-value">{{ REPORT_TYPE_MAP[form.reportType] || form.reportType }}</span>
+              </div>
+              <div class="result-detail-item">
+                <span class="detail-label">格式</span>
+                <span class="detail-value">{{ REPORT_FORMAT_OPTIONS.find(o => o.value === form.format)?.label }}</span>
+              </div>
+              <div class="result-detail-item">
+                <span class="detail-label">时间范围</span>
+                <span class="detail-value">{{ form.startDate }} ~ {{ form.endDate }}</span>
+              </div>
+              <div class="result-detail-item">
+                <span class="detail-label">任务 ID</span>
+                <span class="detail-value"><code>{{ generateResult.jobId }}</code></span>
+              </div>
+            </div>
           </div>
           <div v-else class="result-empty">
             <el-icon :size="48" color="#c0c4cc"><Document /></el-icon>
@@ -159,7 +183,7 @@ onMounted(() => {
         </el-card>
 
         <!-- Tips Card -->
-        <el-card shadow="hover" style="margin-top: 16px">
+        <el-card shadow="hover" class="tips-card">
           <template #header>
             <span><el-icon><InfoFilled /></el-icon> 生成说明</span>
           </template>
@@ -176,50 +200,23 @@ onMounted(() => {
 </template>
 
 <style scoped>
-.page-container {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  overflow-y: auto;
-  padding: 4px 0;
-}
-.card-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-.result-loading, .result-empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 40px 0;
-  color: var(--el-text-color-secondary);
-  gap: 12px;
-}
-.result-success {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 24px 0;
-  gap: 8px;
-}
-.result-title {
-  font-size: 18px;
-  font-weight: 600;
-  color: var(--el-text-color-primary);
-  margin: 0;
-}
-.result-detail {
-  font-size: 13px;
-  color: var(--el-text-color-regular);
-  margin: 4px 0;
-}
-.tips-list {
-  margin: 0;
-  padding-left: 20px;
-  font-size: 13px;
-  line-height: 2;
-  color: var(--el-text-color-secondary);
-}
+.page-container { display: flex; flex-direction: column; height: 100%; overflow-y: auto; padding: 4px 0; }
+.page-header { margin-bottom: 16px; }
+.page-header-main { display: flex; align-items: center; gap: 14px; }
+.page-header-icon { width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; background: #ecf5ff; border-radius: 10px; }
+.page-header-text h2 { margin: 0; font-size: 20px; font-weight: 600; color: #303133; }
+.page-header-text p { margin: 2px 0 0; font-size: 13px; color: #909399; }
+.form-card { margin-bottom: 16px; }
+.card-header { display: flex; align-items: center; justify-content: space-between; }
+.result-card, .tips-card { margin-bottom: 16px; }
+.result-loading, .result-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px 0; color: var(--el-text-color-secondary); gap: 12px; }
+.result-success { display: flex; flex-direction: column; align-items: center; padding: 16px 0; gap: 8px; }
+.result-icon-wrap { margin-bottom: 4px; }
+.result-title { font-size: 18px; font-weight: 600; color: var(--el-text-color-primary); margin: 0; }
+.result-detail-list { width: 100%; padding: 0 8px; }
+.result-detail-item { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #f0f0f0; font-size: 13px; }
+.result-detail-item:last-child { border-bottom: none; }
+.detail-label { color: var(--el-text-color-secondary); }
+.detail-value { color: var(--el-text-color-primary); font-weight: 500; }
+.tips-list { margin: 0; padding-left: 20px; font-size: 13px; line-height: 2; color: var(--el-text-color-secondary); }
 </style>

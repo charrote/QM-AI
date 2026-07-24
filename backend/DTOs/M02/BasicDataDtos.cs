@@ -14,6 +14,7 @@ public class ProductListDto
     public double? DefaultAql { get; set; }
     public bool IsActive { get; set; }
     public DateTime CreatedAt { get; set; }
+    public long? OrgId { get; set; }
 }
 
 public class ProductDetailDto : ProductListDto
@@ -30,6 +31,7 @@ public class CreateProductDto
     public string? Category { get; set; }
     public string? DefaultInspectionLevel { get; set; } = "II";
     public double? DefaultAql { get; set; }
+    public long? OrgId { get; set; }
 }
 
 public class UpdateProductDto : CreateProductDto

@@ -21,6 +21,8 @@ public class IqcReceipt
     public string ReceiptNo { get; set; } = string.Empty;
 
     /// <summary>关联供应商</summary>
+    /// <summary>供应商ID</summary>
+    [Column("supplier_id")]
     public long SupplierId { get; set; }
 
     /// <summary>关联物料/产品</summary>
@@ -42,6 +44,8 @@ public class IqcReceipt
     public string? Unit { get; set; }
 
     /// <summary>到货日期</summary>
+    /// <summary>来料日期</summary>
+    [Column("receipt_date")]
     public DateTime? ReceiptDate { get; set; }
 
     /// <summary>检验员</summary>

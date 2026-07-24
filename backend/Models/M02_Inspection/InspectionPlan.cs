@@ -28,11 +28,13 @@ public class InspectionPlan
     /// <summary>计划名称</summary>
     [Required]
     [MaxLength(200)]
+    [Column("plan_name")]
     public string PlanName { get; set; } = string.Empty;
 
     /// <summary>检验类型：IQC / IPQC / FQC / OQC</summary>
     [Required]
     [MaxLength(10)]
+    [Column("inspection_type")]
     public string InspectionType { get; set; } = string.Empty;
 
     /// <summary>描述</summary>
@@ -50,12 +52,15 @@ public class InspectionPlan
     public long? MaterialId { get; set; }
 
     /// <summary>供应商维度</summary>
+    [Column("supplier_id")]
     public long? SupplierId { get; set; }
 
     /// <summary>客户维度</summary>
+    [Column("customer_id")]
     public long? CustomerId { get; set; }
 
     /// <summary>工艺/工序维度</summary>
+    [Column("process_id")]
     public long? ProcessId { get; set; }
 
     /// <summary>设备维度</summary>

@@ -2,7 +2,7 @@
 import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { paramGroupApi, dynamicParamApi, closureRuleApi } from '@/api/dynamicParams'
-import { Setting, Document, DataAnalysis, Tools, FolderOpened, Edit, Delete } from '@element-plus/icons-vue'
+import { Setting, Document, DataAnalysis, Tools, FolderOpened, Edit, Delete, Cpu } from '@element-plus/icons-vue'
 import type {
   ParamGroup, ParamGroupDetail, CreateParamGroup,
   DynamicParam, DynamicParamDetail, CreateDynamicParam, UpdateDynamicParam,
@@ -457,6 +457,19 @@ onMounted(async () => {
 
 <template>
   <div class="iqc-container">
+    <!-- Page Header -->
+    <div class="page-header">
+      <div class="page-header-main">
+        <div class="page-header-icon">
+          <el-icon :size="28"><Document /></el-icon>
+        </div>
+        <div class="page-header-text">
+          <h2 class="page-header-title">动态参数配置</h2>
+          <span class="page-header-subtitle">管理系统参数组、动态参数定义及关单策略规则</span>
+        </div>
+      </div>
+    </div>
+
     <!-- ================================================================== -->
     <!-- M02.5: 动态参数配置 -->
     <!-- ================================================================== -->
@@ -466,10 +479,10 @@ onMounted(async () => {
         <!-- Left: 参数组树 (ParamGroupTree) -->
         <div class="params-tree-panel">
           <div class="panel-header">
-            <h3>
-              <el-icon style="vertical-align: middle"><Document /></el-icon>
-              <span style="vertical-align: middle">参数组</span>
-            </h3>
+            <div class="panel-header-left">
+              <el-icon class="panel-icon"><FolderOpened /></el-icon>
+              <span>参数组</span>
+            </div>
             <el-button type="primary" size="small" @click="openCreateGroup">
               + 新建参数组
             </el-button>
@@ -503,10 +516,10 @@ onMounted(async () => {
           <!-- Dynamic Dashboard Preview (embedded in tree panel bottom) -->
           <div v-if="dashboardVisible" class="dashboard-preview">
             <div class="panel-header">
-              <h4>
-                <el-icon style="vertical-align: middle"><DataAnalysis /></el-icon>
-                <span style="vertical-align: middle">动态仪表盘预览</span>
-              </h4>
+              <div class="panel-header-left">
+                <el-icon class="panel-icon"><DataAnalysis /></el-icon>
+                <span>动态仪表盘预览</span>
+              </div>
               <el-button link size="small" @click="dashboardVisible = false">关闭</el-button>
             </div>
             <div class="dashboard-cards">
@@ -546,10 +559,10 @@ onMounted(async () => {
         <!-- Right: 参数定义面板 (ParamForm) -->
         <div class="params-form-panel">
           <div class="panel-header">
-            <h3>
-              <el-icon style="vertical-align: middle"><Tools /></el-icon>
-              <span style="vertical-align: middle">参数定义</span>
-            </h3>
+            <div class="panel-header-left">
+              <el-icon class="panel-icon"><Tools /></el-icon>
+              <span>参数定义</span>
+            </div>
             <div class="panel-actions">
               <el-button
                 size="small"
@@ -620,17 +633,18 @@ onMounted(async () => {
       <!-- Bottom Row: 关单策略模板 (ClosureRuleBuilder + ClosureRuleList) -->
       <div class="rules-section">
         <div class="panel-header">
-          <h3>
-            <el-icon style="vertical-align: middle"><Setting /></el-icon>
-            <span style="vertical-align: middle">关单策略模板配置</span>
-          </h3>
+          <div class="panel-header-left">
+            <el-icon class="panel-icon"><Setting /></el-icon>
+            <span>关单策略模板配置</span>
+          </div>
           <el-button type="primary" size="small" @click="openCreateRule">
             + 新建规则
           </el-button>
         </div>
 
-        <div class="rules-content">
-          <div class="rules-table">
+        <div class="data-card">
+          <div class="rules-content">
+            <div class="rules-table">
             <el-table :data="rules" stripe style="width: 100%" >
               <el-table-column prop="name" label="规则名称" min-width="160" />
               <el-table-column prop="code" label="编码" width="120" />
@@ -682,6 +696,7 @@ onMounted(async () => {
               @close="evaluationResult = null"
             />
           </div>
+          </div>
         </div>
       </div>
     </div>
@@ -694,27 +709,33 @@ onMounted(async () => {
     <el-dialog
       v-model="groupDialogVisible"
       :title="isEditingGroup ? '编辑参数组' : '新建参数组'"
-      width="480px"
+      width="520px"
       :close-on-click-modal="false"
     >
-      <el-form :model="groupForm" label-width="100px" >
-        <el-form-item label="组名称" required>
-          <el-input v-model="groupForm.name" placeholder="如：热力学参数组" />
-        </el-form-item>
-        <el-form-item label="组编码" :required="!isEditingGroup">
-          <el-input
-            v-model="groupForm.code"
-            :disabled="isEditingGroup"
-            placeholder="如：thermo_params"
-          />
-        </el-form-item>
-        <el-form-item label="排序号">
-          <el-input-number v-model="groupForm.sortOrder!" :min="0" :step="1" />
-        </el-form-item>
-        <el-form-item label="描述">
-          <el-input v-model="groupForm.description" type="textarea" :rows="3" />
-        </el-form-item>
-      </el-form>
+      <div class="dialog-section">
+        <div class="dialog-section-header">
+          <el-icon class="dialog-section-icon"><Edit /></el-icon>
+          <span class="dialog-section-title">组信息</span>
+        </div>
+        <el-form :model="groupForm" label-width="100px" >
+          <el-form-item label="组名称" required>
+            <el-input v-model="groupForm.name" placeholder="如：热力学参数组" />
+          </el-form-item>
+          <el-form-item label="组编码" :required="!isEditingGroup">
+            <el-input
+              v-model="groupForm.code"
+              :disabled="isEditingGroup"
+              placeholder="如：thermo_params"
+            />
+          </el-form-item>
+          <el-form-item label="排序号">
+            <el-input-number v-model="groupForm.sortOrder!" :min="0" :step="1" />
+          </el-form-item>
+          <el-form-item label="描述">
+            <el-input v-model="groupForm.description" type="textarea" :rows="3" />
+          </el-form-item>
+        </el-form>
+      </div>
       <template #footer>
         <el-button size="small" @click="groupDialogVisible = false">取消</el-button>
         <el-button size="small" type="primary" @click="saveGroup">保存</el-button>
@@ -725,34 +746,47 @@ onMounted(async () => {
     <el-dialog
       v-model="paramDialogVisible"
       :title="isEditingParam ? '编辑参数' : '新建参数'"
-      width="580px"
+      width="620px"
       :close-on-click-modal="false"
     >
-      <el-form :model="paramForm" label-width="120px" >
-        <el-form-item label="参数名称" required>
-          <el-input v-model="paramForm.name" placeholder="如：温度-精加工" />
-        </el-form-item>
-        <el-form-item label="参数编码" :required="!isEditingParam">
-          <el-input
-            v-model="paramForm.code"
-            :disabled="isEditingParam"
-            placeholder="如：temp_finishing"
-          />
-        </el-form-item>
-        <el-form-item label="数据类型" required>
-          <el-select v-model="paramForm.dataType" style="width: 100%">
-            <el-option
-              v-for="opt in dataTypeOptions"
-              :key="opt.value"
-              :value="opt.value"
-              :label="opt.label"
+      <div class="dialog-section">
+        <div class="dialog-section-header">
+          <el-icon class="dialog-section-icon"><Tools /></el-icon>
+          <span class="dialog-section-title">基本信息</span>
+        </div>
+        <el-form :model="paramForm" label-width="120px" >
+          <el-form-item label="参数名称" required>
+            <el-input v-model="paramForm.name" placeholder="如：温度-精加工" />
+          </el-form-item>
+          <el-form-item label="参数编码" :required="!isEditingParam">
+            <el-input
+              v-model="paramForm.code"
+              :disabled="isEditingParam"
+              placeholder="如：temp_finishing"
             />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="单位">
-          <el-input v-model="paramForm.unit" placeholder="如：℃" />
-        </el-form-item>
-        <template v-if="paramForm.dataType === 'numeric'">
+          </el-form-item>
+          <el-form-item label="数据类型" required>
+            <el-select v-model="paramForm.dataType" style="width: 100%">
+              <el-option
+                v-for="opt in dataTypeOptions"
+                :key="opt.value"
+                :value="opt.value"
+                :label="opt.label"
+              />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="单位">
+            <el-input v-model="paramForm.unit" placeholder="如：℃" />
+          </el-form-item>
+        </el-form>
+      </div>
+
+      <div class="dialog-section" v-if="paramForm.dataType === 'numeric'">
+        <div class="dialog-section-header">
+          <el-icon class="dialog-section-icon"><DataAnalysis /></el-icon>
+          <span class="dialog-section-title">规格限设置</span>
+        </div>
+        <el-form :model="paramForm" label-width="150px">
           <el-form-item label="目标值">
             <el-input-number v-model="paramForm.targetValue!" :precision="4" :step="0.1" style="width: 100%" />
           </el-form-item>
@@ -762,30 +796,40 @@ onMounted(async () => {
           <el-form-item label="上规格限 (USL)">
             <el-input-number v-model="paramForm.usl!" :precision="4" :step="0.1" style="width: 100%" />
           </el-form-item>
-          <el-form-item v-if="specLimitError" label=" " label-width="120px">
+          <el-form-item v-if="specLimitError" label=" " label-width="150px">
             <span style="color: var(--el-color-danger)">{{ specLimitError }}</span>
           </el-form-item>
           <el-form-item label="精度">
             <el-input-number v-model="paramForm.precision!" :min="0.01" :max="100" :step="0.01" style="width: 100%" />
           </el-form-item>
-        </template>
-        <el-form-item label="AI 策略预置">
-          <el-select v-model="paramForm.aiStrategy" style="width: 100%" clearable placeholder="选择 AI 策略">
-            <el-option
-              v-for="s in filteredStrategies"
-              :key="s.id"
-              :value="s.id"
-              :label="s.name"
-            >
-              <span>{{ s.name }}</span>
-              <span class="strategy-desc">{{ s.description }}</span>
-            </el-option>
-          </el-select>
-        </el-form-item>
-        <el-form-item label="排序号">
-          <el-input-number v-model="paramForm.sortOrder!" :min="0" :step="1" style="width: 100%" />
-        </el-form-item>
-      </el-form>
+        </el-form>
+      </div>
+
+      <div class="dialog-section">
+        <div class="dialog-section-header">
+          <el-icon class="dialog-section-icon"><Cpu /></el-icon>
+          <span class="dialog-section-title">高级设置</span>
+        </div>
+        <el-form :model="paramForm" label-width="120px">
+          <el-form-item label="AI 策略预置">
+            <el-select v-model="paramForm.aiStrategy" style="width: 100%" clearable placeholder="选择 AI 策略">
+              <el-option
+                v-for="s in filteredStrategies"
+                :key="s.id"
+                :value="s.id"
+                :label="s.name"
+              >
+                <span>{{ s.name }}</span>
+                <span class="strategy-desc">{{ s.description }}</span>
+              </el-option>
+            </el-select>
+          </el-form-item>
+          <el-form-item label="排序号">
+            <el-input-number v-model="paramForm.sortOrder!" :min="0" :step="1" style="width: 100%" />
+          </el-form-item>
+        </el-form>
+      </div>
+
       <template #footer>
         <el-button size="small" @click="paramDialogVisible = false">取消</el-button>
         <el-button size="small" type="primary" @click="saveParam">保存</el-button>
@@ -796,33 +840,44 @@ onMounted(async () => {
     <el-dialog
       v-model="ruleDialogVisible"
       :title="isEditingRule ? '编辑关单规则' : '新建关单规则'"
-      width="640px"
+      width="680px"
       :close-on-click-modal="false"
     >
-      <el-form :model="ruleForm" label-width="120px" >
-        <el-form-item label="规则名称" required>
-          <el-input v-model="ruleForm.name" placeholder="如：连续10件合格放行" />
-        </el-form-item>
-        <el-form-item label="规则编码" :required="!isEditingRule">
-          <el-input
-            v-model="ruleForm.code"
-            :disabled="isEditingRule"
-            placeholder="如：consecutive_10_ok"
-          />
-        </el-form-item>
-        <el-form-item label="逻辑运算符">
-          <el-radio-group v-model="ruleForm.logic">
-            <el-radio value="AND">全部满足 (AND)</el-radio>
-            <el-radio value="OR">任一满足 (OR)</el-radio>
-          </el-radio-group>
-        </el-form-item>
-        <el-form-item label="描述">
-          <el-input v-model="ruleForm.description" type="textarea" :rows="2" />
-        </el-form-item>
-      </el-form>
+      <div class="dialog-section">
+        <div class="dialog-section-header">
+          <el-icon class="dialog-section-icon"><Setting /></el-icon>
+          <span class="dialog-section-title">规则基本信息</span>
+        </div>
+        <el-form :model="ruleForm" label-width="120px" >
+          <el-form-item label="规则名称" required>
+            <el-input v-model="ruleForm.name" placeholder="如：连续10件合格放行" />
+          </el-form-item>
+          <el-form-item label="规则编码" :required="!isEditingRule">
+            <el-input
+              v-model="ruleForm.code"
+              :disabled="isEditingRule"
+              placeholder="如：consecutive_10_ok"
+            />
+          </el-form-item>
+          <el-form-item label="逻辑运算符">
+            <el-radio-group v-model="ruleForm.logic">
+              <el-radio value="AND">全部满足 (AND)</el-radio>
+              <el-radio value="OR">任一满足 (OR)</el-radio>
+            </el-radio-group>
+          </el-form-item>
+          <el-form-item label="描述">
+            <el-input v-model="ruleForm.description" type="textarea" :rows="2" />
+          </el-form-item>
+        </el-form>
+      </div>
 
       <!-- Conditions Builder -->
-      <div class="conditions-builder">
+      <div class="dialog-section">
+        <div class="dialog-section-header">
+          <el-icon class="dialog-section-icon"><DataAnalysis /></el-icon>
+          <span class="dialog-section-title">触发条件</span>
+        </div>
+        <div class="conditions-builder">
         <div class="conditions-header">
           <span class="conditions-title">触发条件</span>
           <el-button size="small" type="primary" link @click="addCondition">
@@ -879,6 +934,7 @@ onMounted(async () => {
         <div v-if="conditions.length === 0" class="condition-empty">
           暂无条件，点击「添加条件」开始构建
         </div>
+        </div>
       </div>
 
       <template #footer>
@@ -896,6 +952,58 @@ onMounted(async () => {
   height: 100%;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
+}
+
+/* Page Header */
+.page-header {
+  padding: 12px 16px;
+  background: linear-gradient(135deg, var(--el-color-primary), var(--el-color-primary-light-3));
+  border-radius: 8px;
+  margin: 8px;
+}
+
+.page-header-main {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.page-header-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  flex-shrink: 0;
+}
+
+.page-header-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.page-header-title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+  color: white;
+  line-height: 1.3;
+}
+
+.page-header-subtitle {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+/* Data Card */
+.data-card {
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-light);
+  border-radius: 6px;
   overflow: hidden;
 }
 
@@ -928,8 +1036,23 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 8px 12px;
+  padding: 10px 14px;
   border-bottom: 1px solid var(--el-border-color-light);
+  background: var(--el-fill-color-blank);
+}
+
+.panel-header-left {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+
+.panel-icon {
+  font-size: 16px;
+  color: var(--el-color-primary);
 }
 
 .panel-header h3, .panel-header h4 {
@@ -943,15 +1066,46 @@ onMounted(async () => {
   gap: 8px;
 }
 
+/* Dialog Sections */
+.dialog-section {
+  margin-bottom: 16px;
+}
+
+.dialog-section:last-of-type {
+  margin-bottom: 0;
+}
+
+.dialog-section-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  background: var(--el-fill-color-light);
+  border-radius: 6px;
+  margin-bottom: 12px;
+}
+
+.dialog-section-icon {
+  font-size: 15px;
+  color: var(--el-color-primary);
+}
+
+.dialog-section-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--el-text-color-regular);
+}
+
 /* Tree Panel (Left) */
 .params-tree-panel {
-  width: 320px;
-  min-width: 280px;
+  width: 340px;
+  min-width: 300px;
   background: var(--el-bg-color);
   border: 1px solid var(--el-border-color-light);
   border-radius: 6px;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
 .tree-content {
@@ -1144,11 +1298,13 @@ onMounted(async () => {
 }
 
 .rules-content {
-  padding: 8px;
+  padding: 12px;
 }
 
 .evaluation-result {
   margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--el-border-color-light);
 }
 
 /* Conditions Builder */

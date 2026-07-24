@@ -8,7 +8,7 @@ import type {
 const BASE = '/m13/audits'
 
 export const auditApi = {
-  list(params?: PagedRequest & { auditType?: string; status?: string }): Promise<PagedResult<Audit>> {
+  list(params?: PagedRequest & { auditType?: string; status?: string; keyword?: string }): Promise<PagedResult<Audit>> {
     return request.get(BASE, { params }).then(r => r.data)
   },
 

@@ -21,9 +21,11 @@ public class IqcInspection
     public string InspectionNo { get; set; } = string.Empty;
 
     /// <summary>关联来料登记</summary>
+    [Column("receipt_id")]
     public long ReceiptId { get; set; }
 
     /// <summary>关联检验标准</summary>
+    [Column("standard_id")]
     public long? StandardId { get; set; }
 
     /// <summary>抽样样本量</summary>
@@ -47,6 +49,7 @@ public class IqcInspection
     [Column("sampling_level")]
     public string? SamplingLevel { get; set; } = "II";
 
+    /// <summary>AQL 值</summary>
     /// <summary>AQL 值</summary>
     [Column("aql_value")]
     public double? AqlValue { get; set; }

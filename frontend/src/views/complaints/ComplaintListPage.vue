@@ -2,7 +2,7 @@
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Search, Refresh, Plus, Edit, Delete, Document, TrendCharts, Check, Close } from '@element-plus/icons-vue'
+import { Search, Refresh, Plus, Edit, Delete, Document, TrendCharts, Check, Close, ChatLineSquare } from '@element-plus/icons-vue'
 import { complaintApi } from '@/api/complaint'
 import { customerApi } from '@/api/basicData'
 import type { Complaint, CreateComplaint, UpdateComplaint } from '@/types/complaint'
@@ -56,13 +56,13 @@ complaintCode: '', customerId: undefined, severity: 'minor',
 const tableColumns = computed<Column[]>(() => [
   { prop: 'complaintCode', label: '投诉代码', width: 140 },
   { prop: 'customerName', label: '客户', width: 150, showOverflowTooltip: true },
-  { label: '严重程度', slotName: 'severity', width: 90, align: 'center' },
-  { prop: 'subject', label: '主题', minWidth: 180, showOverflowTooltip: true },
-  { label: '状态', slotName: 'status', width: 90, align: 'center' },
-  { label: '负责人', slotName: 'assignedTo', width: 90 },
-  { label: '截止日期', slotName: 'dueDate', width: 110 },
-  { label: '创建时间', slotName: 'createdAt', width: 160 },
-  { label: '操作', slotName: 'actions', width: 300, fixed: 'right' as const },
+  { label: '严重程度', slotName: 'severity', width: 110, align: 'center' },
+  { prop: 'subject', label: '主题', minWidth: 200, showOverflowTooltip: true },
+  { label: '状态', slotName: 'status', width: 100, align: 'center' },
+  { label: '负责人', slotName: 'assignedTo', width: 100 },
+  { label: '截止日期', slotName: 'dueDate', width: 120 },
+  { label: '创建时间', slotName: 'createdAt', width: 180 },
+  { label: '操作', slotName: 'actions', width: 320, fixed: 'right' as const },
 ])
 
 // ─── Data loading ────────────────────────────────────────
@@ -210,27 +210,41 @@ onMounted(async () => {
 
 <template>
   <div class="page-container">
+    <!-- Page Header -->
+    <div class="page-header">
+      <div class="page-header__main">
+        <el-icon class="page-header__icon" :size="28"><ChatLineSquare /></el-icon>
+        <div class="page-header__text">
+          <h2 class="page-header__title">客户投诉</h2>
+          <p class="page-header__subtitle">管理客户投诉与处理流程</p>
+        </div>
+      </div>
+      <div class="page-header__actions">
+        <el-button :icon="Plus" type="primary" @click="openCreate">新建客诉</el-button>
+      </div>
+    </div>
+
     <!-- Stats Cards -->
-    <el-row :gutter="16" class="stats-row">
-      <el-col :xs="12" :sm="6">
+    <el-row :gutter="12" class="stats-row">
+      <el-col :xs="12" :sm="6" :lg="4">
         <el-card shadow="hover" class="stat-card">
           <div class="stat-value">{{ stats.totalCount }}</div>
           <div class="stat-label">投诉总数</div>
         </el-card>
       </el-col>
-      <el-col v-for="item in SEVERITY_OPTIONS" :key="item.value" :xs="12" :sm="6">
+      <el-col v-for="item in SEVERITY_OPTIONS" :key="item.value" :xs="12" :sm="6" :lg="4">
         <el-card shadow="hover" class="stat-card">
           <div class="stat-value">{{ stats.bySeverity[item.value] || 0 }}</div>
           <div class="stat-label">{{ item.label }}</div>
         </el-card>
       </el-col>
-      <el-col v-for="item in STATUS_OPTIONS" :key="item.value" :xs="12" :sm="6">
+      <el-col v-for="item in STATUS_OPTIONS" :key="item.value" :xs="12" :sm="6" :lg="4">
         <el-card shadow="hover" class="stat-card">
           <div class="stat-value">{{ stats.byStatus[item.value] || 0 }}</div>
           <div class="stat-label">{{ item.label }}</div>
         </el-card>
       </el-col>
-      <el-col :xs="12" :sm="6">
+      <el-col :xs="12" :sm="6" :lg="4">
         <el-card shadow="hover" class="stat-card">
           <div class="stat-value">{{ stats.avgDaysToClose.toFixed(1) }}</div>
           <div class="stat-label">平均处理天数</div>
@@ -239,7 +253,7 @@ onMounted(async () => {
     </el-row>
 
     <!-- Search Toolbar -->
-    <div class="search-bar">
+    <div class="toolbar-row">
       <el-input
         v-model="searchKeyword"
         placeholder="搜索代码/主题/客户..."
@@ -251,15 +265,14 @@ onMounted(async () => {
       <el-select v-model="customerIdFilter" placeholder="客户" clearable filterable style="width: 180px" @change="applySearch">
         <el-option v-for="opt in customerOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
       </el-select>
-      <el-select v-model="severityFilter" placeholder="严重程度" clearable style="width: 130px" @change="applySearch">
+      <el-select v-model="severityFilter" placeholder="严重程度" clearable style="width: 140px" @change="applySearch">
         <el-option v-for="opt in SEVERITY_OPTIONS" :key="opt.value" :label="opt.label" :value="opt.value" />
       </el-select>
-      <el-select v-model="statusFilter" placeholder="状态" clearable style="width: 130px" @change="applySearch">
+      <el-select v-model="statusFilter" placeholder="状态" clearable style="width: 140px" @change="applySearch">
         <el-option v-for="opt in STATUS_OPTIONS" :key="opt.value" :label="opt.label" :value="opt.value" />
       </el-select>
       <el-button :icon="Refresh" @click="loadComplaints">刷新</el-button>
-      <div class="search-spacer" />
-      <el-button type="primary" :icon="Plus" @click="openCreate">新建客诉</el-button>
+      <div class="toolbar-spacer" />
     </div>
 
     <!-- Data Table -->
@@ -270,6 +283,7 @@ onMounted(async () => {
       :total="pagination.total.value"
       :current-page="pagination.currentPage.value"
       :page-size="pagination.pageSize.value"
+      :page-sizes="[10, 20, 50, 100]"
       @update:current-page="handlePageChange"
       @update:page-size="handleSizeChange"
     >
@@ -363,19 +377,48 @@ onMounted(async () => {
 </template>
 
 <style scoped>
-.page-container { display: flex; flex-direction: column; height: 100%; }
+.page-container { display: flex; flex-direction: column; height: 100%; gap: 16px; }
 
-.search-bar {
+/* Page Header */
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--el-bg-color);
+  border-radius: var(--radius-lg, 8px);
+  padding: 16px 20px;
+  border: 1px solid var(--el-border-color-lighter);
+}
+.page-header__main { display: flex; align-items: center; gap: 12px; }
+.page-header__icon {
+  color: var(--el-color-primary);
+  flex-shrink: 0;
+}
+.page-header__title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+  line-height: 1.2;
+}
+.page-header__subtitle {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: var(--el-text-color-secondary);
+}
+.page-header__actions { display: flex; gap: 8px; }
+
+/* Toolbar */
+.toolbar-row {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: 12px;
   flex-wrap: wrap;
 }
+.toolbar-spacer { flex: 1; }
 
-.search-spacer { flex: 1; }
-
-.stats-row { margin-bottom: 12px; }
+/* Stats */
+.stats-row { margin: 0; }
 
 .stat-card { text-align: center; }
 

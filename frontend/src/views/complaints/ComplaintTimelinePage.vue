@@ -2,6 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
+import { List, Back, Clock } from '@element-plus/icons-vue'
 import { complaintApi } from '@/api/complaint'
 import { EVENT_TYPE_MAP } from '@/types/complaint'
 import type { ComplaintEvent } from '@/types/complaint'
@@ -58,14 +59,25 @@ onMounted(() => {
 
 <template>
   <div class="page-container">
-    <div class="toolbar-row">
-      <el-button @click="goToList">← 返回列表</el-button>
+    <!-- Page Header -->
+    <div class="page-header">
+      <div class="page-header__main">
+        <el-icon class="page-header__icon" :size="28"><List /></el-icon>
+        <div class="page-header__text">
+          <h2 class="page-header__title">投诉时间线</h2>
+          <p class="page-header__subtitle">客户投诉处理全过程追踪</p>
+        </div>
+      </div>
+      <div class="page-header__actions">
+        <el-button :icon="Back" @click="goToList">返回列表</el-button>
+      </div>
     </div>
 
-    <el-card v-loading="loading">
+    <!-- Timeline Card -->
+    <el-card v-loading="loading" shadow="never" class="timeline-card">
       <template v-if="events.length === 0 && !loading">
         <div class="empty-state">
-          <el-icon :size="48" color="#909399"><Timeline /></el-icon>
+          <el-icon :size="48" color="#909399"><Clock /></el-icon>
           <p>暂无事件记录</p>
         </div>
       </template>
@@ -97,8 +109,26 @@ onMounted(() => {
 </template>
 
 <style scoped>
-.page-container { display: flex; flex-direction: column; height: 100%; }
-.toolbar-row { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+.page-container { display: flex; flex-direction: column; height: 100%; gap: 16px; }
+
+/* Page Header */
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--el-bg-color);
+  border-radius: var(--radius-lg, 8px);
+  padding: 16px 20px;
+  border: 1px solid var(--el-border-color-lighter);
+}
+.page-header__main { display: flex; align-items: center; gap: 12px; }
+.page-header__icon { color: var(--el-color-primary); flex-shrink: 0; }
+.page-header__title { margin: 0; font-size: 20px; font-weight: 600; color: var(--el-text-color-primary); line-height: 1.2; }
+.page-header__subtitle { margin: 4px 0 0; font-size: 13px; color: var(--el-text-color-secondary); }
+.page-header__actions { display: flex; gap: 8px; }
+
+/* Timeline */
+.timeline-card { margin: 0; }
 .empty-state { text-align: center; padding: 60px 0; color: var(--el-text-color-secondary); }
 .event-card { margin-bottom: 0; }
 .event-header { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }

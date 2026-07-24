@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace QM_AI.API.Models;
 
-[Table("equipments")]
+[Table("equipment")]
 public class Equipment
 {
     [Key]

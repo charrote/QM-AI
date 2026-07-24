@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { Folder, Search, Upload, Refresh, Download, Edit, Delete, Check, Close, Plus } from '@element-plus/icons-vue'
 import { documentApi } from '@/api/document'
 import { DOC_TYPE_OPTIONS, DOC_STATUS_OPTIONS, DOC_STATUS_MAP } from '@/types/document'
-import { Search, Upload, Refresh, Download, Edit, Delete, Check, Close } from '@element-plus/icons-vue'
 import type { Document } from '@/types/document'
 import type { PagedResult } from '@/types/basicData'
 import type { UploadRawFile, UploadFile } from 'element-plus'
@@ -202,7 +202,21 @@ onMounted(() => {
 
 <template>
   <div class="page-container">
-    <!-- Toolbar -->
+    <!-- Page Header -->
+    <div class="page-header">
+      <div class="page-header__main">
+        <el-icon class="page-header__icon" :size="28"><Folder /></el-icon>
+        <div class="page-header__text">
+          <h2 class="page-header__title">文件管理</h2>
+          <p class="page-header__subtitle">质量文件与记录的集中管理</p>
+        </div>
+      </div>
+      <div class="page-header__actions">
+        <el-button :icon="Plus" type="primary" @click="openCreate">新建文档</el-button>
+      </div>
+    </div>
+
+    <!-- Search Toolbar -->
     <div class="toolbar-row">
       <el-input v-model="searchKeyword" placeholder="搜索标题/关键词..." clearable style="width: 240px" @keyup.enter="handleSearch" />
       <el-select v-model="searchDocType" placeholder="文档类型" clearable style="width: 160px">
@@ -211,60 +225,62 @@ onMounted(() => {
       <el-select v-model="searchStatus" placeholder="状态" clearable style="width: 140px">
         <el-option v-for="opt in DOC_STATUS_OPTIONS" :key="opt.value" :label="opt.label" :value="opt.value" />
       </el-select>
-      <el-button type="primary" :icon="Search" @click="handleSearch">搜索</el-button>
+      <el-button :icon="Search" @click="handleSearch">搜索</el-button>
       <el-button @click="resetSearch">重置</el-button>
-      <el-button type="primary" @click="openCreate">+ 新建文档</el-button>
       <el-button :icon="Refresh" @click="loadDocuments">刷新</el-button>
+      <div class="toolbar-spacer" />
     </div>
 
-    <!-- Table -->
-    <el-table :data="documents" stripe v-loading="tableLoading" style="width: 100%" >
-      <el-table-column prop="title" label="标题" min-width="180" show-overflow-tooltip />
-      <el-table-column prop="docType" label="文档类型" width="140">
-        <template #default="{ row }">
-          {{ DOC_TYPE_OPTIONS.find(o => o.value === row.docType)?.label || row.docType }}
-        </template>
-      </el-table-column>
-      <el-table-column prop="version" label="版本" width="60" />
-      <el-table-column prop="status" label="状态" width="80">
-        <template #default="{ row }">
-          <el-tag :type="statusTagType(row.status)" size="small" effect="plain">{{ statusLabel(row.status) }}</el-tag>
-        </template>
-      </el-table-column>
-      <el-table-column prop="fileSizeBytes" label="大小" width="90">
-        <template #default="{ row }">{{ formatFileSize(row.fileSizeBytes) }}</template>
-      </el-table-column>
-      <el-table-column prop="createdBy" label="创建人" width="100" />
-      <el-table-column prop="createdAt" label="创建时间" width="170">
-        <template #default="{ row }">{{ formatDate(row.createdAt) }}</template>
-      </el-table-column>
-      <el-table-column label="操作" width="300" fixed="right">
-        <template #default="{ row }">
-          <el-button link size="small" type="primary" @click="openEdit(row)">编辑</el-button>
-          
-          <el-button v-if="row.status === 'draft'" link size="small" type="primary" @click="downloadDoc(row)">下载</el-button>
-          <el-button v-if="row.status === 'draft'" link size="small" type="success" :icon="Check" @click="openApprove(row)">审批</el-button>
-          <el-button v-if="row.status === 'reviewing'" link size="small" type="danger" :icon="Close" @click="openReject(row)">驳回</el-button>
-          <el-button link size="small" type="danger" @click="deleteDoc(row)">删除</el-button>
-        </template>
-      </el-table-column>
-    </el-table>
+    <!-- Data Table Card -->
+    <div class="data-card">
+      <el-table :data="documents" stripe v-loading="tableLoading" style="width: 100%">
+        <el-table-column prop="title" label="标题" min-width="200" show-overflow-tooltip />
+        <el-table-column prop="docType" label="文档类型" width="150">
+          <template #default="{ row }">
+            {{ DOC_TYPE_OPTIONS.find(o => o.value === row.docType)?.label || row.docType }}
+          </template>
+        </el-table-column>
+        <el-table-column prop="version" label="版本" width="70" align="center" />
+        <el-table-column prop="status" label="状态" width="100" align="center">
+          <template #default="{ row }">
+            <el-tag :type="statusTagType(row.status)" size="small" effect="plain">{{ statusLabel(row.status) }}</el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column prop="fileSizeBytes" label="大小" width="90" align="center">
+          <template #default="{ row }">{{ formatFileSize(row.fileSizeBytes) }}</template>
+        </el-table-column>
+        <el-table-column prop="createdBy" label="创建人" width="100" />
+        <el-table-column prop="createdAt" label="创建时间" width="180">
+          <template #default="{ row }">{{ formatDate(row.createdAt) }}</template>
+        </el-table-column>
+        <el-table-column label="操作" width="320" fixed="right">
+          <template #default="{ row }">
+            <el-button link size="small" type="primary" :icon="Edit" @click="openEdit(row)">编辑</el-button>
+            <el-button v-if="row.status === 'draft'" link size="small" type="primary" :icon="Download" @click="downloadDoc(row)">下载</el-button>
+            <el-button v-if="row.status === 'draft'" link size="small" type="success" :icon="Check" @click="openApprove(row)">审批</el-button>
+            <el-button v-if="row.status === 'reviewing'" link size="small" type="danger" :icon="Close" @click="openReject(row)">驳回</el-button>
+            <el-button link size="small" type="danger" :icon="Delete" @click="deleteDoc(row)">删除</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
 
-    <!-- Pagination -->
-    <div class="pagination-row">
-      <el-pagination
-        v-model:current-page="page"
-        v-model:page-size="pageSize"
-        :total="total"
-        layout="total, prev, pager, next"
-        size="small"
-        @current-change="loadDocuments"
-      />
+      <!-- Pagination -->
+      <div class="pagination-row">
+        <el-pagination
+          v-model:current-page="page"
+          v-model:page-size="pageSize"
+          :total="total"
+          :page-sizes="[10, 20, 50, 100]"
+          layout="total, sizes, prev, pager, next, jumper"
+          size="small"
+          @current-change="loadDocuments"
+        />
+      </div>
     </div>
 
     <!-- Dialog: Create/Edit -->
     <el-dialog v-model="dialogVisible" :title="isEditing ? '编辑文档' : '新建文档'" width="520px" :close-on-click-modal="false">
-      <el-form :model="docForm" label-width="90px" >
+      <el-form :model="docForm" label-width="90px">
         <el-form-item label="标题" required>
           <el-input v-model="docForm.title" placeholder="请输入文档标题" />
         </el-form-item>
@@ -287,7 +303,7 @@ onMounted(() => {
 
     <!-- Dialog: Approve -->
     <el-dialog v-model="approveDialogVisible" title="审批文档" width="440px" :close-on-click-modal="false">
-      <el-form :model="approveForm" label-width="90px" >
+      <el-form :model="approveForm" label-width="90px">
         <el-form-item label="审批人ID" required>
           <el-input-number v-model="approveForm.approvedBy" :min="1" placeholder="审批人ID" style="width: 100%" />
         </el-form-item>
@@ -300,7 +316,7 @@ onMounted(() => {
 
     <!-- Dialog: Reject -->
     <el-dialog v-model="rejectDialogVisible" title="驳回文档" width="440px" :close-on-click-modal="false">
-      <el-form :model="rejectForm" label-width="90px" >
+      <el-form :model="rejectForm" label-width="90px">
         <el-form-item label="驳回原因" required>
           <el-input v-model="rejectForm.reason" type="textarea" :rows="4" placeholder="请输入驳回原因" />
         </el-form-item>
@@ -318,17 +334,53 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   height: 100%;
+  gap: 16px;
 }
+
+/* Page Header */
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--el-bg-color);
+  border-radius: var(--radius-lg, 8px);
+  padding: 16px 20px;
+  border: 1px solid var(--el-border-color-lighter);
+}
+.page-header__main { display: flex; align-items: center; gap: 12px; }
+.page-header__icon { color: var(--el-color-primary); flex-shrink: 0; }
+.page-header__title { margin: 0; font-size: 20px; font-weight: 600; color: var(--el-text-color-primary); line-height: 1.2; }
+.page-header__subtitle { margin: 4px 0 0; font-size: 13px; color: var(--el-text-color-secondary); }
+.page-header__actions { display: flex; gap: 8px; }
+
+/* Toolbar */
 .toolbar-row {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: 12px;
   flex-wrap: wrap;
 }
+.toolbar-spacer { flex: 1; }
+
+/* Data Card */
+.data-card {
+  background: var(--el-bg-color);
+  border-radius: var(--radius-lg, 8px);
+  border: 1px solid var(--el-border-color-lighter);
+  overflow: hidden;
+}
+.data-card :deep(.el-table th.el-table__cell) {
+  background: var(--el-fill-color-light) !important;
+}
+.data-card :deep(.el-table) {
+  border-radius: 0;
+}
+
+/* Pagination */
 .pagination-row {
   display: flex;
   justify-content: flex-end;
-  padding: 12px 0;
+  padding: var(--space-4, 12px);
+  border-top: 1px solid var(--el-border-color-lighter);
 }
 </style>

@@ -2,6 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
+import { FolderOpened, Back } from '@element-plus/icons-vue'
 import { auditApi } from '@/api/audit'
 import type { Audit, AuditFinding } from '@/types/audit'
 import {
@@ -55,15 +56,29 @@ onMounted(async () => {
 
 <template>
   <div class="page-container" v-loading="loading">
+    <!-- Page Header -->
+    <div class="page-header" v-if="audit">
+      <div class="page-header__main">
+        <el-button :icon="Back" link @click="router.go(-1)" style="margin-right: 8px">返回</el-button>
+        <el-icon class="page-header__icon" :size="28"><FolderOpened /></el-icon>
+        <div class="page-header__text">
+          <h2 class="page-header__title">审核详情</h2>
+          <p class="page-header__subtitle">审核详细信息与结论</p>
+        </div>
+      </div>
+      <div class="page-header__actions">
+        <el-tag :type="AUDIT_STATUS_OPTIONS.find(o => o.value === audit!.status)?.type || 'info'" size="default">
+          {{ AUDIT_STATUS_MAP[audit!.status] || audit!.status }}
+        </el-tag>
+      </div>
+    </div>
+
     <template v-if="audit">
-      <!-- Audit Info -->
+      <!-- Audit Info Card -->
       <el-card shadow="never" class="detail-card">
         <template #header>
           <div class="card-header">
             <span>审核信息</span>
-            <el-tag :type="AUDIT_STATUS_OPTIONS.find(o => o.value === audit!.status)?.type || 'info'">
-              {{ AUDIT_STATUS_MAP[audit!.status] || audit!.status }}
-            </el-tag>
           </div>
         </template>
         <el-descriptions :column="2" border>
@@ -82,7 +97,7 @@ onMounted(async () => {
         </el-descriptions>
       </el-card>
 
-      <!-- Findings -->
+      <!-- Findings Card -->
       <el-card shadow="never" class="detail-card">
         <template #header>
           <div class="card-header">
@@ -92,48 +107,76 @@ onMounted(async () => {
             </el-button>
           </div>
         </template>
-        <el-table :data="findings" stripe >
-          <el-table-column prop="id" label="ID" width="60" />
-          <el-table-column label="类型" width="100">
-            <template #default="{ row }">
-              <el-tag :type="FINDING_TYPE_OPTIONS.find(o => o.value === row.findingType)?.type || 'info'" size="small">
-                {{ FINDING_TYPE_MAP[row.findingType] || row.findingType }}
-              </el-tag>
-            </template>
-          </el-table-column>
-          <el-table-column label="严重程度" width="90">
-            <template #default="{ row }">
-              <el-tag :type="SEVERITY_OPTIONS.find(o => o.value === row.severity)?.type || 'info'" size="small">
-                {{ SEVERITY_MAP[row.severity] || row.severity }}
-              </el-tag>
-            </template>
-          </el-table-column>
-          <el-table-column prop="description" label="描述" min-width="200" show-overflow-tooltip />
-          <el-table-column prop="evidence" label="证据" min-width="150" show-overflow-tooltip />
-          <el-table-column label="状态" width="90">
-            <template #default="{ row }">
-              <el-tag :type="FINDING_STATUS_OPTIONS.find(o => o.value === row.status)?.type || 'info'" size="small">
-                {{ FINDING_STATUS_MAP[row.status] || row.status }}
-              </el-tag>
-            </template>
-          </el-table-column>
-          <el-table-column label="责任人" width="80">
-            <template #default="{ row }">{{ row.responsibleUserId || '-' }}</template>
-          </el-table-column>
-          <el-table-column label="截止日期" width="110">
-            <template #default="{ row }">{{ row.rectificationDueDate?.slice(0, 10) || '-' }}</template>
-          </el-table-column>
-          <el-table-column label="创建时间" width="150">
-            <template #default="{ row }">{{ formatDate(row.createdAt) }}</template>
-          </el-table-column>
-        </el-table>
+        <div class="data-card-inner">
+          <el-table :data="findings" stripe>
+            <el-table-column prop="id" label="ID" width="60" align="center" />
+            <el-table-column label="类型" width="110" align="center">
+              <template #default="{ row }">
+                <el-tag :type="FINDING_TYPE_OPTIONS.find(o => o.value === row.findingType)?.type || 'info'" size="small">
+                  {{ FINDING_TYPE_MAP[row.findingType] || row.findingType }}
+                </el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column label="严重程度" width="100" align="center">
+              <template #default="{ row }">
+                <el-tag :type="SEVERITY_OPTIONS.find(o => o.value === row.severity)?.type || 'info'" size="small">
+                  {{ SEVERITY_MAP[row.severity] || row.severity }}
+                </el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column prop="description" label="描述" min-width="220" show-overflow-tooltip />
+            <el-table-column prop="evidence" label="证据" min-width="160" show-overflow-tooltip />
+            <el-table-column label="状态" width="100" align="center">
+              <template #default="{ row }">
+                <el-tag :type="FINDING_STATUS_OPTIONS.find(o => o.value === row.status)?.type || 'info'" size="small">
+                  {{ FINDING_STATUS_MAP[row.status] || row.status }}
+                </el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column label="责任人" width="90" align="center">
+              <template #default="{ row }">{{ row.responsibleUserId || '-' }}</template>
+            </el-table-column>
+            <el-table-column label="截止日期" width="120" align="center">
+              <template #default="{ row }">{{ row.rectificationDueDate?.slice(0, 10) || '-' }}</template>
+            </el-table-column>
+            <el-table-column label="创建时间" width="170">
+              <template #default="{ row }">{{ formatDate(row.createdAt) }}</template>
+            </el-table-column>
+          </el-table>
+        </div>
       </el-card>
     </template>
   </div>
 </template>
 
 <style scoped>
-.page-container { display: flex; flex-direction: column; height: 100%; }
-.detail-card { margin-bottom: 16px; }
+.page-container { display: flex; flex-direction: column; height: 100%; gap: 16px; }
+
+/* Page Header */
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--el-bg-color);
+  border-radius: var(--radius-lg, 8px);
+  padding: 16px 20px;
+  border: 1px solid var(--el-border-color-lighter);
+}
+.page-header__main { display: flex; align-items: center; gap: 12px; }
+.page-header__icon { color: var(--el-color-primary); flex-shrink: 0; }
+.page-header__title { margin: 0; font-size: 20px; font-weight: 600; color: var(--el-text-color-primary); line-height: 1.2; }
+.page-header__subtitle { margin: 4px 0 0; font-size: 13px; color: var(--el-text-color-secondary); }
+.page-header__actions { display: flex; gap: 8px; }
+
+/* Detail */
+.detail-card { margin: 0; }
 .card-header { display: flex; align-items: center; justify-content: space-between; }
+.data-card-inner {
+  background: var(--el-bg-color);
+  border-radius: var(--radius-lg, 8px);
+  overflow: hidden;
+}
+.data-card-inner :deep(.el-table th.el-table__cell) {
+  background: var(--el-fill-color-light) !important;
+}
 </style>

@@ -2,6 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
+import { CircleCheck, InfoFilled, AlarmClock, Search, Tools, Shield, Select } from '@element-plus/icons-vue'
 import { defectApi } from '@/api/defect'
 import type { Capa, CapaRootCause, CapaCorrectiveAction, CapaPreventiveAction, CapaVerification } from '@/types/defect'
 import {
@@ -130,140 +131,157 @@ onMounted(loadCapaDetail)
 
 <template>
   <div class="page-container" v-if="capa">
-    <div class="header-section">
-      <h2 class="capa-title">{{ capa.title }}</h2>
-      <div class="capa-meta">
-        <el-tag type="info" size="small">{{ capa.capaCode }}</el-tag>
-        <el-tag :type="capa.severity === 'critical' ? 'danger' : capa.severity === 'major' ? 'warning' : 'info'" size="small">
-          {{ SEVERITY_MAP[capa.severity] }}
-        </el-tag>
-        <el-tag :type="capa.status === 'active' ? 'primary' : capa.status === 'completed' ? 'success' : 'info'" size="small">
-          {{ CAPA_STATUS_MAP[capa.status] }}
-        </el-tag>
+    <!-- Page Header -->
+    <div class="page-header">
+      <div class="page-header-main">
+        <div class="page-header-icon"><el-icon :size="28"><CircleCheck /></el-icon></div>
+        <div class="page-header-text">
+          <div class="capa-title-row">
+            <h2>{{ capa.title }}</h2>
+            <div class="capa-meta">
+              <el-tag type="info" size="small">{{ capa.capaCode }}</el-tag>
+              <el-tag :type="capa.severity === 'critical' ? 'danger' : capa.severity === 'major' ? 'warning' : 'info'" size="small">
+                {{ SEVERITY_MAP[capa.severity] }}
+              </el-tag>
+              <el-tag :type="capa.status === 'active' ? 'primary' : capa.status === 'completed' ? 'success' : 'info'" size="small">
+                {{ CAPA_STATUS_MAP[capa.status] }}
+              </el-tag>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
-    <el-steps :active="capa.currentPhase" finish-status="success" class="capa-stepper">
-      <el-step
-        v-for="step in CAPA_PHASE_LABELS"
-        :key="step.phase"
-        :title="step.label"
-        :description="step.phase <= capa.currentPhase ? '已完成' : '待进行'"
-      />
-    </el-steps>
+    <!-- Steps -->
+    <el-card shadow="never" class="steps-card">
+      <el-steps :active="capa.currentPhase" finish-status="success" justify="space-between">
+        <el-step
+          v-for="step in CAPA_PHASE_LABELS"
+          :key="step.phase"
+          :title="step.label"
+          :description="step.phase <= capa.currentPhase ? '已完成' : '待进行'"
+        />
+      </el-steps>
+    </el-card>
 
-    <el-descriptions :column="3" border class="detail-descriptions">
-      <el-descriptions-item label="缺陷ID">{{ capa.defectId }}</el-descriptions-item>
-      <el-descriptions-item label="负责人">{{ capa.assignedTo }}</el-descriptions-item>
-      <el-descriptions-item label="截止日期">{{ capa.dueDate?.slice(0, 10) || '-' }}</el-descriptions-item>
-      <el-descriptions-item label="创建人">{{ capa.createdBy }}</el-descriptions-item>
-      <el-descriptions-item label="创建时间">{{ formatDate(capa.createdAt) }}</el-descriptions-item>
-      <el-descriptions-item label="关闭时间" v-if="capa.closedAt">{{ formatDate(capa.closedAt) }}</el-descriptions-item>
-    </el-descriptions>
-
-    <el-divider />
-    <p class="section-desc"><strong>问题描述：</strong>{{ capa.description || '无' }}</p>
-    <el-divider />
+    <!-- Basic Info -->
+    <el-card shadow="never" class="info-card">
+      <template #header>
+        <span class="card-title"><el-icon><InfoFilled /></el-icon> 基本信息</span>
+      </template>
+      <el-descriptions :column="3" border>
+        <el-descriptions-item label="缺陷ID">{{ capa.defectId }}</el-descriptions-item>
+        <el-descriptions-item label="负责人">{{ capa.assignedTo }}</el-descriptions-item>
+        <el-descriptions-item label="截止日期">{{ capa.dueDate?.slice(0, 10) || '-' }}</el-descriptions-item>
+        <el-descriptions-item label="创建人">{{ capa.createdBy }}</el-descriptions-item>
+        <el-descriptions-item label="创建时间">{{ formatDate(capa.createdAt) }}</el-descriptions-item>
+        <el-descriptions-item label="关闭时间" v-if="capa.closedAt">{{ formatDate(capa.closedAt) }}</el-descriptions-item>
+      </el-descriptions>
+      <div class="description-block">
+        <strong>问题描述：</strong>
+        <span>{{ capa.description || '无' }}</span>
+      </div>
+    </el-card>
 
     <!-- Phase 1: 临时措施 -->
-    <el-card class="phase-card">
+    <el-card class="phase-card" :class="{ 'phase-active': capa.currentPhase >= 1 && capa.currentPhase < 2 }">
       <template #header>
         <div class="card-header">
-          <span><el-icon><AlarmClock /></el-icon> 临时措施 (Phase 1)</span>
-          <el-tag :type="capa.currentPhase >= 1 ? 'success' : 'info'" size="small">
+          <span><el-icon><AlarmClock /></el-icon> 阶段一：临时措施</span>
+          <el-tag :type="capa.currentPhase >= 1 ? 'success' : 'info'" size="small" effect="dark">
             {{ capa.currentPhase >= 1 ? '已完成' : '待进行' }}
           </el-tag>
         </div>
       </template>
       <div v-if="capa.temporaryMeasures && capa.temporaryMeasures.length > 0">
-        <el-table :data="capa.temporaryMeasures"  stripe>
+        <el-table :data="capa.temporaryMeasures" stripe>
           <el-table-column prop="description" label="措施描述" min-width="200" />
           <el-table-column prop="executedBy" label="执行人" width="90" />
-          <el-table-column label="执行时间" width="160">
+          <el-table-column label="执行时间" width="165">
             <template #default="{ row }">{{ formatDate(row.executedAt) }}</template>
           </el-table-column>
         </el-table>
       </div>
       <el-empty v-else description="暂无临时措施" :image-size="60" />
-      <el-row :gutter="12" class="phase-form" v-if="capa.currentPhase >= 1 && capa.currentPhase < 2">
-        <el-col :span="12">
-          <el-input v-model="tempMeasureForm.description" placeholder="措施描述"  />
-        </el-col>
-        <el-col :span="4">
-          <el-input v-model="tempMeasureForm.executedBy" placeholder="执行人"  />
-        </el-col>
-        <el-col :span="4">
-          <el-date-picker v-model="tempMeasureForm.executedAt" type="date" style="width: 100%" />
-        </el-col>
-        <el-col :span="2">
-          <el-button type="primary" size="small" @click="addTemporaryMeasure">添加</el-button>
-        </el-col>
-      </el-row>
+      <div v-if="capa.currentPhase >= 1 && capa.currentPhase < 2" class="phase-form">
+        <el-form :model="tempMeasureForm" inline>
+          <el-form-item label="措施描述">
+            <el-input v-model="tempMeasureForm.description" placeholder="措施描述" style="width: 200px" />
+          </el-form-item>
+          <el-form-item label="执行人">
+            <el-input v-model="tempMeasureForm.executedBy" placeholder="执行人" style="width: 120px" />
+          </el-form-item>
+          <el-form-item label="执行日期">
+            <el-date-picker v-model="tempMeasureForm.executedAt" type="date" style="width: 150px" />
+          </el-form-item>
+          <el-button type="primary" @click="addTemporaryMeasure">添加</el-button>
+        </el-form>
+      </div>
     </el-card>
 
     <!-- Phase 2: 根本原因分析 -->
-    <el-card class="phase-card">
+    <el-card class="phase-card" :class="{ 'phase-active': capa.currentPhase >= 2 && capa.currentPhase < 3 }">
       <template #header>
         <div class="card-header">
-          <span><el-icon><Search /></el-icon> 根本原因分析 / 5Why (Phase 2)</span>
-          <el-tag :type="capa.currentPhase >= 2 ? 'success' : 'info'" size="small">
+          <span><el-icon><Search /></el-icon> 阶段二：根本原因分析 / 5Why</span>
+          <el-tag :type="capa.currentPhase >= 2 ? 'success' : 'info'" size="small" effect="dark">
             {{ capa.currentPhase >= 2 ? '已完成' : '待进行' }}
           </el-tag>
         </div>
       </template>
       <div v-if="capa.rootCauses && capa.rootCauses.length > 0">
-        <el-table :data="capa.rootCauses"  stripe>
+        <el-table :data="capa.rootCauses" stripe>
           <el-table-column prop="analysisMethod" label="分析方法" width="100" />
           <el-table-column prop="content" label="分析内容" min-width="250" show-overflow-tooltip />
           <el-table-column prop="rootCauseSummary" label="根因总结" min-width="180" show-overflow-tooltip />
           <el-table-column prop="createdBy" label="分析人" width="80" />
-          <el-table-column label="时间" width="160">
+          <el-table-column label="时间" width="165">
             <template #default="{ row }">{{ formatDate(row.createdAt) }}</template>
           </el-table-column>
         </el-table>
       </div>
       <el-empty v-else description="暂无根本原因分析" :image-size="60" />
-      <el-row :gutter="12" class="phase-form" v-if="capa.currentPhase >= 2 && capa.currentPhase < 3">
-        <el-col :span="3">
-          <el-select v-model="rootCauseForm.analysisMethod"  style="width: 100%">
-            <el-option label="5Why" value="5Why" />
-            <el-option label="鱼骨图" value="fishbone" />
-            <el-option label="FMEA" value="FMEA" />
-            <el-option label="其他" value="other" />
-          </el-select>
-        </el-col>
-        <el-col :span="8">
-          <el-input v-model="rootCauseForm.content" placeholder="分析内容"  />
-        </el-col>
-        <el-col :span="7">
-          <el-input v-model="rootCauseForm.rootCauseSummary" placeholder="根因总结"  />
-        </el-col>
-        <el-col :span="6">
-          <el-button type="primary" size="small" @click="addRootCause">添加分析</el-button>
-        </el-col>
-      </el-row>
+      <div v-if="capa.currentPhase >= 2 && capa.currentPhase < 3" class="phase-form">
+        <el-form :model="rootCauseForm" inline>
+          <el-form-item label="分析方法">
+            <el-select v-model="rootCauseForm.analysisMethod" style="width: 120px">
+              <el-option label="5Why" value="5Why" />
+              <el-option label="鱼骨图" value="fishbone" />
+              <el-option label="FMEA" value="FMEA" />
+              <el-option label="其他" value="other" />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="分析内容">
+            <el-input v-model="rootCauseForm.content" placeholder="分析内容" style="width: 200px" />
+          </el-form-item>
+          <el-form-item label="根因总结">
+            <el-input v-model="rootCauseForm.rootCauseSummary" placeholder="根因总结" style="width: 160px" />
+          </el-form-item>
+          <el-button type="primary" @click="addRootCause">添加分析</el-button>
+        </el-form>
+      </div>
     </el-card>
 
     <!-- Phase 3: 纠正措施 -->
-    <el-card class="phase-card">
+    <el-card class="phase-card" :class="{ 'phase-active': capa.currentPhase >= 3 && capa.currentPhase < 4 }">
       <template #header>
         <div class="card-header">
-          <span><el-icon><Tools /></el-icon> 纠正措施 (Phase 3)</span>
-          <el-tag :type="capa.currentPhase >= 3 ? 'success' : 'info'" size="small">
+          <span><el-icon><Tools /></el-icon> 阶段三：纠正措施</span>
+          <el-tag :type="capa.currentPhase >= 3 ? 'success' : 'info'" size="small" effect="dark">
             {{ capa.currentPhase >= 3 ? '已完成' : '待进行' }}
           </el-tag>
         </div>
       </template>
       <div v-if="capa.correctiveActions && capa.correctiveActions.length > 0">
-        <el-table :data="capa.correctiveActions"  stripe>
+        <el-table :data="capa.correctiveActions" stripe>
           <el-table-column prop="actionDescription" label="措施描述" min-width="200" />
           <el-table-column prop="responsiblePerson" label="负责人" width="90" />
-          <el-table-column label="截止日期" width="110">
+          <el-table-column label="截止日期" width="115">
             <template #default="{ row }">{{ row.dueDate?.slice(0, 10) || '-' }}</template>
           </el-table-column>
-          <el-table-column label="状态" width="90">
+          <el-table-column label="状态" width="95">
             <template #default="{ row }">
-              <el-tag :type="ACTION_STATUS_OPTIONS.find(o => o.value === row.status)?.type || 'info'" size="small">
+              <el-tag :type="ACTION_STATUS_OPTIONS.find(o => o.value === row.status)?.type || 'info'" size="small" effect="dark">
                 {{ ACTION_STATUS_MAP[row.status] || row.status }}
               </el-tag>
             </template>
@@ -286,42 +304,42 @@ onMounted(loadCapaDetail)
         </el-table>
       </div>
       <el-empty v-else description="暂无纠正措施" :image-size="60" />
-      <el-row :gutter="12" class="phase-form" v-if="capa.currentPhase >= 3 && capa.currentPhase < 4">
-        <el-col :span="8">
-          <el-input v-model="correctiveForm.actionDescription" placeholder="措施描述"  />
-        </el-col>
-        <el-col :span="5">
-          <el-input v-model="correctiveForm.responsiblePerson" placeholder="负责人"  />
-        </el-col>
-        <el-col :span="5">
-          <el-date-picker v-model="correctiveForm.dueDate" type="date" style="width: 100%" />
-        </el-col>
-        <el-col :span="6">
-          <el-button type="primary" size="small" @click="addCorrectiveAction">添加</el-button>
-        </el-col>
-      </el-row>
+      <div v-if="capa.currentPhase >= 3 && capa.currentPhase < 4" class="phase-form">
+        <el-form :model="correctiveForm" inline>
+          <el-form-item label="措施描述">
+            <el-input v-model="correctiveForm.actionDescription" placeholder="措施描述" style="width: 200px" />
+          </el-form-item>
+          <el-form-item label="负责人">
+            <el-input v-model="correctiveForm.responsiblePerson" placeholder="负责人" style="width: 120px" />
+          </el-form-item>
+          <el-form-item label="截止日期">
+            <el-date-picker v-model="correctiveForm.dueDate" type="date" style="width: 150px" />
+          </el-form-item>
+          <el-button type="primary" @click="addCorrectiveAction">添加</el-button>
+        </el-form>
+      </div>
     </el-card>
 
     <!-- Phase 4: 预防措施 -->
-    <el-card class="phase-card">
+    <el-card class="phase-card" :class="{ 'phase-active': capa.currentPhase >= 4 && capa.currentPhase < 5 }">
       <template #header>
         <div class="card-header">
-          <span><el-icon><Shield /></el-icon> 预防措施 (Phase 4)</span>
-          <el-tag :type="capa.currentPhase >= 4 ? 'success' : 'info'" size="small">
+          <span><el-icon><Shield /></el-icon> 阶段四：预防措施</span>
+          <el-tag :type="capa.currentPhase >= 4 ? 'success' : 'info'" size="small" effect="dark">
             {{ capa.currentPhase >= 4 ? '已完成' : '待进行' }}
           </el-tag>
         </div>
       </template>
       <div v-if="capa.preventiveActions && capa.preventiveActions.length > 0">
-        <el-table :data="capa.preventiveActions"  stripe>
+        <el-table :data="capa.preventiveActions" stripe>
           <el-table-column prop="actionDescription" label="措施描述" min-width="200" />
           <el-table-column prop="responsiblePerson" label="负责人" width="90" />
-          <el-table-column label="截止日期" width="110">
+          <el-table-column label="截止日期" width="115">
             <template #default="{ row }">{{ row.dueDate?.slice(0, 10) || '-' }}</template>
           </el-table-column>
-          <el-table-column label="状态" width="90">
+          <el-table-column label="状态" width="95">
             <template #default="{ row }">
-              <el-tag :type="ACTION_STATUS_OPTIONS.find(o => o.value === row.status)?.type || 'info'" size="small">
+              <el-tag :type="ACTION_STATUS_OPTIONS.find(o => o.value === row.status)?.type || 'info'" size="small" effect="dark">
                 {{ ACTION_STATUS_MAP[row.status] || row.status }}
               </el-tag>
             </template>
@@ -344,36 +362,36 @@ onMounted(loadCapaDetail)
         </el-table>
       </div>
       <el-empty v-else description="暂无预防措施" :image-size="60" />
-      <el-row :gutter="12" class="phase-form" v-if="capa.currentPhase >= 4 && capa.currentPhase < 5">
-        <el-col :span="8">
-          <el-input v-model="preventiveForm.actionDescription" placeholder="措施描述"  />
-        </el-col>
-        <el-col :span="5">
-          <el-input v-model="preventiveForm.responsiblePerson" placeholder="负责人"  />
-        </el-col>
-        <el-col :span="5">
-          <el-date-picker v-model="preventiveForm.dueDate" type="date" style="width: 100%" />
-        </el-col>
-        <el-col :span="6">
-          <el-button type="primary" size="small" @click="addPreventiveAction">添加</el-button>
-        </el-col>
-      </el-row>
+      <div v-if="capa.currentPhase >= 4 && capa.currentPhase < 5" class="phase-form">
+        <el-form :model="preventiveForm" inline>
+          <el-form-item label="措施描述">
+            <el-input v-model="preventiveForm.actionDescription" placeholder="措施描述" style="width: 200px" />
+          </el-form-item>
+          <el-form-item label="负责人">
+            <el-input v-model="preventiveForm.responsiblePerson" placeholder="负责人" style="width: 120px" />
+          </el-form-item>
+          <el-form-item label="截止日期">
+            <el-date-picker v-model="preventiveForm.dueDate" type="date" style="width: 150px" />
+          </el-form-item>
+          <el-button type="primary" @click="addPreventiveAction">添加</el-button>
+        </el-form>
+      </div>
     </el-card>
 
     <!-- Phase 5: 效果验证 -->
-    <el-card class="phase-card">
+    <el-card class="phase-card" :class="{ 'phase-active': capa.currentPhase >= 5 && capa.currentPhase < 6 }">
       <template #header>
         <div class="card-header">
-          <span><el-icon><Select /></el-icon> 效果验证 (Phase 5)</span>
-          <el-tag :type="capa.currentPhase >= 5 ? 'success' : 'info'" size="small">
+          <span><el-icon><Select /></el-icon> 阶段五：效果验证</span>
+          <el-tag :type="capa.currentPhase >= 5 ? 'success' : 'info'" size="small" effect="dark">
             {{ capa.currentPhase >= 5 ? '已完成' : '待进行' }}
           </el-tag>
         </div>
       </template>
       <div v-if="capa.verifications && capa.verifications.length > 0">
-        <el-table :data="capa.verifications"  stripe>
+        <el-table :data="capa.verifications" stripe>
           <el-table-column prop="verifierId" label="验证人ID" width="90" />
-          <el-table-column label="验证日期" width="160">
+          <el-table-column label="验证日期" width="165">
             <template #default="{ row }">{{ formatDate(row.verificationDate) }}</template>
           </el-table-column>
           <el-table-column prop="conclusion" label="结论" min-width="150" />
@@ -382,40 +400,46 @@ onMounted(loadCapaDetail)
         </el-table>
       </div>
       <el-empty v-else description="暂无验证记录" :image-size="60" />
-      <el-row :gutter="12" class="phase-form" v-if="capa.currentPhase >= 5 && capa.currentPhase < 6">
-        <el-col :span="3">
-          <el-input-number v-model="verificationForm.verifierId" :min="0" placeholder="验证人ID"  style="width: 100%" />
-        </el-col>
-        <el-col :span="4">
-          <el-date-picker v-model="verificationForm.verificationDate" type="date" style="width: 100%" />
-        </el-col>
-        <el-col :span="5">
-          <el-input v-model="verificationForm.conclusion" placeholder="结论"  />
-        </el-col>
-        <el-col :span="5">
-          <el-input v-model="verificationForm.evidence" placeholder="证据"  />
-        </el-col>
-        <el-col :span="4">
-          <el-input v-model="verificationForm.remarks" placeholder="备注"  />
-        </el-col>
-        <el-col :span="3">
-          <el-button type="primary" size="small" @click="addVerification">添加</el-button>
-        </el-col>
-      </el-row>
+      <div v-if="capa.currentPhase >= 5 && capa.currentPhase < 6" class="phase-form">
+        <el-form :model="verificationForm" inline>
+          <el-form-item label="验证人ID">
+            <el-input-number v-model="verificationForm.verifierId" :min="0" style="width: 120px" />
+          </el-form-item>
+          <el-form-item label="验证日期">
+            <el-date-picker v-model="verificationForm.verificationDate" type="date" style="width: 150px" />
+          </el-form-item>
+          <el-form-item label="结论">
+            <el-input v-model="verificationForm.conclusion" placeholder="结论" style="width: 150px" />
+          </el-form-item>
+          <el-form-item label="证据">
+            <el-input v-model="verificationForm.evidence" placeholder="证据" style="width: 150px" />
+          </el-form-item>
+          <el-form-item label="备注">
+            <el-input v-model="verificationForm.remarks" placeholder="备注" style="width: 120px" />
+          </el-form-item>
+          <el-button type="primary" @click="addVerification">添加</el-button>
+        </el-form>
+      </div>
     </el-card>
   </div>
   <el-empty v-else description="CAPA不存在" />
 </template>
 
 <style scoped>
-.page-container { display: flex; flex-direction: column; gap: 8px; }
-.header-section { display: flex; align-items: center; gap: 16px; margin-bottom: 8px; }
-.capa-title { margin: 0; font-size: 18px; }
-.capa-meta { display: flex; gap: 6px; }
-.capa-stepper { padding: 12px 0; }
-.detail-descriptions { margin-bottom: 0; }
-.section-desc { margin: 0; font-size: 14px; }
-.phase-card { margin-bottom: 8px; }
+.page-container { display: flex; flex-direction: column; gap: 12px; }
+.page-header { margin-bottom: 4px; }
+.page-header-main { display: flex; align-items: center; gap: 14px; }
+.page-header-icon { width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; background: #ecf5ff; border-radius: 10px; }
+.capa-title-row { display: flex; flex-direction: column; gap: 6px; }
+.capa-title { margin: 0; font-size: 20px; font-weight: 600; color: #303133; }
+.capa-meta { display: flex; gap: 6px; flex-wrap: wrap; }
+.steps-card { margin-bottom: 4px; }
+.info-card { margin-bottom: 4px; }
+.card-title { font-weight: 600; display: flex; align-items: center; gap: 6px; }
+.description-block { margin-top: 12px; padding: 12px; background: #f5f7fa; border-radius: 6px; font-size: 14px; line-height: 1.6; }
+.phase-card { margin-bottom: 8px; transition: all 0.3s; }
+.phase-active { border-top: 3px solid #409eff; box-shadow: 0 2px 12px rgba(64, 158, 255, 0.1); }
 .card-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.phase-form { margin-top: 12px; }
+.phase-form { margin-top: 12px; padding: 12px; background: #f5f7fa; border-radius: 6px; }
+.phase-form >>> .el-form-item { margin-bottom: 0; margin-right: 8px; }
 </style>

@@ -46,7 +46,7 @@ public class ProductsController : ControllerBase
     }
 
     [HttpGet("{id}")]
-    public async Task<ActionResult<ProductDetailDto>> Get(int id)
+    public async Task<ActionResult<ProductDetailDto>> Get(long id)
     {
         var p = await _db.Products.FindAsync(id);
         if (p == null) return NotFound();
@@ -69,6 +69,7 @@ public class ProductsController : ControllerBase
             Code = dto.Code, Name = dto.Name, Description = dto.Description,
             Unit = dto.Unit, Category = dto.Category,
             DefaultInspectionLevel = dto.DefaultInspectionLevel, DefaultAql = dto.DefaultAql,
+            OrgId = dto.OrgId,
         };
         _db.Products.Add(entity);
         await _db.SaveChangesAsync();
@@ -76,7 +77,7 @@ public class ProductsController : ControllerBase
     }
 
     [HttpPut("{id}")]
-    public async Task<ActionResult<ProductDetailDto>> Update(int id, [FromBody] UpdateProductDto dto)
+    public async Task<ActionResult<ProductDetailDto>> Update(long id, [FromBody] UpdateProductDto dto)
     {
         var entity = await _db.Products.FindAsync(id);
         if (entity == null) return NotFound();
@@ -87,13 +88,13 @@ public class ProductsController : ControllerBase
         entity.Code = dto.Code; entity.Name = dto.Name; entity.Description = dto.Description;
         entity.Unit = dto.Unit; entity.Category = dto.Category;
         entity.DefaultInspectionLevel = dto.DefaultInspectionLevel; entity.DefaultAql = dto.DefaultAql;
-        entity.IsActive = dto.IsActive; entity.UpdatedAt = DateTime.UtcNow;
+        entity.OrgId = dto.OrgId; entity.IsActive = dto.IsActive; entity.UpdatedAt = DateTime.UtcNow;
         await _db.SaveChangesAsync();
         return Ok(MapToDetail(entity));
     }
 
     [HttpDelete("{id}")]
-    public async Task<IActionResult> Delete(int id)
+    public async Task<IActionResult> Delete(long id)
     {
         var entity = await _db.Products.FindAsync(id);
         if (entity == null) return NotFound();
@@ -106,6 +107,6 @@ public class ProductsController : ControllerBase
     {
         Id = p.Id, Code = p.Code, Name = p.Name, Description = p.Description,
         Category = p.Category, Unit = p.Unit, DefaultInspectionLevel = p.DefaultInspectionLevel,
-        DefaultAql = p.DefaultAql, IsActive = p.IsActive, CreatedAt = p.CreatedAt,
+        DefaultAql = p.DefaultAql, IsActive = p.IsActive, CreatedAt = p.CreatedAt, OrgId = p.OrgId,
     };
 }

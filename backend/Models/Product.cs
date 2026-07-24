@@ -50,6 +50,10 @@ public class Product
     [Column("is_active")]
     public bool IsActive { get; set; } = true;
 
+    /// <summary>所属组织ID</summary>
+    [Column("org_id")]
+    public long? OrgId { get; set; }
+
     [Column("created_at")]
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 

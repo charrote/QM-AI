@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
+import { Connection } from '@element-plus/icons-vue'
 import { equipmentLinkApi } from '@/api/equipmentLink'
 import { equipmentApi } from '@/api/basicData'
 import { View } from '@element-plus/icons-vue'
@@ -65,52 +66,66 @@ onMounted(() => {
 </script>
 <template>
   <div class="page-container">
-    <div class="toolbar-row">
-      <el-date-picker
-        v-model="query.dateStart"
-        type="date"
-        placeholder="开始日期"
-        size="small"
-        value-format="YYYY-MM-DD"
-        style="width: 150px"
-      />
-      <span style="line-height: 28px">至</span>
-      <el-date-picker
-        v-model="query.dateEnd"
-        type="date"
-        placeholder="结束日期"
-        size="small"
-        value-format="YYYY-MM-DD"
-        style="width: 150px"
-      />
-      <el-button @click="handleSearch" size="small">查询</el-button>
-      <el-button @click="resetQuery" size="small">重置</el-button>
+    <!-- Page Header -->
+    <div class="page-header">
+      <div class="page-header-main">
+        <div class="page-header-icon"><el-icon :size="28"><Connection /></el-icon></div>
+        <div class="page-header-text">
+          <h2>质量关联分析</h2>
+          <p>设备参数与质量数据的关联关系分析</p>
+        </div>
+      </div>
     </div>
 
-    <el-table :data="correlations" v-loading="loading" stripe border style="width: 100%"  row-key="id">
-      <el-table-column prop="equipmentId" label="设备ID" width="70" />
-      <el-table-column label="设备名称" min-width="140">
-        <template #default="{ row }">{{ getEquipmentName(row.equipmentId) }}</template>
-      </el-table-column>
-      <el-table-column prop="analysisDate" label="分析日期" width="120">
-        <template #default="{ row }">{{ formatDate(row.analysisDate) }}</template>
-      </el-table-column>
-      <el-table-column label="关联数据" min-width="200">
-        <template #default="{ row }">
-          <el-button link type="primary" size="small" @click="viewCorrelation(row)">
-            <el-icon><View /></el-icon> 查看
-          </el-button>
-          <span v-if="!row.correlationData" class="text-gray-400">无数据</span>
-        </template>
-      </el-table-column>
-      <el-table-column prop="createdAt" label="创建时间" width="160">
-        <template #default="{ row }">{{ formatDate(row.createdAt) }}</template>
-      </el-table-column>
-    </el-table>
+    <!-- Toolbar -->
+    <el-card shadow="never" class="search-card">
+      <div class="search-bar">
+        <el-date-picker
+          v-model="query.dateStart"
+          type="date"
+          placeholder="开始日期"
+          value-format="YYYY-MM-DD"
+          style="width: 160px"
+        />
+        <span class="date-separator">至</span>
+        <el-date-picker
+          v-model="query.dateEnd"
+          type="date"
+          placeholder="结束日期"
+          value-format="YYYY-MM-DD"
+          style="width: 160px"
+        />
+        <el-button type="primary" @click="handleSearch">查询</el-button>
+        <el-button @click="resetQuery">重置</el-button>
+      </div>
+    </el-card>
 
-    <div v-if="!loading && correlations.length === 0" class="empty-hint">
-      暂无质量关联数据
-    </div>
+    <!-- Table -->
+    <el-card shadow="never" class="table-card">
+      <el-table :data="correlations" v-loading="loading" stripe border style="width: 100%" row-key="id">
+        <el-table-column label="设备" min-width="150">
+          <template #default="{ row }"><span class="equipment-name">{{ getEquipmentName(row.equipmentId) }}</span></template>
+        </el-table-column>
+        <el-table-column label="分析日期" width="170">
+          <template #default="{ row }">{{ formatDate(row.analysisDate) }}</template>
+        </el-table-column>
+        <el-table-column label="关联数据" min-width="200">
+          <template #default="{ row }">
+            <el-button link type="primary" size="small" @click="viewCorrelation(row)">
+              <el-icon><View /></el-icon> 查看详情
+            </el-button>
+            <span v-if="!row.correlationData" class="text-gray-400">无数据</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="创建时间" width="170">
+          <template #default="{ row }">{{ formatDate(row.createdAt) }}</template>
+        </el-table-column>
+      </el-table>
+
+      <div v-if="!loading && correlations.length === 0" class="empty-hint">
+        暂无质量关联数据
+      </div>
+    </el-card>
 
     <el-dialog v-model="detailVisible" title="关联数据详情" width="700px">
       <pre class="detail-data">{{ detailData }}</pre>
@@ -122,8 +137,17 @@ onMounted(() => {
 </template>
 <style scoped>
 .page-container { display: flex; flex-direction: column; height: 100%; }
-.toolbar-row { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+.page-header { margin-bottom: 16px; }
+.page-header-main { display: flex; align-items: center; gap: 14px; }
+.page-header-icon { width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; background: #e6f7ff; border-radius: 10px; }
+.page-header-text h2 { margin: 0; font-size: 20px; font-weight: 600; color: #303133; }
+.page-header-text p { margin: 2px 0 0; font-size: 13px; color: #909399; }
+.search-card { margin-bottom: 12px; }
+.search-bar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.date-separator { color: #909399; line-height: 36px; }
+.table-card { flex: 1; }
 .empty-hint { text-align: center; padding: 40px; color: #909399; font-size: 14px; }
+.equipment-name { font-weight: 500; color: #303133; }
 .detail-data {
   margin: 4px 0 0;
   padding: 8px;

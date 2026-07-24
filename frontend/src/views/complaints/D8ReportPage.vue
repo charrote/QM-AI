@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { DocumentChecked, Plus, Back, Refresh } from '@element-plus/icons-vue'
 import { d8ReportApi } from '@/api/d8Report'
+import { complaintApi } from '@/api/complaint'
 import type { D8Report } from '@/types/complaint'
 import {
   D8_DISCIPLINE_LABELS, D8_DISCIPLINE_MAP, D8_STATUS_OPTIONS,
@@ -126,8 +128,8 @@ async function saveD8() {
 async function deleteD8(row: D8Report) {
   try {
     await ElMessageBox.confirm('确定删除8D报告吗？', '确认', { type: 'warning' })
-    ElMessage.info('删除功能待实现')
-    ElMessage.success('已删除')
+    await d8ReportApi.update(row.id, { ...row } as any) // placeholder — delete not yet implemented
+    ElMessage.info('删除功能待后端实现')
     await loadD8List()
   } catch (e: any) {
     if (e !== 'cancel') ElMessage.error(e?.response?.data?.message || '删除失败')
@@ -159,12 +161,7 @@ async function advanceDiscipline() {
 
 function exportPdf() {
   if (!selectedD8.value) return
-  try {
-    d8ReportApi.get(selectedD8.value.id)
-    ElMessage.success('PDF下载中')
-  } catch (e: any) {
-    ElMessage.error(e?.response?.data?.message || '导出失败')
-  }
+  complaintApi.downloadPdf(selectedD8.value.id)
 }
 
 // Get field key for a given discipline index (0-8)
@@ -209,7 +206,6 @@ const stepLabels = [
 
 // Map discipline index to step index (0-10)
 function disciplineToStep(disc: number): number {
-  // D0=step0, D1=step1, D2=step2, D3=step3, D4=steps4-6, D5=step7, D6=step8, D7=step9, D8=step10
   if (disc === 4) return 4
   return disc + (disc >= 4 ? 3 : 0)
 }
@@ -229,45 +225,58 @@ onMounted(loadD8List)
 
 <template>
   <div class="page-container">
+    <!-- Page Header -->
+    <div class="page-header" v-if="viewMode === 'list'">
+      <div class="page-header__main">
+        <el-icon class="page-header__icon" :size="28"><DocumentChecked /></el-icon>
+        <div class="page-header__text">
+          <h2 class="page-header__title">8D 报告</h2>
+          <p class="page-header__subtitle">客户投诉 8D 分析报告</p>
+        </div>
+      </div>
+      <div class="page-header__actions">
+        <el-button :icon="Plus" type="primary" @click="openCreate">新建8D报告</el-button>
+      </div>
+    </div>
+
     <template v-if="viewMode === 'list'">
-      <!-- Toolbar -->
+      <!-- Search Toolbar -->
       <div class="toolbar-row">
         <el-input
           v-model="complaintIdFilter"
           placeholder="按投诉ID筛选"
           clearable
-          style="width: 200px"
+          style="width: 220px"
           @change="loadD8List"
         />
-        <el-button type="primary" @click="openCreate">+ 新建8D报告</el-button>
-        <el-button @click="loadD8List">刷新</el-button>
+        <el-button :icon="Refresh" @click="loadD8List">刷新</el-button>
       </div>
 
-      <!-- Table -->
-      <el-table :data="d8List" stripe style="width: 100%"  v-loading="loading">
-        <el-table-column prop="id" label="ID" width="60" />
-        <el-table-column prop="complaintId" label="投诉ID" width="80" />
-        <el-table-column label="D0·问题概述" min-width="200" show-overflow-tooltip>
+      <!-- Data Table -->
+      <el-table :data="d8List" stripe v-loading="loading" style="width: 100%" class="data-card-table">
+        <el-table-column prop="id" label="ID" width="70" />
+        <el-table-column prop="complaintId" label="投诉ID" width="90" />
+        <el-table-column label="D0·问题概述" min-width="220" show-overflow-tooltip>
           <template #default="{ row }">{{ row.d0Description?.slice(0, 50) || '-' }}</template>
         </el-table-column>
-        <el-table-column label="当前阶段" width="130">
+        <el-table-column label="当前阶段" width="140">
           <template #default="{ row }">
             <el-tag size="small" effect="plain">
               {{ D8_DISCIPLINE_LABELS[row.currentDiscipline]?.label || `D${row.currentDiscipline}` }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="状态" width="100">
+        <el-table-column label="状态" width="110">
           <template #default="{ row }">
             <el-tag :type="D8_STATUS_OPTIONS.find(o => o.value === row.status)?.type || 'info'" size="small" effect="plain">
               {{ D8_STATUS_MAP[row.status] || row.status }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="创建时间" width="150">
+        <el-table-column label="创建时间" width="170">
           <template #default="{ row }">{{ formatDate(row.createdAt) }}</template>
         </el-table-column>
-        <el-table-column label="操作" width="200" fixed="right">
+        <el-table-column label="操作" width="220" fixed="right">
           <template #default="{ row }">
             <el-button link size="small" type="primary" @click="viewDetail(row)">查看</el-button>
             <el-button link size="small" type="warning" @click="openEdit(row)">编辑</el-button>
@@ -279,17 +288,22 @@ onMounted(loadD8List)
 
     <template v-if="selectedD8">
       <!-- Detail View with Step Form -->
-      <div class="detail-header">
-        <el-button @click="viewMode = 'list'" style="margin-bottom: 12px">← 返回列表</el-button>
-        <h3>8D 报告 #{{ selectedD8.id }}</h3>
-        <div class="detail-actions">
+      <div class="page-header">
+        <div class="page-header__main">
+          <el-button :icon="Back" link @click="viewMode = 'list'" style="margin-right: 8px">返回列表</el-button>
+          <el-icon class="page-header__icon" :size="28"><DocumentChecked /></el-icon>
+          <div class="page-header__text">
+            <h2 class="page-header__title">8D 报告 #{{ selectedD8.id }}</h2>
+          </div>
+        </div>
+        <div class="page-header__actions">
           <el-button type="primary" size="small" @click="exportPdf">导出PDF</el-button>
           <el-button type="warning" size="small" @click="openEdit(selectedD8)">编辑</el-button>
         </div>
       </div>
 
       <!-- Steps -->
-      <el-card class="steps-card" style="margin-bottom: 16px">
+      <el-card class="steps-card" shadow="never" style="margin-bottom: 16px">
         <template #header>
           <div class="card-header">
             <span>8D 阶段进度</span>
@@ -331,7 +345,7 @@ onMounted(loadD8List)
       </el-card>
 
       <!-- Current Step Content -->
-      <el-card v-for="field in getDisciplineFields(getDisciplineFromStep(currentStep))" :key="field.key" class="discipline-card" style="margin-bottom: 12px">
+      <el-card v-for="field in getDisciplineFields(getDisciplineFromStep(currentStep))" :key="field.key" class="discipline-card" shadow="never" style="margin-bottom: 12px">
         <template #header>
           <span class="field-label">{{ field.label }}</span>
         </template>
@@ -365,7 +379,7 @@ onMounted(loadD8List)
       width="720px"
       :close-on-click-modal="false"
     >
-      <el-form :model="form" label-width="120px" >
+      <el-form :model="form" label-width="120px">
         <el-row :gutter="16">
           <el-col :span="12">
             <el-form-item label="投诉ID" required>
@@ -416,11 +430,43 @@ onMounted(loadD8List)
 </template>
 
 <style scoped>
-.page-container { display: flex; flex-direction: column; height: 100%; }
-.toolbar-row { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
-.detail-header { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-.detail-header h3 { margin: 0; }
-.detail-actions { margin-left: auto; display: flex; gap: 8px; }
+.page-container { display: flex; flex-direction: column; height: 100%; gap: 16px; }
+
+/* Page Header */
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--el-bg-color);
+  border-radius: var(--radius-lg, 8px);
+  padding: 16px 20px;
+  border: 1px solid var(--el-border-color-lighter);
+}
+.page-header__main { display: flex; align-items: center; gap: 12px; }
+.page-header__icon { color: var(--el-color-primary); flex-shrink: 0; }
+.page-header__title { margin: 0; font-size: 20px; font-weight: 600; color: var(--el-text-color-primary); line-height: 1.2; }
+.page-header__subtitle { margin: 4px 0 0; font-size: 13px; color: var(--el-text-color-secondary); }
+.page-header__actions { display: flex; gap: 8px; }
+
+/* Toolbar */
+.toolbar-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* Data Table Card */
+.data-card-table {
+  background: var(--el-bg-color);
+  border-radius: var(--radius-lg, 8px);
+  border: 1px solid var(--el-border-color-lighter);
+  overflow: hidden;
+}
+.data-card-table :deep(.el-table th.el-table__cell) {
+  background: var(--el-fill-color-light) !important;
+}
+
 .card-header { display: flex; align-items: center; justify-content: space-between; }
 .step-nav { display: flex; justify-content: space-between; }
 .field-label { font-weight: 600; font-size: 14px; }

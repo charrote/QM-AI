@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { Check, Plus, Refresh, Search, DocumentAdd, Delete } from '@element-plus/icons-vue'
 import { firstPieceApi } from '@/api/ipqc'
 import { inspectionPlanApi } from '@/api/inspectionPlan'
 import { processApi, equipmentApi } from '@/api/basicData'
@@ -228,50 +229,107 @@ onMounted(async () => {
 
 <template>
   <div class="page-container">
+    <!-- Page Header -->
+    <div class="page-header">
+      <div class="page-header-left">
+        <el-icon class="page-header-icon"><Check /></el-icon>
+        <div class="page-header-text">
+          <h2 class="page-title">首件检验</h2>
+          <p class="page-subtitle">管理产线首件检验流程与结论判定</p>
+        </div>
+      </div>
+      <div class="page-header-actions">
+        <el-button type="primary" :icon="Plus" @click="openCreate" round>新建首件检验</el-button>
+        <el-button :icon="Refresh" @click="loadData" :loading="loading">刷新</el-button>
+      </div>
+    </div>
+
     <!-- Toolbar -->
-    <div class="toolbar-row">
-      <el-input v-model="searchKeyword" placeholder="搜索单号..." clearable style="width: 260px" @clear="loadData" @keyup.enter="loadData" />
-      <el-select v-model="statusFilter" placeholder="结论" clearable style="width: 140px" @change="loadData">
-        <el-option v-for="o in IPQC_FIRST_PIECE_CONCLUSION_OPTIONS" :key="o.value" :label="o.label" :value="o.value" />
-      </el-select>
-      <el-button type="primary" @click="openCreate">+ 新建</el-button>
-      <el-button @click="loadData">刷新</el-button>
+    <div class="action-bar">
+      <div class="action-bar-left">
+        <el-input
+          v-model="searchKeyword"
+          placeholder="搜索首件编号..."
+          clearable
+          class="search-input"
+          :prefix-icon="Search"
+          @clear="loadData"
+          @keyup.enter="loadData"
+          style="width: 260px"
+        />
+        <el-select
+          v-model="statusFilter"
+          placeholder="筛选结论"
+          clearable
+          class="filter-select"
+          @change="loadData"
+        >
+          <el-option v-for="o in IPQC_FIRST_PIECE_CONCLUSION_OPTIONS" :key="o.value" :label="o.label" :value="o.value" />
+        </el-select>
+      </div>
     </div>
 
     <!-- Table -->
-    <el-table :data="items" stripe  v-loading="loading" style="flex:1">
-      <el-table-column prop="fpNo" label="首件编号" width="180" />
-      <el-table-column prop="processName" label="工序" width="140" />
-      <el-table-column prop="equipmentName" label="设备" width="140" />
-      <el-table-column prop="shift" label="班次" width="80" />
-      <el-table-column prop="reason" label="原因" width="120" />
-      <el-table-column label="结论" width="100">
-        <template #default="{ row }">
-          <el-tag :type="conclusionTag(row.conclusion)" size="small">
-            {{ conclusionLabel(row.conclusion) }}
-          </el-tag>
-        </template>
-      </el-table-column>
-      <el-table-column label="允许量产" width="100">
-        <template #default="{ row }">
-          <el-tag v-if="row.allowedToProduce" type="success" size="small">允许</el-tag>
-          <el-tag v-else type="info" size="small">未允许</el-tag>
-        </template>
-      </el-table-column>
-      <el-table-column prop="checkedAt" label="检验时间" width="160">
-        <template #default="{ row }">{{ formatDate(row.checkedAt) }}</template>
-      </el-table-column>
-      <el-table-column prop="createdAt" label="创建时间" width="160">
-        <template #default="{ row }">{{ formatDate(row.createdAt) }}</template>
-      </el-table-column>
-      <el-table-column label="操作" width="200" fixed="right">
-        <template #default="{ row }">
-          <el-button link size="small" type="primary" @click="openSubmit(row.id)" v-if="row.conclusion === 'pending'">提交</el-button>
-          <el-button link size="small" type="primary" @click="firstPieceApi.get(row.id).then(d => { /* detail view */ })">详情</el-button>
-          <el-button link size="small" type="danger" @click="handleDelete(row.id)">删除</el-button>
-        </template>
-      </el-table-column>
-    </el-table>
+    <div class="data-card">
+      <el-table
+        :data="items"
+        stripe
+        v-loading="loading"
+        class="styled-table"
+        @row-click="(row: IpqcFirstPiece) => {}"
+      >
+        <el-table-column prop="fpNo" label="首件编号" width="180" fixed />
+        <el-table-column prop="processName" label="工序" width="140" />
+        <el-table-column prop="equipmentName" label="设备" width="140" />
+        <el-table-column prop="shift" label="班次" width="80" align="center" />
+        <el-table-column prop="reason" label="原因" width="120" />
+        <el-table-column label="结论" width="120" align="center">
+          <template #default="{ row }">
+            <el-tag
+              :type="conclusionTag(row.conclusion)"
+              effect="dark"
+              size="default"
+              round
+              class="conclusion-tag"
+            >
+              {{ conclusionLabel(row.conclusion) }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="允许量产" width="100" align="center">
+          <template #default="{ row }">
+            <el-tag v-if="row.allowedToProduce" type="success" size="default" round effect="dark">
+              <el-icon><Check /></el-icon> 允许
+            </el-tag>
+            <el-tag v-else type="info" size="default" round>未允许</el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column prop="checkedAt" label="检验时间" width="170" align="center">
+          <template #default="{ row }">{{ formatDate(row.checkedAt) }}</template>
+        </el-table-column>
+        <el-table-column prop="createdAt" label="创建时间" width="170" align="center">
+          <template #default="{ row }">{{ formatDate(row.createdAt) }}</template>
+        </el-table-column>
+        <el-table-column label="操作" width="240" fixed="right" align="center">
+          <template #default="{ row }">
+            <el-button
+              link
+              size="small"
+              type="primary"
+              :icon="Plus"
+              @click="openSubmit(row.id)"
+              v-if="row.conclusion === 'pending'"
+            >提交</el-button>
+            <el-button link size="small" type="primary" :icon="DocumentAdd">详情</el-button>
+            <el-popconfirm title="确认删除该首件检验？" @confirm="handleDelete(row.id)">
+              <template #reference>
+                <el-button link size="small" type="danger" :icon="Delete">删除</el-button>
+              </template>
+            </el-popconfirm>
+          </template>
+        </el-table-column>
+      </el-table>
+    </div>
 
     <!-- Pagination -->
     <div class="pagination-row">
@@ -279,99 +337,364 @@ onMounted(async () => {
         v-model:current-page="page"
         v-model:page-size="pageSize"
         :total="total"
-        layout="total, prev, pager, next"
-        size="small"
+        layout="total, prev, pager, next, jumper"
+        :page-sizes="[10, 20, 50, 100]"
+        background
         @current-change="loadData"
       />
     </div>
 
     <!-- Create Dialog -->
-    <el-dialog v-model="dialogVisible" :title="dialogTitle" width="640px" :close-on-click-modal="false">
+    <el-dialog
+      v-model="dialogVisible"
+      :title="dialogTitle"
+      width="680px"
+      :close-on-click-modal="false"
+      class="styled-dialog"
+      destroy-on-close
+    >
       <template v-if="!isSubmit">
-        <el-form :model="form" label-width="100px" >
-          <el-form-item label="工单ID" required>
-            <el-input-number v-model="form.workOrderId" :min="1" style="width:200px" />
-          </el-form-item>
-          <el-form-item label="工序" required>
-            <el-select v-model="form.processId" filterable style="width:200px">
-              <el-option v-for="p in processes" :key="p.id" :label="p.name" :value="p.id" />
-            </el-select>
-          </el-form-item>
-          <el-form-item label="设备" required>
-            <el-select v-model="form.equipmentId" filterable style="width:200px">
-              <el-option v-for="e in equipmentList" :key="e.id" :label="e.name" :value="e.id" />
-            </el-select>
-          </el-form-item>
-          <el-form-item label="操作员ID">
-            <el-input-number v-model="form.operatorId" :min="0" style="width:200px" />
-          </el-form-item>
-          <el-form-item label="班次">
-            <el-select v-model="form.shift" style="width:200px">
-              <el-option v-for="o in IPQC_SHIFT_OPTIONS" :key="o.value" :label="o.label" :value="o.value" />
-            </el-select>
-          </el-form-item>
-          <el-form-item label="原因">
-            <el-select v-model="form.reason" style="width:200px">
-              <el-option v-for="o in IPQC_FIRST_PIECE_REASON_OPTIONS" :key="o.value" :label="o.label" :value="o.value" />
-            </el-select>
-          </el-form-item>
-          <el-form-item label="检验项">
-            <div style="width:100%">
-              <div v-if="loadingPlanItems" style="color:#909399;padding:8px 0;">⏳ 正在加载检验计划...</div>
-              <div v-for="(item, idx) in form.items" :key="idx" style="display:flex;gap:8px;margin-bottom:8px;align-items:center">
-                <el-input v-model="item.itemName" placeholder="项目名称" style="width:140px" :readonly="!!item.inspectionItemId" />
-                <el-select v-model="item.dataType" style="width:100px" :disabled="!!item.inspectionItemId">
+        <div class="dialog-section">
+          <h3 class="section-title-text"><el-icon><DocumentAdd /></el-icon> 基本信息</h3>
+          <el-form :model="form" label-width="96px" label-position="left" size="default">
+            <el-form-item label="工单ID" required>
+              <el-input-number v-model="form.workOrderId" :min="1" :controls="false" style="width:200px" />
+            </el-form-item>
+            <el-form-item label="工序" required>
+              <el-select v-model="form.processId" filterable placeholder="请选择工序" style="width:200px"
+                :loading="processes.length === 0">
+                <el-option v-for="p in processes" :key="p.id" :label="p.name" :value="p.id" />
+              </el-select>
+            </el-form-item>
+            <el-form-item label="设备" required>
+              <el-select v-model="form.equipmentId" filterable placeholder="请选择设备" style="width:200px"
+                :loading="equipmentList.length === 0">
+                <el-option v-for="e in equipmentList" :key="e.id" :label="e.name" :value="e.id" />
+              </el-select>
+            </el-form-item>
+            <el-form-item label="操作员ID">
+              <el-input-number v-model="form.operatorId" :min="0" :controls="false" style="width:200px" />
+            </el-form-item>
+            <el-form-item label="班次">
+              <el-select v-model="form.shift" style="width:200px">
+                <el-option v-for="o in IPQC_SHIFT_OPTIONS" :key="o.value" :label="o.label" :value="o.value" />
+              </el-select>
+            </el-form-item>
+            <el-form-item label="原因">
+              <el-select v-model="form.reason" style="width:200px">
+                <el-option v-for="o in IPQC_FIRST_PIECE_REASON_OPTIONS" :key="o.value" :label="o.label" :value="o.value" />
+              </el-select>
+            </el-form-item>
+          </el-form>
+          <el-divider />
+        </div>
+
+        <div class="dialog-section">
+          <h3 class="section-title-text"><el-icon><Plus /></el-icon> 检验项目</h3>
+          <div v-if="loadingPlanItems" class="plan-loading">⏳ 正在根据工序加载检验计划...</div>
+          <div class="items-list">
+            <div v-for="(item, idx) in form.items" :key="idx" class="item-row">
+              <div class="item-fields">
+                <el-input v-model="item.itemName" placeholder="项目名称" :readonly="!!item.inspectionItemId" />
+                <el-select v-model="item.dataType" :disabled="!!item.inspectionItemId">
                   <el-option v-for="o in DATA_TYPE_OPTIONS" :key="o.value" :label="o.label" :value="o.value" />
                 </el-select>
-                <el-input-number v-model="item.usl" placeholder="USL" :precision="4" :step="0.1" style="width:110px" controls-position="right" :disabled="!!item.inspectionItemId" />
-                <el-input-number v-model="item.lsl" placeholder="LSL" :precision="4" :step="0.1" style="width:110px" controls-position="right" :disabled="!!item.inspectionItemId" />
-                <el-tag v-if="item.inspectionItemId" size="small" type="info">计划</el-tag>
-                <el-button link type="danger" @click="removeItem(idx)" :disabled="form.items.length <= 1">✕</el-button>
+                <el-input-number v-model="item.usl" placeholder="USL" :precision="4" :step="0.1" controls-position="right" :disabled="!!item.inspectionItemId" />
+                <el-input-number v-model="item.lsl" placeholder="LSL" :precision="4" :step="0.1" controls-position="right" :disabled="!!item.inspectionItemId" />
+                <el-tag v-if="item.inspectionItemId" size="small" type="success" round effect="dark">计划</el-tag>
               </div>
-              <el-button size="small" @click="addItem">+ 添加项目</el-button>
+              <el-button
+                link
+                type="danger"
+                :icon="Delete"
+                class="remove-btn"
+                @click="removeItem(idx)"
+                :disabled="form.items.length <= 1"
+              />
             </div>
-          </el-form-item>
-        </el-form>
+            <el-button size="small" @click="addItem" round>
+              <el-icon><Plus /></el-icon> 添加项目
+            </el-button>
+          </div>
+        </div>
       </template>
+
       <template v-else>
-        <el-form :model="submitForm" label-width="100px" >
-          <el-form-item label="检验结论" required>
-            <el-select v-model="submitForm.conclusion" style="width:200px">
-              <el-option v-for="o in IPQC_FIRST_PIECE_CONCLUSION_OPTIONS" :key="o.value" :label="o.label" :value="o.value" />
-            </el-select>
-          </el-form-item>
-          <el-form-item label="允许量产">
-            <el-switch v-model="submitForm.allowedToProduce" />
-          </el-form-item>
-          <el-form-item label="检验员">
-            <el-input v-model="submitForm.inspector" style="width:200px" />
-          </el-form-item>
-          <el-form-item label="检验项结果">
-            <div style="width:100%">
-              <div v-for="(item, idx) in submitForm.items" :key="idx" style="display:flex;gap:8px;margin-bottom:8px;align-items:center">
-                <span style="min-width:120px">{{ item.itemName }}</span>
-                <el-input-number v-model="item.actualValue" :precision="4" :step="0.1" style="width:140px" controls-position="right" />
-                <el-select v-model="item.result" style="width:100px">
-                  <el-option v-for="o in INSPECTION_RESULT_OPTIONS" :key="o.value" :label="o.label" :value="o.value" />
-                </el-select>
-                <span v-if="item.usl != null" style="color:#909399;font-size:12px">({{ item.lsl }} ~ {{ item.usl }})</span>
+        <el-form :model="submitForm" label-width="96px" label-position="left" size="default">
+          <div class="dialog-section">
+            <h3 class="section-title-text"><el-icon><Check /></el-icon> 结论判定</h3>
+            <el-form-item label="检验结论" required>
+              <el-select v-model="submitForm.conclusion" style="width:240px">
+                <el-option v-for="o in IPQC_FIRST_PIECE_CONCLUSION_OPTIONS" :key="o.value" :label="o.label" :value="o.value" />
+              </el-select>
+            </el-form-item>
+            <el-form-item label="允许量产">
+              <el-switch v-model="submitForm.allowedToProduce" active-text="允许" inactive-text="不允许" />
+            </el-form-item>
+            <el-form-item label="检验员">
+              <el-input v-model="submitForm.inspector" style="width:200px" placeholder="检验员姓名" />
+            </el-form-item>
+          </div>
+          <el-divider />
+          <div class="dialog-section">
+            <h3 class="section-title-text"><el-icon><DocumentAdd /></el-icon> 检验项结果</h3>
+            <div class="items-list">
+              <div v-for="(item, idx) in submitForm.items" :key="idx" class="item-row">
+                <div class="item-fields">
+                  <span class="item-name">{{ item.itemName }}</span>
+                  <el-input-number v-model="item.actualValue" :precision="4" :step="0.1" controls-position="right" />
+                  <el-select v-model="item.result">
+                    <el-option v-for="o in INSPECTION_RESULT_OPTIONS" :key="o.value" :label="o.label" :value="o.value" />
+                  </el-select>
+                  <span v-if="item.usl != null" class="range-info">({{ item.lsl }} ~ {{ item.usl }})</span>
+                </div>
               </div>
             </div>
-          </el-form-item>
+          </div>
         </el-form>
       </template>
+
       <template #footer>
-        <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="isSubmit ? handleSubmit() : handleSave()">
-          {{ isSubmit ? '提交' : '保存' }}
-        </el-button>
+        <div class="dialog-footer">
+          <el-button @click="dialogVisible = false">取 消</el-button>
+          <el-button type="primary" @click="isSubmit ? handleSubmit() : handleSave()">
+            {{ isSubmit ? '提 交' : '保 存' }}
+          </el-button>
+        </div>
       </template>
     </el-dialog>
   </div>
 </template>
 
 <style scoped>
-.page-container { display: flex; flex-direction: column; height: 100%; }
-.toolbar-row { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
-.pagination-row { display: flex; justify-content: flex-end; padding: 12px 0; }
+.page-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--el-bg-color, #f5f7fa);
+}
+
+/* ─── Page Header ────────────────────────────── */
+
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  background: #fff;
+  border-bottom: 1px solid var(--el-border-color-lighter, #ebeef5);
+  flex-shrink: 0;
+}
+
+.page-header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.page-header-icon {
+  font-size: 24px;
+  color: var(--el-color-primary, #409eff);
+}
+
+.page-header-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.page-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--el-text-color-primary, #303133);
+  line-height: 1.3;
+}
+
+.page-subtitle {
+  margin: 0;
+  font-size: 12px;
+  color: var(--el-text-color-secondary, #909399);
+  line-height: 1.2;
+}
+
+.page-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ─── Action Bar ─────────────────────────────── */
+
+.action-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 20px;
+  background: #fff;
+  margin: 12px 0 0;
+  border-radius: 8px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+  flex-shrink: 0;
+}
+
+.action-bar-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.search-input :deep(.el-input__wrapper) {
+  border-radius: 6px;
+}
+
+.filter-select :deep(.el-input__wrapper) {
+  border-radius: 6px;
+}
+
+/* ─── Data Card ──────────────────────────────── */
+
+.data-card {
+  flex: 1;
+  overflow: auto;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+  margin-bottom: 12px;
+}
+
+.styled-table {
+  width: 100%;
+}
+
+.styled-table :deep(.el-table__header-wrapper th) {
+  background: #f5f7fa !important;
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--el-text-color-regular, #606266);
+}
+
+.styled-table :deep(.el-table__row) {
+  transition: background-color 0.2s;
+}
+
+.styled-table :deep(.el-table__row:hover) {
+  background-color: #ecf5ff !important;
+}
+
+.conclusion-tag {
+  font-weight: 500;
+}
+
+/* ─── Pagination ─────────────────────────────── */
+
+.pagination-row {
+  display: flex;
+  justify-content: flex-end;
+  padding: 12px 20px;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+  flex-shrink: 0;
+}
+
+/* ─── Dialog ─────────────────────────────────── */
+
+.dialog-section {
+  margin-bottom: 8px;
+}
+
+.section-title-text {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 16px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--el-text-color-primary, #303133);
+}
+
+.section-title-text .el-icon {
+  color: var(--el-color-primary, #409eff);
+}
+
+.plan-loading {
+  color: var(--el-text-color-secondary, #909399);
+  padding: 8px 0;
+  font-size: 13px;
+}
+
+.items-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.item-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--el-fill-color-lighter, #f2f3f5);
+  border-radius: 6px;
+  transition: background-color 0.2s;
+}
+
+.item-row:hover {
+  background: var(--el-fill-color-light, #f0f2f5);
+}
+
+.item-fields {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  flex-wrap: wrap;
+}
+
+.item-fields :deep(.el-input),
+.item-fields :deep(.el-select),
+.item-fields :deep(.el-input-number) {
+  min-width: 0;
+  flex: 0 0 auto;
+}
+
+.item-name {
+  min-width: 120px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--el-text-color-regular, #606266);
+  flex-shrink: 0;
+}
+
+.range-info {
+  color: var(--el-text-color-placeholder, #c0c4cc);
+  font-size: 11px;
+  flex-shrink: 0;
+}
+
+.remove-btn {
+  flex-shrink: 0;
+}
+
+.dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.styled-dialog :deep(.el-dialog__header) {
+  border-bottom: 1px solid var(--el-border-color-lighter, #ebeef5);
+  padding: 16px 20px;
+  margin-right: 0;
+}
+
+.styled-dialog :deep(.el-dialog__body) {
+  padding: 20px;
+}
+
+.styled-dialog :deep(.el-dialog__footer) {
+  border-top: 1px solid var(--el-border-color-lighter, #ebeef5);
+  padding: 12px 20px;
+}
 </style>

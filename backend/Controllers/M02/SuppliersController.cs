@@ -39,7 +39,7 @@ public class SuppliersController : ControllerBase
     }
 
     [HttpGet("{id}")]
-    public async Task<ActionResult<Supplier>> Get(int id)
+    public async Task<ActionResult<Supplier>> Get(long id)
     {
         var entity = await _db.Suppliers.FindAsync(id);
         if (entity == null) return NotFound();
@@ -64,7 +64,7 @@ public class SuppliersController : ControllerBase
     }
 
     [HttpPut("{id}")]
-    public async Task<ActionResult<Supplier>> Update(int id, [FromBody] UpdateSupplierDto dto)
+    public async Task<ActionResult<Supplier>> Update(long id, [FromBody] UpdateSupplierDto dto)
     {
         var entity = await _db.Suppliers.FindAsync(id);
         if (entity == null) return NotFound();
@@ -81,7 +81,7 @@ public class SuppliersController : ControllerBase
     }
 
     [HttpDelete("{id}")]
-    public async Task<IActionResult> Delete(int id)
+    public async Task<IActionResult> Delete(long id)
     {
         var entity = await _db.Suppliers.FindAsync(id);
         if (entity == null) return NotFound();

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { Search, Refresh, List, Check, Clock } from '@element-plus/icons-vue'
 import { patrolApi } from '@/api/ipqc'
 import { inspectionPlanApi } from '@/api/inspectionPlan'
 import type { IpqcPatrol, IpqcPatrolDetail, SubmitIpqcPatrol, IpqcPatrolItemSubmit } from '@/types/ipqc'
@@ -133,8 +134,8 @@ async function openSubmit(id: number) {
         submitForm.value.items = [{ itemName: '外观检查', dataType: 'visual', result: 'pending' }]
       }
     }
-  submitId.value = id
-  dialogVisible.value = true
+    submitId.value = id
+    dialogVisible.value = true
   } catch {
     ElMessage.error('加载巡检详情失败')
   }
@@ -207,111 +208,426 @@ onMounted(async () => {
 
 <template>
   <div class="page-container">
-    <!-- Toolbar -->
-    <div class="toolbar-row">
-      <el-input v-model="searchKeyword" placeholder="搜索巡检编号..." clearable style="width:260px" @clear="loadData" @keyup.enter="loadData" />
-      <el-select v-model="statusFilter" placeholder="状态" clearable style="width:120px" @change="loadData">
-        <el-option v-for="o in IPQC_PATROL_STATUS_OPTIONS" :key="o.value" :label="o.label" :value="o.value" />
-      </el-select>
-      <el-button @click="loadData">刷新</el-button>
+    <!-- Page Header -->
+    <div class="page-header">
+      <div class="page-header__icon-wrapper">
+        <el-icon :size="28"><List /></el-icon>
+      </div>
+      <div class="page-header__info">
+        <h1 class="page-header__title">巡检记录</h1>
+        <p class="page-header__subtitle">查看和管理现场巡检任务执行情况</p>
+      </div>
     </div>
 
-    <!-- Table -->
-    <el-table :data="items" stripe  v-loading="loading" style="flex:1">
-      <el-table-column prop="patrolNo" label="巡检编号" width="170" />
-      <el-table-column prop="planNo" label="计划编号" width="170" />
-      <el-table-column prop="processName" label="工序" width="120" />
-      <el-table-column prop="equipmentName" label="设备" width="120" />
-      <el-table-column label="计划时间" width="150">
-        <template #default="{ row }">{{ formatDate(row.scheduledTime) }}</template>
-      </el-table-column>
-      <el-table-column label="实际时间" width="150">
-        <template #default="{ row }">{{ formatDate(row.actualTime) }}</template>
-      </el-table-column>
-      <el-table-column prop="totalChecked" label="检验数" width="80" />
-      <el-table-column prop="totalPass" label="合格" width="60" />
-      <el-table-column prop="totalFail" label="不合格" width="70" />
-      <el-table-column label="结论" width="80">
-        <template #default="{ row }">
-          <el-tag :type="conclusionTag(row.conclusion)" size="small">
-            {{ row.conclusion === 'qualified' ? '合格' : row.conclusion === 'unqualified' ? '不合格' : '待定' }}
-          </el-tag>
-        </template>
-      </el-table-column>
-      <el-table-column label="状态" width="90">
-        <template #default="{ row }">
-          <el-tag :type="statusTag(row.status)" size="small">{{ statusLabel(row.status) }}</el-tag>
-        </template>
-      </el-table-column>
-      <el-table-column label="操作" width="220" fixed="right">
-        <template #default="{ row }">
-          <el-button v-if="row.status === 'scheduled'" link size="small" type="primary" @click="openSubmit(row.id)">执行</el-button>
-          <el-button v-else link size="small" type="primary" @click="viewDetail(row.id)">详情</el-button>
-          <el-button v-if="row.status === 'scheduled'" link size="small" type="warning" @click="handleMiss(row.id)">跳过</el-button>
-        </template>
-      </el-table-column>
-    </el-table>
+    <!-- Toolbar -->
+    <div class="action-bar">
+      <div class="action-bar__left">
+        <el-input
+          v-model="searchKeyword"
+          placeholder="搜索巡检编号"
+          :prefix-icon="Search"
+          clearable
+          style="width: 260px"
+          @clear="loadData"
+          @keyup.enter="loadData"
+        />
+        <el-select
+          v-model="statusFilter"
+          placeholder="状态筛选"
+          clearable
+          style="width: 140px"
+          @change="loadData"
+        >
+          <el-option v-for="o in IPQC_PATROL_STATUS_OPTIONS" :key="o.value" :label="o.label" :value="o.value" />
+        </el-select>
+        <el-button @click="loadData">
+          <el-icon><Refresh /></el-icon>
+          刷新
+        </el-button>
+      </div>
+    </div>
 
-    <!-- Pagination -->
-    <div class="pagination-row">
-      <el-pagination
-        v-model:current-page="page"
-        v-model:page-size="pageSize"
-        :total="total"
-        layout="total, prev, pager, next"
-        size="small"
-        @current-change="loadData"
-      />
+    <!-- Table Card -->
+    <div class="data-card">
+      <el-table
+        :data="items"
+        stripe
+        v-loading="loading"
+        :row-class-name="() => 'data-card__row'"
+        style="width: 100%"
+      >
+        <el-table-column prop="patrolNo" label="巡检编号" min-width="170" show-overflow-tooltip />
+        <el-table-column prop="planNo" label="计划编号" min-width="170" show-overflow-tooltip />
+        <el-table-column prop="processName" label="工序" min-width="120" show-overflow-tooltip />
+        <el-table-column prop="equipmentName" label="设备" min-width="120" show-overflow-tooltip />
+        <el-table-column label="计划时间" min-width="160">
+          <template #default="{ row }">
+            <div class="time-cell">
+              <el-icon><Clock /></el-icon>
+              {{ formatDate(row.scheduledTime) }}
+            </div>
+          </template>
+        </el-table-column>
+        <el-table-column label="实际时间" min-width="160">
+          <template #default="{ row }">
+            <div class="time-cell">
+              <el-icon><Clock /></el-icon>
+              {{ formatDate(row.actualTime) }}
+            </div>
+          </template>
+        </el-table-column>
+        <el-table-column prop="totalChecked" label="检验数" width="80" align="center" />
+        <el-table-column prop="totalPass" label="合格" width="70" align="center">
+          <template #default="{ row }">
+            <span class="stat-pass">{{ row.totalPass ?? '-' }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column prop="totalFail" label="不合格" width="80" align="center">
+          <template #default="{ row }">
+            <span :class="{ 'stat-fail': row.totalFail && row.totalFail > 0 }">{{ row.totalFail ?? '-' }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="结论" width="90" align="center">
+          <template #default="{ row }">
+            <el-tag :type="conclusionTag(row.conclusion)" size="small" effect="dark">
+              {{ row.conclusion === 'qualified' ? '合格' : row.conclusion === 'unqualified' ? '不合格' : '待定' }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="状态" width="100" align="center">
+          <template #default="{ row }">
+            <el-tag :type="statusTag(row.status)" size="small" effect="dark">{{ statusLabel(row.status) }}</el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" width="240" fixed="right" align="center">
+          <template #default="{ row }">
+            <el-button v-if="row.status === 'scheduled'" link size="small" type="primary" @click.stop="openSubmit(row.id)">
+              <el-icon><Check /></el-icon>
+              执行
+            </el-button>
+            <el-button v-else link size="small" type="primary" @click.stop="viewDetail(row.id)">详情</el-button>
+            <el-button v-if="row.status === 'scheduled'" link size="small" type="warning" @click.stop="handleMiss(row.id)">跳过</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+
+      <!-- Pagination -->
+      <div class="data-card__footer">
+        <el-pagination
+          v-model:current-page="page"
+          v-model:page-size="pageSize"
+          :total="total"
+          :page-sizes="[10, 20, 50, 100]"
+          :sizes-layout="'first, prev, pager, next'"
+          :pager-count="7"
+          layout="total, sizes, prev, pager, next, jumper"
+          background
+          @current-change="loadData"
+        />
+      </div>
     </div>
 
     <!-- Patrol Submit / Detail Dialog -->
-    <el-dialog v-model="dialogVisible" :title="dialogTitle" width="700px" :close-on-click-modal="false">
-      <template v-if="patrolDetail">
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;font-size:13px;color:#606266">
-          <div><strong>设备：</strong>{{ patrolDetail.equipmentName || '-' }}</div>
-          <div><strong>工序：</strong>{{ patrolDetail.processName || '-' }}</div>
-          <div><strong>计划时间：</strong>{{ formatDate(patrolDetail.scheduledTime) }}</div>
-          <div><strong>实际时间：</strong>{{ formatDate(patrolDetail.actualTime) }}</div>
-        </div>
-      </template>
-
-      <el-form :model="submitForm" label-width="100px" >
-        <el-form-item label="检验结论">
-          <el-select v-model="submitForm.conclusion" style="width:200px">
-            <el-option v-for="o in IPQC_PATROL_CONCLUSION_OPTIONS" :key="o.value" :label="o.label" :value="o.value" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="备注">
-          <el-input v-model="submitForm.remarks" type="textarea" :rows="2" style="width:400px" />
-        </el-form-item>
-        <el-form-item label="检验项">
-          <div style="width:100%">
-            <div v-for="(item, idx) in submitForm.items" :key="idx" style="display:flex;gap:8px;margin-bottom:8px;align-items:center;flex-wrap:wrap">
-              <el-input v-model="item.itemName" placeholder="项目名称" style="width:130px" :disabled="!!item.id" />
-              <el-select v-model="item.dataType" style="width:90px" :disabled="!!item.id">
-                <el-option v-for="o in DATA_TYPE_OPTIONS" :key="o.value" :label="o.label" :value="o.value" />
-              </el-select>
-              <el-input-number v-model="item.actualValue" :precision="4" :step="0.1" style="width:140px" controls-position="right" />
-              <el-select v-model="item.result" style="width:100px">
-                <el-option v-for="o in INSPECTION_RESULT_OPTIONS" :key="o.value" :label="o.label" :value="o.value" />
-              </el-select>
-              <el-button v-if="!item.id" link type="danger" @click="removePatrolItem(idx)">✕</el-button>
+    <el-dialog
+      v-model="dialogVisible"
+      :title="dialogTitle"
+      width="760px"
+      :close-on-click-modal="false"
+      top="5vh"
+    >
+      <div v-if="dialogVisible && patrolDetail">
+        <!-- Patrol Info -->
+        <div class="patrol-info-card">
+          <div class="patrol-info-row">
+            <div class="patrol-info-item">
+              <span class="patrol-info-label">设备</span>
+              <span class="patrol-info-value">{{ patrolDetail.equipmentName || '-' }}</span>
             </div>
-            <el-button size="small" @click="addPatrolItem">+ 添加项目</el-button>
+            <div class="patrol-info-item">
+              <span class="patrol-info-label">工序</span>
+              <span class="patrol-info-value">{{ patrolDetail.processName || '-' }}</span>
+            </div>
           </div>
-        </el-form-item>
-      </el-form>
+          <div class="patrol-info-row">
+            <div class="patrol-info-item">
+              <span class="patrol-info-label">计划时间</span>
+              <span class="patrol-info-value">{{ formatDate(patrolDetail.scheduledTime) }}</span>
+            </div>
+            <div class="patrol-info-item">
+              <span class="patrol-info-label">实际时间</span>
+              <span class="patrol-info-value">{{ formatDate(patrolDetail.actualTime) }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Conclusion & Remarks -->
+        <div class="dialog-section">
+          <div class="dialog-section__title">
+            <el-icon><Document /></el-icon>
+            <span>检验结论</span>
+          </div>
+          <div class="form-row">
+            <el-form :model="submitForm" label-width="80px" size="default">
+              <el-form-item label="结论">
+                <el-select v-model="submitForm.conclusion" style="width: 220px">
+                  <el-option v-for="o in IPQC_PATROL_CONCLUSION_OPTIONS" :key="o.value" :label="o.label" :value="o.value" />
+                </el-select>
+              </el-form-item>
+              <el-form-item label="备注">
+                <el-input v-model="submitForm.remarks" type="textarea" :rows="2" placeholder="备注信息" />
+              </el-form-item>
+            </el-form>
+          </div>
+        </div>
+
+        <!-- Inspection Items -->
+        <div class="dialog-section">
+          <div class="dialog-section__title">
+            <el-icon><List /></el-icon>
+            <span>检验项明细</span>
+          </div>
+          <div class="items-list">
+            <div v-for="(item, idx) in submitForm.items" :key="idx" class="item-card">
+              <div class="item-card__header">
+                <el-input
+                  v-model="item.itemName"
+                  placeholder="项目名称"
+                  style="width: 160px"
+                  :disabled="!!item.id"
+                  size="default"
+                />
+                <el-select v-model="item.dataType" style="width: 110px" :disabled="!!item.id" size="default">
+                  <el-option v-for="o in DATA_TYPE_OPTIONS" :key="o.value" :label="o.label" :value="o.value" />
+                </el-select>
+                <el-input-number
+                  v-model="item.actualValue"
+                  :precision="4"
+                  :step="0.1"
+                  style="width: 160px"
+                  controls-position="right"
+                  size="default"
+                />
+                <el-select v-model="item.result" style="width: 120px" size="default">
+                  <el-option v-for="o in INSPECTION_RESULT_OPTIONS" :key="o.value" :label="o.label" :value="o.value" />
+                </el-select>
+                <el-button v-if="!item.id" link type="danger" size="small" @click="removePatrolItem(idx)">
+                  <el-icon><Close /></el-icon>
+                </el-button>
+              </div>
+            </div>
+            <el-button type="primary" link @click="addPatrolItem">
+              <el-icon><Plus /></el-icon>
+              添加项目
+            </el-button>
+          </div>
+        </div>
+      </div>
 
       <template #footer>
         <el-button @click="dialogVisible = false">关闭</el-button>
-        <el-button type="primary" @click="handleSubmit" v-if="patrolDetail?.status === 'scheduled'">提交</el-button>
+        <el-button type="primary" @click="handleSubmit" v-if="patrolDetail?.status === 'scheduled'">
+          <el-icon><Check /></el-icon>
+          提交
+        </el-button>
       </template>
     </el-dialog>
   </div>
 </template>
 
 <style scoped>
-.page-container { display: flex; flex-direction: column; height: 100%; }
-.toolbar-row { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
-.pagination-row { display: flex; justify-content: flex-end; padding: 12px 0; }
+.page-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  gap: 16px;
+}
+
+/* ─── Page Header ──────────────────── */
+.page-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 0 4px;
+}
+
+.page-header__icon-wrapper {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  background: var(--el-color-primary-light-9, #ecf5ff);
+  color: var(--el-color-primary, #409eff);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.page-header__info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.page-header__title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text-primary, #303133);
+  line-height: 1.3;
+}
+
+.page-header__subtitle {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-secondary, #909399);
+  line-height: 1.4;
+}
+
+/* ─── Action Bar ───────────────────── */
+.action-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.action-bar__left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* ─── Data Card ────────────────────── */
+.data-card {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-card, #fff);
+  border-radius: 8px;
+  box-shadow: var(--shadow-sm, 0 1px 2px rgba(0,0,0,0.06));
+  overflow: hidden;
+}
+
+.data-card__row {
+  transition: background-color 0.2s;
+}
+
+.data-card__row:hover {
+  background-color: var(--el-fill-color-light, #f5f7fa) !important;
+}
+
+.data-card__footer {
+  display: flex;
+  justify-content: flex-end;
+  padding: 12px 16px;
+  border-top: 1px solid var(--el-border-color-lighter, #ebeef5);
+}
+
+/* ─── Time Cell ────────────────────── */
+.time-cell {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+}
+
+.time-cell .el-icon {
+  color: var(--el-text-placeholder, #c0c4cc);
+  flex-shrink: 0;
+}
+
+.stat-pass {
+  color: var(--el-color-success, #67c23a);
+  font-weight: 600;
+}
+
+.stat-fail {
+  color: var(--el-color-danger, #f56c6c);
+  font-weight: 600;
+}
+
+/* ─── Patrol Info Card ─────────────── */
+.patrol-info-card {
+  background: var(--el-fill-color-lighter, #f2f6fc);
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 20px;
+}
+
+.patrol-info-row {
+  display: flex;
+  gap: 24px;
+  margin-bottom: 8px;
+}
+
+.patrol-info-row:last-child {
+  margin-bottom: 0;
+}
+
+.patrol-info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
+.patrol-info-label {
+  font-size: 12px;
+  color: var(--el-text-secondary, #909399);
+}
+
+.patrol-info-value {
+  font-size: 14px;
+  color: var(--text-primary, #303133);
+  font-weight: 500;
+}
+
+/* ─── Dialog Sections ──────────────── */
+.dialog-section {
+  margin-bottom: 20px;
+}
+
+.dialog-section__title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary, #303133);
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--el-border-color-lighter, #ebeef5);
+}
+
+.dialog-section__title .el-icon {
+  color: var(--el-color-primary, #409eff);
+}
+
+.form-row {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+/* ─── Inspection Items ─────────────── */
+.items-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.item-card {
+  background: var(--el-fill-color-lighter, #f2f6fc);
+  border-radius: 6px;
+  padding: 10px 12px;
+}
+
+.item-card__header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
 </style>
