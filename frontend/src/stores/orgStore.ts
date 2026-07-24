@@ -27,9 +27,10 @@ export const useOrgStore = defineStore('org', () => {
 
   /** 加载组织树并构建扁平列表 */
   async function loadOrgTree() {
-    try {
+try {
       const tree = await organizationApi.tree()
       orgTree.value = tree
+      orgList.value = []
       buildFlatList(tree, '')
     } catch {
       ElMessage.error('加载组织树失败')

@@ -12,7 +12,7 @@ RUN --mount=type=cache,target=/root/.npm \
 # 复制源码并构建
 COPY . .
 RUN --mount=type=cache,target=/root/.npm \
-    npm run build
+    npx vite build
 
 # ---- Runtime stage (Nginx) ----
 FROM nginx:stable-alpine AS runtime

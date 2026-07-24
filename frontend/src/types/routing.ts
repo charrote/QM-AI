@@ -107,6 +107,7 @@ export interface ProductRouteStepDto {
   processName: string
   standardTimeMinutes?: number
   description?: string
+  _isPlaceholder?: boolean
 }
 
 // ─── 产品工艺路线（单条路线） ──────────────────────────────────

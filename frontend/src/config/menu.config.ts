@@ -21,7 +21,7 @@ export const menuConfigs: MenuConfig[] = [
     children: [
       { id: 'basic-product', name: '产品管理', icon: 'Goods', path: '/basic-data/product', closable: true, order: 1, module: 'basic-data' },
       { id: 'basic-process', name: '工序管理', icon: 'Tools', path: '/basic-data/process', closable: true, order: 2, module: 'basic-data' },
-      { id: 'basic-routing', name: '工艺路线', icon: 'Connection', path: '/basic-data/routing', closable: true, order: 3, module: 'basic-data' },
+      { id: 'basic-routing', name: '产品工艺路线', icon: 'Connection', path: '/basic-data/routing', closable: true, order: 3, module: 'basic-data' },
       { id: 'basic-bom', name: 'BOM清单', icon: 'Document', path: '/basic-data/bom', closable: true, order: 4, module: 'basic-data' },
       { id: 'basic-standard', name: '检验标准', icon: 'List', path: '/basic-data/standard', closable: true, order: 5, module: 'basic-data' },
       { id: 'basic-defect', name: '不良代码', icon: 'WarningFilled', path: '/basic-data/defect', closable: true, order: 6, module: 'basic-data' },
@@ -31,6 +31,7 @@ export const menuConfigs: MenuConfig[] = [
       { id: 'basic-customer', name: '客户管理', icon: 'User', path: '/basic-data/customer', closable: true, order: 10, module: 'basic-data' },
       { id: 'basic-inspection-items', name: '检验项目管理', icon: 'List', path: '/basic-data/inspection-items', closable: true, order: 11, module: 'basic-data' },
       { id: 'basic-inspection-plans', name: '检验计划管理', icon: 'Calendar', path: '/basic-data/inspection-plans', closable: true, order: 12, module: 'basic-data' },
+      { id: 'basic-organizations', name: '企业层级', icon: 'OfficeBuilding', path: '/organizations', closable: true, order: 13, module: 'basic-data' },
     ],
   },
   {
@@ -185,15 +186,6 @@ export const menuConfigs: MenuConfig[] = [
       { id: 'audit-detail', name: '审核详情', icon: 'View', path: '/audits/detail', closable: true, order: 2, module: 'audits' },
       { id: 'finding', name: '不符合项管理', icon: 'WarningFilled', path: '/audits/finding', closable: true, order: 3, module: 'audits' },
     ],
-  },
-  {
-    id: 'organizations',
-    name: '企业层级',
-    icon: 'Connection',
-    path: '/organizations',
-    closable: true,
-    order: 12,
-    module: 'system',
   },
   {
     id: 'reports',

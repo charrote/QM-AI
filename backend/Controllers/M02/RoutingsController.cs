@@ -725,14 +725,24 @@ public class RoutingsController : ControllerBase
         if (steps.Count != dto.StepIds.Count)
             return BadRequest(new { message = "部分步骤不存在或不属于该路线" });
 
+        // 两步法：先设为临时负值释放唯一索引冲突，再设为最终顺序
+        // 原因：表上有唯一索引 (routing_header_id, step_order)，直接交叉交换会导致 EF Core 循环依赖检测失败
+        for (int i = 0; i < dto.StepIds.Count; i++)
+        {
+            var step = steps.First(s => s.Id == dto.StepIds[i]);
+            step.StepOrder = -(i + 1);
+            step.UpdatedAt = DateTime.UtcNow;
+        }
+        await _db.SaveChangesAsync();
+
         for (int i = 0; i < dto.StepIds.Count; i++)
         {
             var step = steps.First(s => s.Id == dto.StepIds[i]);
             step.StepOrder = i + 1;
             step.UpdatedAt = DateTime.UtcNow;
         }
-
         await _db.SaveChangesAsync();
+
         return Ok(new { message = "排序已更新", count = dto.StepIds.Count });
     }
 

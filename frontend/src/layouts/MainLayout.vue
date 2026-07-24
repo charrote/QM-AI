@@ -243,6 +243,17 @@ function handleLogout() {
 }
 
 // ─── 组织选择器辅助 ──────────────────────────────────────
+const orgSearch = ref('')
+const filteredOrgs = computed(() => {
+  if (!orgSearch.value) return orgStore.orgList
+  const q = orgSearch.value.toLowerCase()
+  return orgStore.orgList.filter(o =>
+    o.name.toLowerCase().includes(q) ||
+    (o.code && o.code.toLowerCase().includes(q)) ||
+    (o.path && o.path.toLowerCase().includes(q))
+  )
+})
+
 const LEVEL_PADDING: Record<string, number> = {
   group: 0, company: 12, workshop: 24, line: 36,
 }
@@ -251,12 +262,31 @@ const LEVEL_COLORS: Record<string, string> = {
   group: '#8B5CF6', company: '#1677ff', workshop: '#faad14', line: '#52c41a',
 }
 
+function filterOrgList() {
+  // reactive via computed
+}
+
+function selectOrgItem(org: { id: number; name: string }) {
+  orgStore.selectOrg(org.id, org.name)
+  orgSearch.value = ''
+}
+
 function getLevelPadding(level: string): number {
   return LEVEL_PADDING[level] || 0
 }
 
 function getOrgLevelColor(level: string): string {
   return LEVEL_COLORS[level] || '#909399'
+}
+
+function getOrgLevelIcon(level: string): any {
+  const iconMap: Record<string, any> = {
+    group: Icons.OfficeBuilding,
+    company: Icons.School,
+    workshop: Icons.Monitor,
+    line: Icons.Tools,
+  }
+  return iconMap[level] || Icons.Connection
 }
 
 function getIconComponent(iconName?: string) {
@@ -302,31 +332,45 @@ function getIconComponent(iconName?: string) {
           </span>
           <template #dropdown>
             <el-dropdown-menu class="org-dropdown-menu">
-              <el-dropdown-item @click="orgStore.clearSelection()">
+              <el-dropdown-item @click="orgStore.clearSelection()" :class="{ 'is-active': !orgStore.selectedOrgId }">
                 <el-icon><RefreshLeft /></el-icon>
-                全企业（不限）
+                全企业
               </el-dropdown-item>
-              <el-dropdown-item divided disabled style="font-size: 12px; color: #909399; cursor: default;">
-                选择组织
+
+              <!-- 搜索框 -->
+              <div class="org-search-box">
+                <el-input
+                  v-model="orgSearch"
+                  placeholder="搜索组织名称..."
+                  size="small"
+                  clearable
+                  prefix-icon="Search"
+                  @input="filterOrgList"
+                />
+              </div>
+
+              <el-dropdown-item divided disabled style="font-size: 11px; color: #909399; cursor: default; padding: 4px 16px;">
+                {{ filteredOrgs.length }} 个组织
               </el-dropdown-item>
-              <template v-for="org in orgStore.orgList" :key="org.id">
+
+              <template v-for="org in filteredOrgs" :key="org.id">
                 <el-dropdown-item
-                  @click="orgStore.selectOrg(org.id, org.name)"
+                  @click="selectOrgItem(org)"
                   :class="{ 'is-active': orgStore.selectedOrgId === org.id }"
                 >
                   <span :style="{ paddingLeft: getLevelPadding(org.level) + 'px' }">
-                    <el-tag
-                      :color="getOrgLevelColor(org.level)"
-                      size="small"
-                      effect="dark"
-                      style="margin-right: 4px;"
-                    >
-                      {{ org.levelLabel }}
-                    </el-tag>
+                    <el-icon :size="14" :class="['org-level-icon', org.level]">
+                      <component :is="getOrgLevelIcon(org.level)" />
+                    </el-icon>
                     {{ org.name }}
                   </span>
+                  <span v-if="org.path" class="org-path">{{ org.path }}</span>
                 </el-dropdown-item>
               </template>
+
+              <el-dropdown-item v-if="filteredOrgs.length === 0" disabled style="padding: 16px; color: #909399; text-align: center;">
+                无匹配结果
+              </el-dropdown-item>
             </el-dropdown-menu>
           </template>
         </el-dropdown>
@@ -750,25 +794,33 @@ export default {
 
 /* Menu Items */
 :deep(.sidebar-menu .el-menu-item),
-:deep(.sidebar-menu .el-sub-menu__title) {
+:deep(.sidebar-menu .el-sub-menu > .el-sub-menu__title) {
   color: var(--sidebar-text, rgba(255, 255, 255, 0.65));
   background: transparent;
   height: 42px;
   line-height: 42px;
   border-radius: 0;
   margin: 0;
-  padding-left: 0 !important;
+  padding: 0 0 0 20px !important;
+  transition: all var(--duration-fast) var(--ease-out);
 }
 
 :deep(.sidebar-menu .el-menu-item .el-icon),
-:deep(.sidebar-menu .el-sub-menu__title .el-icon) {
+:deep(.sidebar-menu .el-sub-menu > .el-sub-menu__title .el-icon) {
   font-size: 17px;
   width: 20px;
   text-align: center;
+  flex-shrink: 0;
+  margin-right: 8px;
+}
+
+:deep(.sidebar-menu .el-menu-item .cell span),
+:deep(.sidebar-menu .el-sub-menu > .el-sub-menu__title .cell span) {
+  margin-left: 0;
 }
 
 :deep(.sidebar-menu .el-menu-item:hover),
-:deep(.sidebar-menu .el-sub-menu__title:hover) {
+:deep(.sidebar-menu .el-sub-menu > .el-sub-menu__title:hover) {
   background: var(--sidebar-hover, rgba(255, 255, 255, 0.06));
   color: rgba(255, 255, 255, 0.85);
 }
@@ -787,10 +839,17 @@ export default {
 }
 
 :deep(.sidebar-menu .el-sub-menu .el-menu .el-menu-item) {
-  padding-left: 48px !important;
   font-size: var(--font-sm);
   height: 38px;
   line-height: 38px;
+  padding: 0 0 0 40px !important;
+  margin: 0;
+  border-radius: 0;
+}
+
+:deep(.sidebar-menu .el-sub-menu .el-menu .el-menu-item .el-icon) {
+  font-size: 16px;
+  margin-right: 6px;
 }
 
 :deep(.sidebar-menu .el-sub-menu .el-menu .el-menu-item:hover) {
@@ -800,6 +859,7 @@ export default {
 :deep(.sidebar-menu .el-sub-menu .el-menu .el-menu-item.is-active) {
   color: var(--sidebar-text-active, #fff);
   background: var(--sidebar-active-bg, #1677ff);
+  border-radius: 0;
   border-right: 3px solid #fff;
 }
 
@@ -969,6 +1029,49 @@ html.dark .content-area::-webkit-scrollbar-thumb {
 
 html.dark .org-dropdown-menu .is-active {
   background: rgba(22, 119, 255, 0.15);
+}
+
+/* Org search box */
+.org-search-box {
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--el-border-color-lighter);
+}
+
+.org-search-box .el-input__wrapper {
+  box-shadow: 0 0 0 1px var(--el-border-color) inset;
+  border-radius: var(--radius-md);
+}
+
+/* Org level icons */
+.org-level-icon {
+  flex-shrink: 0;
+  margin-right: 6px;
+}
+
+.org-dropdown-menu .org-level-icon.group { color: #8B5CF6; }
+.org-dropdown-menu .org-level-icon.company { color: #1677ff; }
+.org-dropdown-menu .org-level-icon.workshop { color: #faad14; }
+.org-dropdown-menu .org-level-icon.line { color: #52c41a; }
+
+html.dark .org-dropdown-menu .org-level-icon.group { color: #a78bfa; }
+html.dark .org-dropdown-menu .org-level-icon.company { color: #60a5fa; }
+html.dark .org-dropdown-menu .org-level-icon.workshop { color: #fbbf24; }
+html.dark .org-dropdown-menu .org-level-icon.line { color: #4ade80; }
+
+/* Org path subtitle */
+.org-path {
+  font-size: var(--font-xs);
+  color: var(--text-secondary, #8c8c8c);
+  margin-left: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 120px;
+  flex-shrink: 0;
+}
+
+html.dark .org-path {
+  color: var(--text-secondary, #71717a);
 }
 
 /* ═══ Responsive ═══ */

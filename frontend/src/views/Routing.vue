@@ -13,7 +13,7 @@ import {
   deleteRouteStep,
 } from '@/api/routing'
 import type { Product } from '@/types/basicData'
-import type { RouteHeaderDto, RouteDetailDto, ProductRouteStepDto, RouteType } from '@/types/routing'
+import type { RouteHeaderDto, RouteListDto, RouteDetailDto, ProductRouteStepDto, RouteType } from '@/types/routing'
 import RouteStepCard from '@/components/routing/RouteStepCard.vue'
 import RouteStepDrawer from '@/components/routing/RouteStepDrawer.vue'
 import RouteTypeTag from '@/components/routing/RouteTypeTag.vue'
@@ -31,6 +31,7 @@ const routeList = ref<RouteListDto | null>(null) // 完整响应（含 productNa
 const activeRouteId = ref<number | null>(null)
 const activeRouteDetail = ref<RouteDetailDto | null>(null)
 const routeLoading = ref(false)
+const routeTableRef = ref<any>(null)
 
 // ─── 拖拽状态 ──────────────────────────────────────────
 let dragStepId: number | null = null
@@ -78,7 +79,7 @@ async function selectProduct(product: Product) {
     // 自动选中第一个活跃路线
     if (routeHeaders.value.length > 0) {
       const activeRoute = routeHeaders.value.find(r => r.isActive) || routeHeaders.value[0]
-      selectRoute(activeRoute.id)
+      await selectRoute(activeRoute)
     }
   } catch {
     ElMessage.error('加载工艺路线失败')
@@ -88,19 +89,32 @@ async function selectProduct(product: Product) {
 }
 
 // ─── 选中路线切换 ──────────────────────────────────────
-async function selectRoute(headerId: number) {
+async function selectRoute(row: RouteHeaderDto | null) {
   if (!selectedProductId.value) return
-  activeRouteId.value = headerId
+  if (!row) return
+  activeRouteId.value = row.id
+
   routeLoading.value = true
 
   try {
-    activeRouteDetail.value = await getRouteDetail(headerId)
+    activeRouteDetail.value = await getRouteDetail(row.id)
   } catch {
     ElMessage.error('加载路线详情失败')
     activeRouteDetail.value = null
+    activeRouteId.value = null
   } finally {
     routeLoading.value = false
   }
+}
+
+// ─── 行唯一标识 ──────────────────────────────────────
+function getRowKey(row: RouteHeaderDto): string {
+  return String(row.id)
+}
+
+// ─── 选中行样式 ──────────────────────────────────────
+function routeRowClassName({ row }: { row: RouteHeaderDto }): string {
+  return row.id === activeRouteId.value ? 'route-selected' : ''
 }
 
 // ─── 路线操作 ──────────────────────────────────────────
@@ -121,7 +135,7 @@ async function handleRouteDeleted() {
   routeHeaders.value = list.routes
   if (routeHeaders.value.length > 0) {
     const activeRoute = routeHeaders.value.find(r => r.isActive) || routeHeaders.value[0]
-    selectRoute(activeRoute.id)
+    selectRoute(activeRoute)
   } else {
     activeRouteId.value = null
     activeRouteDetail.value = null
@@ -133,7 +147,8 @@ async function handleRouteCreated(headerId: number) {
   const list = await getRouteHeaders(selectedProductId.value)
   routeList.value = list
   routeHeaders.value = list.routes
-  selectRoute(headerId)
+  const header = routeHeaders.value.find(h => h.id === headerId)
+  if (header) selectRoute(header)
 }
 
 // ─── 实时预览拖拽 ──────────────────────────────────────
@@ -295,7 +310,7 @@ const currentProductCode = computed(() => {
   return products.value.find(p => p.id === selectedProductId.value)?.code || ''
 })
 
-const totalSteps = computed(() => activeRouteDetail.value?.totalSteps || 0)
+const totalSteps = computed(() => activeRouteDetail.value?.stepCount || 0)
 const total工时 = computed(() => activeRouteDetail.value?.totalStandardTimeMinutes || 0)
 const currentRoute = computed(() => routeHeaders.value.find(r => r.id === activeRouteId.value) || null)
 
@@ -307,7 +322,7 @@ onMounted(async () => {
     filteredProducts.value = res.items
 
     if (products.value.length > 0) {
-      selectProduct(products.value[0])
+      await selectProduct(products.value[0])
     }
   } catch { /* ignore */ }
 })
@@ -395,13 +410,14 @@ onMounted(async () => {
 
           <!-- 路线表格 -->
           <el-table
+            ref="routeTableRef"
             v-else
             :data="routeHeaders"
             border
             stripe
-            highlight-current-row
-            current-row-key="id"
-            @current-change="selectRoute"
+            :row-key="getRowKey"
+            :row-class-name="routeRowClassName"
+            @row-click="selectRoute"
             style="width: 100%"
             size="small"
             class="routes-table"
@@ -482,7 +498,7 @@ onMounted(async () => {
                 @drag-end="handleCardDragEnd"
                 @drag-over="(e: DragEvent, id: number) => handleCardDragOver(e, id, index)"
                 @drag-leave="handleCardDragLeave"
-                @drop="(e: DragEvent, id: number) => handleCardDrop(e, id, index)"
+                @drop="(e: DragEvent, id: number) => handleCardDrop(e, index)"
                 @edit="openEditStep(step)"
                 @delete="handleDeleteStep"
               />
@@ -752,6 +768,15 @@ onMounted(async () => {
   flex: 1;
   min-height: 0;
   width: 100%;
+}
+
+/* ── 选中行高亮样式 ── */
+.routes-table :deep(.el-table__body tr.route-selected > td) {
+  background-color: #d5e8fa !important;
+}
+
+.routes-table :deep(.el-table__body tr.route-selected > td:first-child) {
+  border-left: 4px solid var(--el-color-primary) !important;
 }
 
 /* ── 表格内容不换行 ── */
