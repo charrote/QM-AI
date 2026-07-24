@@ -12,6 +12,7 @@ public class InspectionPlanItem
 {
     [Key]
     [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
+    [Column("id")]
     public long Id { get; set; }
 
     /// <summary>关联检验计划</summary>
@@ -21,15 +22,16 @@ public class InspectionPlanItem
     public long InspectionItemId { get; set; }
 
     /// <summary>排序号</summary>
+    [Column("sort_order")]
     public int SortOrder { get; set; } = 0;
 
     // ═══ 可覆盖主数据的规格（按计划单独调整）═══
     /// <summary>规格上限（覆盖主数据）</summary>
-    [Column(TypeName = "decimal(15,6)")]
+    [Column("usl")]
     public decimal? Usl { get; set; }
 
     /// <summary>规格下限（覆盖主数据）</summary>
-    [Column(TypeName = "decimal(15,6)")]
+    [Column("lsl")]
     public decimal? Lsl { get; set; }
 
     /// <summary>目标值（覆盖主数据）</summary>
@@ -45,13 +47,16 @@ public class InspectionPlanItem
     public decimal? Lcl { get; set; }
 
     /// <summary>抽样数量（覆盖主数据）</summary>
+    [Column("sample_size")]
     public int? SampleSize { get; set; }
 
     /// <summary>是否必须（必检/选检）</summary>
+    [Column("is_required")]
     public bool IsRequired { get; set; } = true;
 
     // Navigation
     [ForeignKey(nameof(PlanId))]
+    [Column("plan")]
     public InspectionPlan? Plan { get; set; }
 
     [ForeignKey(nameof(InspectionItemId))]

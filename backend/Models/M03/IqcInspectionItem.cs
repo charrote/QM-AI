@@ -12,6 +12,7 @@ public class IqcInspectionItem
 {
     [Key]
     [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
+    [Column("id")]
     public long Id { get; set; }
 
     /// <summary>关联检验单</summary>
@@ -28,23 +29,28 @@ public class IqcInspectionItem
     public string? ItemName { get; set; }
 
     /// <summary>实测值</summary>
+    [Column("measured_value")]
     public decimal? MeasuredValue { get; set; }
 
     /// <summary>规格上限</summary>
+    [Column("usl")]
     public decimal? Usl { get; set; }
 
     /// <summary>规格下限</summary>
+    [Column("lsl")]
     public decimal? Lsl { get; set; }
 
     /// <summary>结果：pass/fail</summary>
     [Required]
     [MaxLength(10)]
+    [Column("result")]
     public string Result { get; set; } = "pending";
 
     /// <summary>关联不良代码</summary>
     public long? DefectCodeId { get; set; }
 
     /// <summary>备注</summary>
+    [Column("remark")]
     public string? Remark { get; set; }
 
     // Navigation
@@ -52,8 +58,10 @@ public class IqcInspectionItem
     public IqcInspection? Inspection { get; set; }
 
     [ForeignKey(nameof(DefectCodeId))]
+    [Column("defect_code")]
     public DefectCode? DefectCode { get; set; }
 
     [ForeignKey(nameof(InspectionItemId))]
+    [Column("inspection_item")]
     public InspectionItem? InspectionItem { get; set; }
 }

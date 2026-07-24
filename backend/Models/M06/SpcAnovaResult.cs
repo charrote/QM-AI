@@ -8,12 +8,14 @@ public class SpcAnovaResult
 {
     [Key]
     [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
+    [Column("id")]
     public long Id { get; set; }
 
     public long ChartId { get; set; }
 
     [Required]
     [MaxLength(20)]
+    [Column("source")]
     public string Source { get; set; } = string.Empty; // operator, machine, material, method, environment
 
     [Column(TypeName = "decimal(20,4)")]
@@ -32,8 +34,10 @@ public class SpcAnovaResult
 
     public bool Significant { get; set; } = false;
 
+    [Column("analysis_date")]
     public DateTime AnalysisDate { get; set; }
 
+    [Column("created_at")]
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     // Navigation

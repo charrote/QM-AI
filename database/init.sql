@@ -60,6 +60,8 @@ CREATE TABLE products (
     product_type VARCHAR(50),
     specification TEXT,
     unit VARCHAR(20),
+    default_inspection_level VARCHAR(10) DEFAULT 'II',
+    default_aql DECIMAL(3,2),
     is_active BOOLEAN DEFAULT TRUE,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
@@ -90,13 +92,19 @@ CREATE TABLE processes (
 
 CREATE TABLE routings (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    routing_code VARCHAR(50) UNIQUE NOT NULL,
-    routing_name VARCHAR(200) NOT NULL,
+    routing_code VARCHAR(50) NOT NULL COMMENT '工艺路线编号（同一路线多步骤共享）',
+    routing_name VARCHAR(200) NOT NULL COMMENT '工艺路线名称',
+    description VARCHAR(500) COMMENT '工艺路线描述',
+    step_order INT NOT NULL DEFAULT 0 COMMENT '工序顺序',
+    process_id BIGINT COMMENT '关联工序ID',
+    standard_time_minutes DECIMAL(10,2) DEFAULT 0 COMMENT '标准工时（分钟）',
     product_id BIGINT NOT NULL,
     steps JSON,
     is_active BOOLEAN DEFAULT TRUE,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (product_id) REFERENCES products(id)
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (product_id) REFERENCES products(id),
+    FOREIGN KEY (process_id) REFERENCES processes(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE routing_steps (
@@ -301,7 +309,7 @@ CREATE TABLE dynamic_params (
     target_value    DECIMAL(15,6) COMMENT '目标值',
     usl             DECIMAL(15,6) COMMENT '上规格限',
     lsl             DECIMAL(15,6) COMMENT '下规格限',
-    precision       DECIMAL(10,2) DEFAULT 1.0 COMMENT '精度/小数位数',
+    `precision`       DECIMAL(10,2) DEFAULT 1.0 COMMENT '精度/小数位数',
     ai_strategy     JSON COMMENT 'AI策略预置配置',
     sort_order      INT DEFAULT 0 COMMENT '排序号',
     is_active       TINYINT(1) DEFAULT 1 COMMENT '是否启用',
@@ -544,7 +552,7 @@ CREATE TABLE fqc_inspection_items (
     measured_value DECIMAL(12,4),
     usl DECIMAL(12,4) COMMENT '规格上限',
     lsl DECIMAL(12,4) COMMENT '规格下限',
-    result ENUM('pass','fail') DEFAULT 'pending',
+    result ENUM('pending','pass','fail') DEFAULT 'pending',
     image_urls TEXT COMMENT '图片URLs (JSON)',
     FOREIGN KEY (inspection_id) REFERENCES fqc_inspections(id),
     FOREIGN KEY (param_id) REFERENCES dynamic_params(id),
@@ -957,8 +965,9 @@ CREATE INDEX idx_customers_active ON customers(is_active);
 CREATE INDEX idx_dynamic_params_group_id ON dynamic_params(group_id);
 CREATE INDEX idx_dynamic_params_code ON dynamic_params(code);
 CREATE INDEX idx_dynamic_params_active ON dynamic_params(is_active);
-CREATE INDEX idx_param_realtime_values_param ON param_realtime_values(param_code, timestamp);
-CREATE INDEX idx_param_realtime_values_equip ON param_realtime_values(equipment_id, timestamp);
+-- idx_param_time and idx_equip_time defined inline in param_realtime_values table
+-- CREATE INDEX idx_param_realtime_values_param ON param_realtime_values(param_code, timestamp);
+-- CREATE INDEX idx_param_realtime_values_equip ON param_realtime_values(equipment_id, timestamp);
 
 -- IQC
 CREATE INDEX idx_iqc_receipts_supplier ON iqc_receipts(supplier_id);
@@ -982,9 +991,11 @@ CREATE INDEX idx_ipqc_plans_equipment ON ipqc_patrol_plans(equipment_id);
 CREATE INDEX idx_ipqc_closure_wo ON ipqc_closure_status(work_order);
 
 -- SPC
-CREATE INDEX idx_spc_charts_name ON spc_control_charts(name);
-CREATE INDEX idx_spc_charts_param ON spc_control_charts(parameter_code);
-CREATE INDEX idx_spc_dp_chart_subgroup ON spc_data_points(chart_id, subgroup_index);
+-- idx_spc_charts_name and idx_spc_charts_param defined inline in spc_control_charts table
+-- CREATE INDEX idx_spc_charts_name ON spc_control_charts(name);
+-- CREATE INDEX idx_spc_charts_param ON spc_control_charts(parameter_code);
+-- idx_spc_dp_chart_subgroup defined inline in spc_data_points table
+-- CREATE INDEX idx_spc_dp_chart_subgroup ON spc_data_points(chart_id, subgroup_index);
 CREATE INDEX idx_spc_triggers_rule ON spc_alert_triggers(rule_id);
 CREATE INDEX idx_spc_triggers_chart_time ON spc_alert_triggers(chart_id, triggered_at);
 CREATE INDEX idx_spc_anova_chart ON spc_anova_results(chart_id);
@@ -1047,3 +1058,46 @@ CREATE INDEX idx_doc_versions_document ON document_versions(document_id);
 CREATE INDEX idx_audits_status ON audits(status);
 CREATE INDEX idx_audits_type ON audits(audit_type);
 CREATE INDEX idx_audits_date ON audits(plan_date);
+
+-- ─── Auth tables (Roles, Permissions, Users) ─────────────────────
+-- These are required by the seed data initializer
+
+CREATE TABLE IF NOT EXISTS roles (
+    id              BIGINT AUTO_INCREMENT PRIMARY KEY,
+    name            VARCHAR(100) NOT NULL UNIQUE COMMENT '角色名称',
+    description     VARCHAR(500) COMMENT '角色描述'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS permissions (
+    id              BIGINT AUTO_INCREMENT PRIMARY KEY,
+    name            VARCHAR(100) NOT NULL COMMENT '权限名称',
+    code            VARCHAR(200) NOT NULL UNIQUE COMMENT '权限编码',
+    module          VARCHAR(200) COMMENT '所属模块'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS users (
+    id              BIGINT AUTO_INCREMENT PRIMARY KEY,
+    username        VARCHAR(100) NOT NULL UNIQUE COMMENT '用户名',
+    password_hash   VARCHAR(500) NOT NULL COMMENT '密码哈希',
+    display_name    VARCHAR(200) COMMENT '显示名称',
+    avatar          VARCHAR(500) COMMENT '头像URL',
+    email           VARCHAR(200) COMMENT '邮箱',
+    role_id         BIGINT NOT NULL COMMENT '角色ID',
+    is_active       TINYINT(1) DEFAULT 1 COMMENT '是否启用',
+    created_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_users_role_id (role_id),
+    INDEX idx_users_is_active (is_active),
+    FOREIGN KEY (role_id) REFERENCES roles(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Foreign key for role_permissions (many-to-many)
+CREATE TABLE IF NOT EXISTS role_permissions (
+    id              BIGINT AUTO_INCREMENT PRIMARY KEY,
+    role_id         BIGINT NOT NULL COMMENT '角色ID',
+    permission_id   BIGINT NOT NULL COMMENT '权限ID',
+    INDEX idx_role_permissions_role_id (role_id),
+    INDEX idx_role_permissions_permission_id (permission_id),
+    FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE CASCADE,
+    FOREIGN KEY (permission_id) REFERENCES permissions(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

@@ -81,7 +81,7 @@ function handlePageChange(page: number) {
 }
 
 function handleSizeChange(size: number) {
-  pagination.pageSize = size
+  pagination.pageSize.value = size
   pagination.goToPage(1)
   loadDefects()
 }
@@ -201,9 +201,9 @@ onMounted(loadDefects)
       :data="defects"
       :columns="tableColumns"
       :loading="pagination.loading.value"
-      :total="pagination.total"
-      :current-page="pagination.currentPage"
-      :page-size="pagination.pageSize"
+      :total="pagination.total.value"
+      :current-page="pagination.currentPage.value"
+      :page-size="pagination.pageSize.value"
       @update:current-page="handlePageChange"
       @update:page-size="handleSizeChange"
       @row-click="(row: Defect) => openEdit(row)"
@@ -230,10 +230,11 @@ onMounted(loadDefects)
 
     <!-- Create/Edit Dialog -->
     <FormDialog
-      v-model="dialogVisible"
+      :visible="dialogVisible"
       :title="isEditing ? '编辑缺陷记录' : '新建缺陷记录'"
       :loading="submitLoading"
       width="680px"
+      @update:visible="dialogVisible = $event"
       @submit="saveDefect(defectForm as CreateDefect)"
     >
       <el-form :model="defectForm" label-width="90px" size="default">

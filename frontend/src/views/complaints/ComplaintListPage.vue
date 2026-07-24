@@ -48,9 +48,9 @@ const currentId = ref<number | null>(null)
 const submitLoading = ref(false)
 
 const form = reactive<Omit<CreateComplaint, 'customerId'> & { customerId: number | undefined }>({
-  complaintCode: '', customerId: undefined, severity: 'minor',
-  subject: '', description: '', assignedTo: '', dueDate: '',
-})
+complaintCode: '', customerId: undefined, severity: 'minor',
+    subject: '', description: '', assignedTo: undefined, dueDate: '',
+  })
 
 // ─── Table columns ───────────────────────────────────────
 const tableColumns = computed<Column[]>(() => [
@@ -112,7 +112,7 @@ function handlePageChange(page: number) {
 }
 
 function handleSizeChange(size: number) {
-  pagination.pageSize = size
+  pagination.pageSize.value = size
   pagination.goToPage(1)
   loadComplaints()
 }
@@ -125,11 +125,11 @@ function applySearch() {
 
 // ─── CRUD operations ─────────────────────────────────────
 function openCreate() {
-  isEditing.value = false
+isEditing.value = false
   currentId.value = null
   Object.assign(form, {
     complaintCode: '', customerId: undefined, severity: 'minor',
-    subject: '', description: '', assignedTo: '', dueDate: '',
+    subject: '', description: '', assignedTo: undefined, dueDate: '',
   })
   dialogVisible.value = true
 }
@@ -267,9 +267,9 @@ onMounted(async () => {
       :data="complaints"
       :columns="tableColumns"
       :loading="pagination.loading.value"
-      :total="pagination.total"
-      :current-page="pagination.currentPage"
-      :page-size="pagination.pageSize"
+      :total="pagination.total.value"
+      :current-page="pagination.currentPage.value"
+      :page-size="pagination.pageSize.value"
       @update:current-page="handlePageChange"
       @update:page-size="handleSizeChange"
     >
@@ -308,10 +308,11 @@ onMounted(async () => {
 
     <!-- Create/Edit Dialog -->
     <FormDialog
-      v-model="dialogVisible"
+      :visible="dialogVisible"
       :title="isEditing ? '编辑客诉' : '新建客诉'"
       :loading="submitLoading"
       width="680px"
+      @update:visible="dialogVisible = $event"
       @submit="saveComplaint(form as CreateComplaint)"
     >
       <el-form :model="form" label-width="90px" size="default">

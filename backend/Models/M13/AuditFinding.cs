@@ -11,6 +11,7 @@ public class AuditFinding
 {
     [Key]
     [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
+    [Column("id")]
     public long Id { get; set; }
 
     /// <summary>关联审核</summary>
@@ -20,6 +21,7 @@ public class AuditFinding
     /// <summary>发现类型：conformity / non_conformity / opportunity</summary>
     [Required]
     [MaxLength(20)]
+    [Column("finding_type")]
     public string FindingType { get; set; } = string.Empty;
 
     /// <summary>分类（同 FindingType，供服务层兼容读取）</summary>
@@ -27,13 +29,16 @@ public class AuditFinding
 
     /// <summary>严重等级：major / minor</summary>
     [MaxLength(10)]
+    [Column("severity")]
     public string? Severity { get; set; }
 
     /// <summary>描述</summary>
     [Required]
+    [Column("description")]
     public string Description { get; set; } = string.Empty;
 
     /// <summary>客观证据</summary>
+    [Column("evidence")]
     public string? Evidence { get; set; }
 
     /// <summary>实际证据（同 Evidence，供服务层兼容写入）</summary>
@@ -41,11 +46,13 @@ public class AuditFinding
 
     /// <summary>引用标准条款</summary>
     [MaxLength(200)]
+    [Column("requirement_ref")]
     public string? RequirementRef { get; set; }
 
     /// <summary>状态：open / rectifying / verified / rejected / closed</summary>
     [Required]
     [MaxLength(10)]
+    [Column("status")]
     public string Status { get; set; } = "open";
 
     /// <summary>整改措施（JSON）</summary>
@@ -72,7 +79,9 @@ public class AuditFinding
     /// <summary>验证时间</summary>
     public DateTime? VerifiedAt { get; set; }
 
+    [Column("created_at")]
     public DateTime CreatedAt { get; set; } = DateTime.Now;
+    [Column("updated_at")]
     public DateTime UpdatedAt { get; set; } = DateTime.Now;
 
     // Navigation

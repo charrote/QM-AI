@@ -484,94 +484,139 @@ onMounted(loadAll)
     <!-- Header -->
     <div class="detail-header">
       <div class="header-left">
-        <el-button text @click="goBack">
+        <el-button text class="back-btn" @click="goBack">
           <el-icon><ArrowLeft /></el-icon>
-          返回列表
         </el-button>
-        <template v-if="selectedChart">
-          <h2>
-            <el-icon><DataAnalysis /></el-icon>
-            {{ selectedChart.name }}
-          </h2>
-          <el-tag size="small" type="info" effect="plain">{{ CHART_TYPE_MAP[selectedChart.chartType] || selectedChart.chartType }}</el-tag>
-          <el-tag size="small" effect="plain">n={{ selectedChart.subgroupSize }}</el-tag>
-          <span v-if="selectedChart.usl != null" class="spec-badge">USL={{ selectedChart.usl }}</span>
-          <span v-if="selectedChart.lsl != null" class="spec-badge">LSL={{ selectedChart.lsl }}</span>
-        </template>
+        <div class="header-info">
+          <template v-if="selectedChart">
+            <div class="header-title-row">
+              <h2>{{ selectedChart.name }}</h2>
+              <el-tag :type="selectedChart.chartType === 'I_MR' ? 'warning' : 'primary'" effect="dark" size="small" class="chart-type-tag">
+                <el-icon><DataLine /></el-icon>
+                {{ CHART_TYPE_MAP[selectedChart.chartType] || selectedChart.chartType }}
+              </el-tag>
+            </div>
+            <div class="header-meta">
+              <span class="meta-chip"><el-icon><DataAnalysis /></el-icon>n = {{ selectedChart.subgroupSize }}</span>
+              <span class="meta-chip spec-chip" v-if="selectedChart.usl != null">USL: <strong>{{ selectedChart.usl }}</strong></span>
+              <span class="meta-chip spec-chip" v-if="selectedChart.lsl != null">LSL: <strong>{{ selectedChart.lsl }}</strong></span>
+            </div>
+          </template>
+        </div>
       </div>
       <div class="header-right">
-        <el-button size="small" @click="goToRules">判异规则</el-button>
-        <el-button size="small" @click="goToDataPoints">数据点</el-button>
-        <el-button size="small" @click="goToAnova">方差分析</el-button>
-        <el-button size="small" @click="openAddDataPoint" type="success">添加数据</el-button>
-        <el-button size="small" @click="runAnalysis" :loading="analysisLoading" type="primary">重新分析</el-button>
+        <el-tooltip content="判异规则配置" placement="bottom">
+          <el-button size="small" text class="action-btn" @click="goToRules"><el-icon><WarningFilled /></el-icon><span class="action-label">规则</span></el-button>
+        </el-tooltip>
+        <el-tooltip content="数据点管理" placement="bottom">
+          <el-button size="small" text class="action-btn" @click="goToDataPoints"><el-icon><DataLine /></el-icon><span class="action-label">数据</span></el-button>
+        </el-tooltip>
+        <el-tooltip content="方差分析" placement="bottom">
+          <el-button size="small" text class="action-btn" @click="goToAnova"><el-icon><Document /></el-icon><span class="action-label">ANOVA</span></el-button>
+        </el-tooltip>
+        <el-divider direction="vertical" class="header-divider" />
+        <el-button size="small" @click="openAddDataPoint" type="success" round>
+          <el-icon><Plus /></el-icon>添加数据
+        </el-button>
+        <el-button size="small" @click="runAnalysis" :loading="analysisLoading" type="primary" round>
+          <el-icon><Refresh /></el-icon>重新分析
+        </el-button>
       </div>
     </div>
 
     <div v-loading="loading" class="detail-body">
       <!-- CPK Cards -->
       <div v-if="analysisReport?.capability" class="cpk-cards">
-        <el-card class="cpk-card" :class="cpkGradeType(analysisReport.capability.grade)">
-          <div class="cpk-label">
-            Cpk
-            <el-tooltip placement="top" popper-class="cpk-tooltip">
-              <template #content>
-                <div class="tip-title">Cpk — 过程能力指数</div>
-                <div class="tip-desc">衡量过程满足规格要求的实际能力，考虑过程均值与目标值的偏移</div>
-                <div class="tip-formula">Cpk = min((USL − μ)/3σ, (μ − LSL)/3σ)</div>
-                <div class="tip-criteria">≥1.67 优秀 | ≥1.33 良好 | ≥1.0 临界 | &lt;1.0 不足</div>
-              </template>
-              <el-icon class="cpk-help-icon"><HelpFilled /></el-icon>
-            </el-tooltip>
+        <el-card class="cpk-card cpk-primary" :class="cpkGradeType(analysisReport.capability.grade)">
+          <div class="cpk-card-header">
+            <span class="cpk-label">
+              Cpk
+              <el-tooltip placement="top" popper-class="cpk-tooltip">
+                <template #content>
+                  <div class="tip-title">Cpk — 过程能力指数</div>
+                  <div class="tip-desc">衡量过程满足规格要求的实际能力，考虑过程均值与目标值的偏移</div>
+                  <div class="tip-formula">Cpk = min((USL − μ)/3σ, (μ − LSL)/3σ)</div>
+                  <div class="tip-criteria">≥1.67 优秀 | ≥1.33 良好 | ≥1.0 临界 | &lt;1.0 不足</div>
+                </template>
+                <el-icon class="cpk-help-icon"><HelpFilled /></el-icon>
+              </el-tooltip>
+            </span>
+            <el-tag :type="cpkGradeType(analysisReport.capability.grade)" size="small" effect="dark" round class="cpk-grade-tag">
+              {{ analysisReport.capability.grade }}
+            </el-tag>
           </div>
-          <div class="cpk-value">{{ formatNumber(analysisReport.capability.cpk, 4) }}</div>
-          <el-tag :type="cpkGradeType(analysisReport.capability.grade)" size="small">{{ analysisReport.capability.grade }}</el-tag>
+          <div class="cpk-value-wrap">
+            <span class="cpk-value">{{ formatNumber(analysisReport.capability.cpk, 2) }}</span>
+          </div>
+          <div class="cpk-gauge">
+            <div class="gauge-bar" :style="{ background: cpkGradeType(analysisReport.capability.grade) === 'success' ? 'var(--el-color-success)' : cpkGradeType(analysisReport.capability.grade) === 'danger' ? 'var(--el-color-danger)' : 'var(--el-color-warning)' }" :style="{ width: Math.min(100, (analysisReport.capability.cpk / 2) * 100) + '%' }"></div>
+          </div>
         </el-card>
         <el-card class="cpk-card">
-          <div class="cpk-label">
-            Cp
-            <el-tooltip placement="top" popper-class="cpk-tooltip">
-              <template #content>
-                <div class="tip-title">Cp — 过程能力指数（无偏移）</div>
-                <div class="tip-desc">仅考虑过程固有变异，不考虑均值偏移</div>
-                <div class="tip-formula">Cp = (USL − LSL) / (6 × σ<sub>组内</sub>)</div>
-              </template>
-              <el-icon class="cpk-help-icon"><HelpFilled /></el-icon>
-            </el-tooltip>
+          <div class="cpk-card-header">
+            <span class="cpk-label">
+              Cp
+              <el-tooltip placement="top" popper-class="cpk-tooltip">
+                <template #content>
+                  <div class="tip-title">Cp — 过程能力指数（无偏移）</div>
+                  <div class="tip-desc">仅考虑过程固有变异，不考虑均值偏移</div>
+                  <div class="tip-formula">Cp = (USL − LSL) / (6 × σ<sub>组内</sub>)</div>
+                </template>
+                <el-icon class="cpk-help-icon"><HelpFilled /></el-icon>
+              </el-tooltip>
+            </span>
           </div>
-          <div class="cpk-value">{{ formatNumber(analysisReport.capability.cp, 4) }}</div>
+          <div class="cpk-value-wrap">
+            <span class="cpk-value">{{ formatNumber(analysisReport.capability.cp, 2) }}</span>
+          </div>
+          <div class="cpk-sub">无偏移</div>
         </el-card>
         <el-card class="cpk-card">
-          <div class="cpk-label">
-            Ppk
-            <el-tooltip placement="top" popper-class="cpk-tooltip">
-              <template #content>
-                <div class="tip-title">Ppk — 过程性能指数</div>
-                <div class="tip-desc">使用总标准差，反映过程长期稳定性</div>
-              </template>
-              <el-icon class="cpk-help-icon"><HelpFilled /></el-icon>
-            </el-tooltip>
+          <div class="cpk-card-header">
+            <span class="cpk-label">
+              Ppk
+              <el-tooltip placement="top" popper-class="cpk-tooltip">
+                <template #content>
+                  <div class="tip-title">Ppk — 过程性能指数</div>
+                  <div class="tip-desc">使用总标准差，反映过程长期稳定性</div>
+                </template>
+                <el-icon class="cpk-help-icon"><HelpFilled /></el-icon>
+              </el-tooltip>
+            </span>
           </div>
-          <div class="cpk-value">{{ formatNumber(analysisReport.capability.ppk, 4) }}</div>
+          <div class="cpk-value-wrap">
+            <span class="cpk-value">{{ formatNumber(analysisReport.capability.ppk, 2) }}</span>
+          </div>
+          <div class="cpk-sub">总变异</div>
         </el-card>
         <el-card class="cpk-card">
-          <div class="cpk-label">σ (组内)</div>
-          <div class="cpk-value">{{ formatNumber(analysisReport.capability.sigmaWithin, 6) }}</div>
+          <div class="cpk-card-header">
+            <span class="cpk-label">σ<sub>w</sub></span>
+          </div>
+          <div class="cpk-value-wrap">
+            <span class="cpk-value">{{ formatNumber(analysisReport.capability.sigmaWithin, 6) }}</span>
+          </div>
+          <div class="cpk-sub">组内标准差</div>
         </el-card>
         <el-card class="cpk-card">
-          <div class="cpk-label">
-            DPMO
-            <el-tooltip placement="top" popper-class="cpk-tooltip">
-              <template #content>
-                <div class="tip-title">DPMO — 百万机会缺陷数</div>
-                <div class="tip-desc">每百万个产品/机会中的缺陷数</div>
-                <div class="tip-criteria">6σ ≈ 3.4 ppm | 5σ ≈ 233 ppm</div>
-              </template>
-              <el-icon class="cpk-help-icon"><HelpFilled /></el-icon>
-            </el-tooltip>
+          <div class="cpk-card-header">
+            <span class="cpk-label">
+              DPMO
+              <el-tooltip placement="top" popper-class="cpk-tooltip">
+                <template #content>
+                  <div class="tip-title">DPMO — 百万机会缺陷数</div>
+                  <div class="tip-desc">每百万个产品/机会中的缺陷数</div>
+                  <div class="tip-criteria">6σ ≈ 3.4 ppm | 5σ ≈ 233 ppm</div>
+                </template>
+                <el-icon class="cpk-help-icon"><HelpFilled /></el-icon>
+              </el-tooltip>
+            </span>
           </div>
-          <div class="cpk-value">{{ formatNumber(analysisReport.capability.estimatedPpm, 0) }}</div>
-          <div class="cpk-unit">ppm</div>
+          <div class="cpk-value-wrap">
+            <span class="cpk-value">{{ formatNumber(analysisReport.capability.estimatedPpm, 0) }}</span>
+            <span class="cpk-unit">ppm</span>
+          </div>
+          <div class="cpk-sub">缺陷率</div>
         </el-card>
       </div>
 
@@ -582,18 +627,28 @@ onMounted(loadAll)
           <template #label><el-icon><DataLine /></el-icon><span>控制图</span></template>
           <div v-loading="analysisLoading">
             <div class="charts-row">
-              <div ref="chart1Ref" class="chart-box" style="flex:1; height:320px;"></div>
-              <div ref="chart2Ref" class="chart-box" style="flex:1; height:320px;"></div>
+              <div ref="chart1Ref" class="chart-box"></div>
+              <div ref="chart2Ref" class="chart-box"></div>
             </div>
 
-            <el-descriptions v-if="analysisReport?.controlLimits" title="控制限参数" :column="6" border class="limits-table">
-              <el-descriptions-item label="X̄ CL">{{ formatNumber(analysisReport.controlLimits.clXbar) }}</el-descriptions-item>
-              <el-descriptions-item label="X̄ UCL">{{ formatNumber(analysisReport.controlLimits.uclXbar) }}</el-descriptions-item>
-              <el-descriptions-item label="X̄ LCL">{{ formatNumber(analysisReport.controlLimits.lclXbar) }}</el-descriptions-item>
-              <el-descriptions-item label="R CL">{{ formatNumber(analysisReport.controlLimits.clR) }}</el-descriptions-item>
-              <el-descriptions-item label="R UCL">{{ formatNumber(analysisReport.controlLimits.uclR) }}</el-descriptions-item>
-              <el-descriptions-item label="R LCL">{{ formatNumber(analysisReport.controlLimits.lclR) }}</el-descriptions-item>
-            </el-descriptions>
+            <div v-if="analysisReport?.controlLimits" class="limits-info-bar">
+              <div class="limits-section">
+                <span class="limits-section-title"><el-icon><DataLine /></el-icon>X̄ 控制限</span>
+                <div class="limits-values">
+                  <div class="limit-item limit-ucl"><span class="limit-label">UCL</span><span class="limit-val">{{ formatNumber(analysisReport.controlLimits.uclXbar, 4) }}</span></div>
+                  <div class="limit-item limit-cl"><span class="limit-label">CL</span><span class="limit-val">{{ formatNumber(analysisReport.controlLimits.clXbar, 4) }}</span></div>
+                  <div class="limit-item limit-lcl"><span class="limit-label">LCL</span><span class="limit-val">{{ formatNumber(analysisReport.controlLimits.lclXbar, 4) }}</span></div>
+                </div>
+              </div>
+              <div class="limits-section">
+                <span class="limits-section-title"><el-icon><TrendCharts /></el-icon>R 控制限</span>
+                <div class="limits-values">
+                  <div class="limit-item limit-ucl"><span class="limit-label">UCL</span><span class="limit-val">{{ formatNumber(analysisReport.controlLimits.uclR, 4) }}</span></div>
+                  <div class="limit-item limit-cl"><span class="limit-label">CL</span><span class="limit-val">{{ formatNumber(analysisReport.controlLimits.clR, 4) }}</span></div>
+                  <div class="limit-item limit-lcl"><span class="limit-label">LCL</span><span class="limit-val">{{ formatNumber(analysisReport.controlLimits.lclR, 4) }}</span></div>
+                </div>
+              </div>
+            </div>
 
             <div class="section-title">
               <span>数据点列表</span>
@@ -602,23 +657,27 @@ onMounted(loadAll)
                 <el-button size="small" text @click="fetchDataPoints">刷新</el-button>
               </div>
             </div>
-            <el-table :data="dataPoints" stripe  max-height="200">
-              <el-table-column prop="subgroupIndex" label="子组#" width="70" />
-              <el-table-column label="测量值" min-width="200">
-                <template #default="{ row }">{{ row.individualValues }}</template>
+            <el-table :data="dataPoints" stripe class="data-point-table" max-height="200">
+              <el-table-column prop="subgroupIndex" label="子组#" width="70" align="center" />
+              <el-table-column label="测量值" min-width="200" show-overflow-tooltip>
+                <template #default="{ row }">
+                  <code class="values-cell">{{ row.individualValues }}</code>
+                </template>
               </el-table-column>
               <el-table-column label="X̄" width="100" align="right">
-                <template #default="{ row }">{{ formatNumber(Number(row.subgroupMean), 4) }}</template>
+                <template #default="{ row }"><span class="stat-value">{{ formatNumber(Number(row.subgroupMean), 4) }}</span></template>
               </el-table-column>
               <el-table-column label="R" width="100" align="right">
-                <template #default="{ row }">{{ formatNumber(Number(row.subgroupRange), 4) }}</template>
+                <template #default="{ row }"><span class="stat-value">{{ formatNumber(Number(row.subgroupRange), 4) }}</span></template>
               </el-table-column>
               <el-table-column label="测量时间" width="160">
-                <template #default="{ row }">{{ formatDate(row.measuredAt) }}</template>
+                <template #default="{ row }"><span class="time-cell">{{ formatDate(row.measuredAt) }}</span></template>
               </el-table-column>
-              <el-table-column label="操作" width="60" fixed="right">
+              <el-table-column label="操作" width="70" fixed="right" align="center">
                 <template #default="{ row }">
-                  <el-button size="small" text type="danger" @click="spcApi.deleteDataPoint(row.id).then(() => { fetchDataPoints(); runAnalysis() })">删除</el-button>
+                  <el-button size="small" link type="danger" @click="spcApi.deleteDataPoint(row.id).then(() => { fetchDataPoints(); runAnalysis() })">
+                    <el-icon><Delete /></el-icon>
+                  </el-button>
                 </template>
               </el-table-column>
             </el-table>
@@ -640,27 +699,41 @@ onMounted(loadAll)
               </div>
             </div>
             <div v-if="analysisReport?.violations?.length" class="violation-alert">
-              <el-alert title="检测到判异" :description="`共 ${analysisReport.violations.length} 条违规`" type="warning" show-icon :closable="false" />
+              <el-alert title="检测到判异报警" :description="`共 ${analysisReport.violations.length} 条违规记录`" type="warning" show-icon :closable="false" class="violation-alert-box" />
             </div>
             <div class="rules-grid">
-              <div v-for="rule in alertRules" :key="rule.id" class="rule-item">
-                <div class="rule-header">
-                  <span class="rule-num">#{{ rule.ruleNumber }}</span>
-                  <el-switch :model-value="rule.enabled" size="small" @change="toggleRule(rule)" />
+              <el-card v-for="rule in alertRules" :key="rule.id" class="rule-card" :class="{ 'rule-card-active': violationCount(analysisReport?.violations, rule.ruleNumber) > 0 }">
+                <template #header>
+                  <div class="rule-card-header">
+                    <div class="rule-id">
+                      <span class="rule-num">#{{ rule.ruleNumber }}</span>
+                      <span class="rule-name">{{ rule.ruleName }}</span>
+                    </div>
+                    <el-switch :model-value="rule.enabled" size="default" @change="toggleRule(rule)" :active-color="'#409eff'" :inactive-color="'#c0c4cc'" />
+                  </div>
+                </template>
+                <div class="rule-card-body">
+                  <p class="rule-desc">{{ rule.ruleDescription }}</p>
+                  <div class="rule-params">
+                    <el-tag size="small" effect="plain">{{ rule.triggerThreshold }} 点</el-tag>
+                    <el-tag v-if="rule.sigmaThreshold > 0" size="small" effect="plain" type="info">{{ rule.sigmaThreshold }} σ</el-tag>
+                  </div>
                 </div>
-                <div class="rule-name">{{ rule.ruleName }}</div>
-                <div class="rule-desc">{{ rule.ruleDescription }}</div>
-                <div class="rule-meta">
-                  <span>阈值: {{ rule.triggerThreshold }}点</span>
-                  <span v-if="rule.sigmaThreshold > 0">σ: {{ rule.sigmaThreshold }}</span>
+                <div class="rule-card-footer">
+                  <div v-if="violationCount(analysisReport?.violations, rule.ruleNumber) > 0" class="violation-badge-wrap">
+                    <el-tag type="danger" effect="dark" round size="large">
+                      <el-icon><WarningFilled /></el-icon>
+                      触发 {{ violationCount(analysisReport?.violations, rule.ruleNumber) }} 次
+                    </el-tag>
+                  </div>
+                  <div v-else class="safe-badge-wrap">
+                    <el-tag type="success" effect="plain" round size="large">
+                      <el-icon><CircleCheck /></el-icon>
+                      未触发
+                    </el-tag>
+                  </div>
                 </div>
-                <div v-if="violationCount(analysisReport?.violations, rule.ruleNumber) > 0" class="rule-violation">
-                  <el-tag size="small" type="danger">触发 {{ violationCount(analysisReport?.violations, rule.ruleNumber) }} 次</el-tag>
-                </div>
-                <div v-else class="rule-safe">
-                  <el-tag size="small" type="success">未触发</el-tag>
-                </div>
-              </div>
+              </el-card>
             </div>
           </div>
         </el-tab-pane>
@@ -668,28 +741,33 @@ onMounted(loadAll)
         <!-- Tab 3: Violation Triggers -->
         <el-tab-pane name="triggers">
           <template #label><el-icon><Bell /></el-icon><span>报警记录</span></template>
-          <el-table :data="triggers" stripe >
-            <el-table-column label="规则" width="60">
-              <template #default="{ row }">#{{ row.ruleNumber }}</template>
+          <el-table :data="triggers" stripe class="triggers-table" empty-text="暂无报警记录">
+            <el-table-column label="规则" width="60" align="center">
+              <template #default="{ row }"><span class="rule-num-sm">#{{ row.ruleNumber }}</span></template>
             </el-table-column>
-            <el-table-column prop="ruleName" label="规则名称" min-width="160" />
-            <el-table-column label="违规点" width="100">
-              <template #default="{ row }">点 #{{ row.violatedPointIndex + 1 }}</template>
+            <el-table-column prop="ruleName" label="规则名称" min-width="160" show-overflow-tooltip />
+            <el-table-column label="违规点" width="100" align="center">
+              <template #default="{ row }"><el-tag size="small" effect="plain">{{ row.violatedPointIndex + 1 }}</el-tag></template>
             </el-table-column>
-            <el-table-column label="详情" min-width="200">
+            <el-table-column label="详情" min-width="200" show-overflow-tooltip>
               <template #default="{ row }">{{ row.detail ? (JSON.parse(row.detail).description || row.detail) : '-' }}</template>
             </el-table-column>
             <el-table-column label="触发时间" width="160">
-              <template #default="{ row }">{{ formatDate(row.triggeredAt) }}</template>
+              <template #default="{ row }"><span class="time-cell">{{ formatDate(row.triggeredAt) }}</span></template>
             </el-table-column>
-            <el-table-column label="状态" width="80">
+            <el-table-column label="状态" width="90" align="center">
               <template #default="{ row }">
-                <el-tag :type="row.resolved ? 'success' : 'danger'" size="small">{{ row.resolved ? '已处理' : '待处理' }}</el-tag>
+                <el-tag :type="row.resolved ? 'success' : 'danger'" size="small" effect="dark" round>
+                  {{ row.resolved ? '已处理' : '待处理' }}
+                </el-tag>
               </template>
             </el-table-column>
-            <el-table-column label="操作" width="100" fixed="right">
+            <el-table-column label="操作" width="100" fixed="right" align="center">
               <template #default="{ row }">
-                <el-button v-if="!row.resolved" size="small" text type="primary" @click="resolveTrigger(row.id)">标记已处理</el-button>
+                <el-button v-if="!row.resolved" size="small" type="primary" link @click="resolveTrigger(row.id)">
+                  <el-icon><CircleCheck /></el-icon>处理
+                </el-button>
+                <span v-else class="resolved-text">—</span>
               </template>
             </el-table-column>
           </el-table>
@@ -714,24 +792,39 @@ onMounted(loadAll)
                 <el-button type="primary" @click="runAnovaAnalysis">运行方差分析</el-button>
               </el-empty>
             </div>
-            <div v-for="result in anovaResults" :key="result.id" class="anova-item">
-              <el-card>
+            <div v-for="result in anovaResults" :key="result.id" class="anova-item" :class="{ 'anova-item-significant': result.significant }">
+              <el-card shadow="hover">
                 <template #header>
                   <div class="anova-header">
-                    <strong>{{ anovaSourceLabel(result.source) }}</strong>
-                    <el-tag :type="result.significant ? 'danger' : 'success'" size="small">
+                    <div class="anova-header-left">
+                      <el-icon :size="18" :color="result.significant ? 'var(--el-color-danger)' : 'var(--el-color-success)'">
+                        <component :is="result.significant ? 'WarningFilled' : 'CircleCheckFilled'" />
+                      </el-icon>
+                      <strong class="anova-source-name">{{ anovaSourceLabel(result.source) }}</strong>
+                    </div>
+                    <el-tag :type="result.significant ? 'danger' : 'success'" size="default" effect="dark" round>
                       {{ result.significant ? '显著影响' : '无显著影响' }}
                     </el-tag>
                   </div>
                 </template>
-                <el-descriptions :column="4" border>
-                  <el-descriptions-item label="平方和(SS)">{{ formatNumber(result.sumOfSquares, 2) }}</el-descriptions-item>
-                  <el-descriptions-item label="自由度(df)">{{ result.degreesFreedom }}</el-descriptions-item>
-                  <el-descriptions-item label="均方(MS)">{{ formatNumber(result.meanSquare, 2) }}</el-descriptions-item>
-                  <el-descriptions-item label="F值">{{ formatNumber(result.fRatio, 4) }}</el-descriptions-item>
-                  <el-descriptions-item label="P值">{{ formatNumber(result.pValue, 6) }}</el-descriptions-item>
+                <el-descriptions :column="3" border class="anova-descriptions">
+                  <el-descriptions-item label="平方和 (SS)">
+                    <span class="anova-val">{{ formatNumber(result.sumOfSquares, 4) }}</span>
+                  </el-descriptions-item>
+                  <el-descriptions-item label="自由度 (df)">
+                    <span class="anova-val">{{ result.degreesFreedom }}</span>
+                  </el-descriptions-item>
+                  <el-descriptions-item label="均方 (MS)">
+                    <span class="anova-val">{{ formatNumber(result.meanSquare, 4) }}</span>
+                  </el-descriptions-item>
+                  <el-descriptions-item label="F 值">
+                    <span class="anova-val" :class="{ 'text-danger': result.fRatio > 1 }">{{ formatNumber(result.fRatio, 4) }}</span>
+                  </el-descriptions-item>
+                  <el-descriptions-item label="P 值">
+                    <span class="anova-val" :class="{ 'text-danger': result.pValue < 0.05 }">{{ formatNumber(result.pValue, 6) }}</span>
+                  </el-descriptions-item>
                   <el-descriptions-item label="显著性">
-                    <el-tag :type="result.pValue < 0.05 ? 'danger' : 'success'" size="small">
+                    <el-tag :type="result.pValue < 0.05 ? 'danger' : 'success'" size="small" effect="plain" round>
                       {{ result.pValue < 0.05 ? 'p &lt; 0.05' : 'p ≥ 0.05' }}
                     </el-tag>
                   </el-descriptions-item>

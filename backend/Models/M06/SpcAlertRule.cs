@@ -8,6 +8,7 @@ public class SpcAlertRule
 {
     [Key]
     [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
+    [Column("id")]
     public long Id { get; set; }
 
     public long ChartId { get; set; }
@@ -27,8 +28,10 @@ public class SpcAlertRule
     [Column(TypeName = "decimal(5,2)")]
     public decimal SigmaThreshold { get; set; } = 2.0m;
 
+    [Column("created_at")]
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
+    [Column("updated_at")]
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
     // Navigation

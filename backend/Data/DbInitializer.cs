@@ -16,19 +16,19 @@ public static class DbInitializer
 {
     public static async Task Initialize(AppDbContext context)
     {
-        // 确保表已创建（Program.cs 已调用 EnsureCreatedAsync，此处为防御性）
-        try { await context.Database.EnsureCreatedAsync(); } catch { /* ignore */ }
+        // 确保所有表已创建（包括新表）
+        await context.Database.EnsureCreatedAsync();
 
-        // 跳过已有完整数据的初始化（仅检查 Users 和 Organizations 两个代表性表）
-        var hasUsers = false;
+        // 跳过已有完整数据的初始化（检查 Roles 和 Organizations）
+        var hasRoles = false;
         var hasOrgs = false;
-        try { hasUsers = await context.Users.AnyAsync(); } catch { /* ignore */ }
-        try { hasOrgs = await context.Organizations.AnyAsync(); } catch { /* ignore */ }
         var hasDicts = false;
+        try { hasRoles = await context.Roles.AnyAsync(); } catch { /* ignore */ }
+        try { hasOrgs = await context.Organizations.AnyAsync(); } catch { /* ignore */ }
         try { hasDicts = await context.SysDictTypes.AnyAsync(); } catch { /* ignore */ }
 
-        // ─── 角色（只在无用户时创建） ────────────────────────────
-        if (!hasUsers) {
+        // ─── 角色（只在无角色时创建） ────────────────────────────
+        if (!await context.Roles.AnyAsync()) {
         var adminRole = new Role
         {
             Name = "Administrator",
@@ -152,16 +152,16 @@ public static class DbInitializer
         #region Routings (P001 精密转轴的工艺路线)
         var routings = new List<Routing>
         {
-            new() { ProductId = products[0].Id, Code = "RT-P001", StepOrder = 1, ProcessId = processes[0].Id, StandardTimeMinutes = 5 },
-            new() { ProductId = products[0].Id, Code = "RT-P001", StepOrder = 2, ProcessId = processes[1].Id, StandardTimeMinutes = 15 },
-            new() { ProductId = products[0].Id, Code = "RT-P001", StepOrder = 3, ProcessId = processes[2].Id, StandardTimeMinutes = 20 },
-            new() { ProductId = products[0].Id, Code = "RT-P001", StepOrder = 4, ProcessId = processes[3].Id, StandardTimeMinutes = 10 },
-            new() { ProductId = products[0].Id, Code = "RT-P001", StepOrder = 5, ProcessId = processes[4].Id, StandardTimeMinutes = 30 },
-            new() { ProductId = products[0].Id, Code = "RT-P001", StepOrder = 6, ProcessId = processes[5].Id, StandardTimeMinutes = 25 },
-            new() { ProductId = products[0].Id, Code = "RT-P001", StepOrder = 7, ProcessId = processes[6].Id, StandardTimeMinutes = 5 },
-            new() { ProductId = products[0].Id, Code = "RT-P001", StepOrder = 8, ProcessId = processes[7].Id, StandardTimeMinutes = 5 },
-            new() { ProductId = products[0].Id, Code = "RT-P001", StepOrder = 9, ProcessId = processes[8].Id, StandardTimeMinutes = 10 },
-            new() { ProductId = products[0].Id, Code = "RT-P001", StepOrder = 10, ProcessId = processes[9].Id, StandardTimeMinutes = 5 },
+            new() { ProductId = products[0].Id, Code = "RT-P001", RoutingName = "精密转轴A100工艺路线", Description = "精密转轴A100工艺路线", StepOrder = 1, ProcessId = processes[0].Id, StandardTimeMinutes = 5 },
+            new() { ProductId = products[0].Id, Code = "RT-P001", RoutingName = "精密转轴A100工艺路线", Description = "精密转轴A100工艺路线", StepOrder = 2, ProcessId = processes[1].Id, StandardTimeMinutes = 15 },
+            new() { ProductId = products[0].Id, Code = "RT-P001", RoutingName = "精密转轴A100工艺路线", Description = "精密转轴A100工艺路线", StepOrder = 3, ProcessId = processes[2].Id, StandardTimeMinutes = 20 },
+            new() { ProductId = products[0].Id, Code = "RT-P001", RoutingName = "精密转轴A100工艺路线", Description = "精密转轴A100工艺路线", StepOrder = 4, ProcessId = processes[3].Id, StandardTimeMinutes = 10 },
+            new() { ProductId = products[0].Id, Code = "RT-P001", RoutingName = "精密转轴A100工艺路线", Description = "精密转轴A100工艺路线", StepOrder = 5, ProcessId = processes[4].Id, StandardTimeMinutes = 30 },
+            new() { ProductId = products[0].Id, Code = "RT-P001", RoutingName = "精密转轴A100工艺路线", Description = "精密转轴A100工艺路线", StepOrder = 6, ProcessId = processes[5].Id, StandardTimeMinutes = 25 },
+            new() { ProductId = products[0].Id, Code = "RT-P001", RoutingName = "精密转轴A100工艺路线", Description = "精密转轴A100工艺路线", StepOrder = 7, ProcessId = processes[6].Id, StandardTimeMinutes = 5 },
+            new() { ProductId = products[0].Id, Code = "RT-P001", RoutingName = "精密转轴A100工艺路线", Description = "精密转轴A100工艺路线", StepOrder = 8, ProcessId = processes[7].Id, StandardTimeMinutes = 5 },
+            new() { ProductId = products[0].Id, Code = "RT-P001", RoutingName = "精密转轴A100工艺路线", Description = "精密转轴A100工艺路线", StepOrder = 9, ProcessId = processes[8].Id, StandardTimeMinutes = 10 },
+            new() { ProductId = products[0].Id, Code = "RT-P001", RoutingName = "精密转轴A100工艺路线", Description = "精密转轴A100工艺路线", StepOrder = 10, ProcessId = processes[9].Id, StandardTimeMinutes = 5 },
         };
         context.Routings.AddRange(routings);
         await context.SaveChangesAsync();
@@ -254,7 +254,7 @@ public static class DbInitializer
         context.Customers.AddRange(customers);
         await context.SaveChangesAsync();
         #endregion
-        } // end if (!hasUsers) — 以上为首次运行的完整种子数据
+        } // end if (!await context.Roles.AnyAsync()) — 以上为首次运行的完整种子数据
 
         #region M15 企业组织层级种子数据
         // 只有没有组织数据时才创建

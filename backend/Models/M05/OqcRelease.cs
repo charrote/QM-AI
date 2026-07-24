@@ -11,9 +11,11 @@ public class OqcRelease
 {
     [Key]
     [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
+    [Column("id")]
     public long Id { get; set; }
 
     /// <summary>关联批次</summary>
+    [Column("batch_id")]
     public long BatchId { get; set; }
 
     /// <summary>关联客户</summary>
@@ -25,12 +27,15 @@ public class OqcRelease
     public string ReleaseNumber { get; set; } = string.Empty;
 
     /// <summary>放行日期</summary>
+    [Column("release_date")]
     public DateTime ReleaseDate { get; set; }
 
     /// <summary>放行数量</summary>
+    [Column("quantity")]
     public decimal Quantity { get; set; }
 
     /// <summary>授权人 ID</summary>
+    [Column("authorized_by")]
     public int? AuthorizedBy { get; set; }
 
     /// <summary>电子签名 URL（MinIO）</summary>
@@ -43,9 +48,12 @@ public class OqcRelease
     /// <summary>状态：pending / signed / released / cancelled</summary>
     [Required]
     [MaxLength(20)]
+    [Column("status")]
     public string Status { get; set; } = "pending";
 
+    [Column("created_at")]
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    [Column("updated_at")]
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
     // Navigation

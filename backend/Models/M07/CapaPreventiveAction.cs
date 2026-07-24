@@ -11,29 +11,36 @@ public class CapaPreventiveAction
 {
     [Key]
     [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
+    [Column("id")]
     public long Id { get; set; }
 
     public long CapaId { get; set; }
 
     /// <summary>措施描述</summary>
     [Required]
+    [Column("action_description")]
     public string ActionDescription { get; set; } = string.Empty;
 
     /// <summary>负责人</summary>
+    [Column("responsible_person")]
     public long ResponsiblePerson { get; set; }
 
     /// <summary>完成期限</summary>
     [Required]
+    [Column("due_date")]
     public DateTime DueDate { get; set; }
 
     /// <summary>状态：pending / in_progress / completed</summary>
     [Required]
     [MaxLength(20)]
+    [Column("status")]
     public string Status { get; set; } = "pending";
 
     public DateTime? CompletedAt { get; set; }
     public string? Remarks { get; set; }
+    [Column("created_at")]
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    [Column("updated_at")]
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
     [ForeignKey(nameof(CapaId))]

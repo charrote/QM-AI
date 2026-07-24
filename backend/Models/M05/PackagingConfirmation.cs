@@ -11,9 +11,11 @@ public class PackagingConfirmation
 {
     [Key]
     [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
+    [Column("id")]
     public long Id { get; set; }
 
     /// <summary>关联批次</summary>
+    [Column("batch_id")]
     public long BatchId { get; set; }
 
     /// <summary>包装方式</summary>
