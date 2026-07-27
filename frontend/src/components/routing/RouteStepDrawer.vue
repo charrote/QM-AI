@@ -1,6 +1,7 @@
 <template>
   <el-drawer
-    v-model="modelValue"
+    :model-value="modelValue"
+    @update:model-value="handleUpdate"
     :title="drawerTitle"
     size="520px"
     direction="rtl"
@@ -113,6 +114,11 @@ watch(() => props.modelValue, (val) => {
   if (val) initForm()
 })
 
+function handleUpdate(val: boolean) {
+  emit('update:modelValue', val)
+  if (!val) emit('saved')
+}
+
 async function initForm() {
   try {
     const res = await processApi.list({ page: 1, pageSize: 999 })
@@ -151,8 +157,7 @@ async function handleSave() {
       })
       ElMessage.success('添加成功')
     }
-    emit('update:modelValue', false)
-    emit('saved')
+    handleUpdate(false)
   } catch { /* error handled by interceptor */ }
   finally {
     saving.value = false
@@ -160,7 +165,7 @@ async function handleSave() {
 }
 
 function handleCancel() {
-  emit('update:modelValue', false)
+  handleUpdate(false)
 }
 </script>
 
