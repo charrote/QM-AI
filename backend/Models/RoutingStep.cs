@@ -27,6 +27,14 @@ public class RoutingStep
     [Column("description")]
     public string? Description { get; set; }
 
+    /// <summary>前置等待时间（分钟）</summary>
+    [Column("pre_wait_time_minutes")]
+    public double? PreWaitTimeMinutes { get; set; }
+
+    /// <summary>后置等待时间（分钟）</summary>
+    [Column("post_wait_time_minutes")]
+    public double? PostWaitTimeMinutes { get; set; }
+
     [Column("is_active")]
     public bool IsActive { get; set; } = true;
 

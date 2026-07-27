@@ -95,6 +95,8 @@ export interface CreateRouteStepDto {
   stepOrder?: number
   standardTimeMinutes?: number
   description?: string
+  preWaitTimeMinutes?: number
+  postWaitTimeMinutes?: number
 }
 
 // ─── 产品工艺路线步骤 ──────────────────────────────────────
@@ -107,6 +109,8 @@ export interface ProductRouteStepDto {
   processName: string
   standardTimeMinutes?: number
   description?: string
+  preWaitTimeMinutes?: number
+  postWaitTimeMinutes?: number
   _isPlaceholder?: boolean
 }
 

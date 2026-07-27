@@ -38,6 +38,14 @@
           <el-icon><Timer /></el-icon>
           <span>{{ formatTime(step.standardTimeMinutes) }}</span>
         </div>
+        <div class="route-step-card__meta" v-if="step.preWaitTimeMinutes || step.postWaitTimeMinutes">
+          <el-icon><Clock /></el-icon>
+          <span>
+            <template v-if="step.preWaitTimeMinutes">前置{{ step.preWaitTimeMinutes }}min</template>
+            <template v-if="step.preWaitTimeMinutes && step.postWaitTimeMinutes"> / </template>
+            <template v-if="step.postWaitTimeMinutes">后置{{ step.postWaitTimeMinutes }}min</template>
+          </span>
+        </div>
       </template>
     </div>
 
@@ -65,7 +73,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { ProductRouteStepDto } from '@/types/routing'
-import { Rank, Operation, Timer, EditPen, Delete, Plus } from '@element-plus/icons-vue'
+import { Rank, Operation, Timer, Clock, EditPen, Delete, Plus } from '@element-plus/icons-vue'
 
 defineOptions({ name: 'RouteStepCard' })
 

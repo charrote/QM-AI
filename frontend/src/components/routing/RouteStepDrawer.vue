@@ -49,6 +49,30 @@
         />
       </el-form-item>
 
+      <el-form-item label="前置等待 (min)" prop="preWaitTimeMinutes">
+        <el-input-number
+          v-model="formData.preWaitTimeMinutes"
+          :min="0"
+          :max="9999"
+          :step="1"
+          :precision="0"
+          style="width: 100%"
+          placeholder="请输入前置等待时间"
+        />
+      </el-form-item>
+
+      <el-form-item label="后置等待 (min)" prop="postWaitTimeMinutes">
+        <el-input-number
+          v-model="formData.postWaitTimeMinutes"
+          :min="0"
+          :max="9999"
+          :step="1"
+          :precision="0"
+          style="width: 100%"
+          placeholder="请输入后置等待时间"
+        />
+      </el-form-item>
+
       <el-form-item label="备注" prop="description">
         <el-input
           v-model="formData.description"
@@ -102,6 +126,8 @@ const drawerTitle = computed(() => isEdit.value ? '编辑工序步骤' : '新增
 const formData = reactive({
   processId: 0,
   standardTimeMinutes: undefined as number | undefined,
+  preWaitTimeMinutes: undefined as number | undefined,
+  postWaitTimeMinutes: undefined as number | undefined,
   description: '',
 })
 
@@ -128,10 +154,14 @@ async function initForm() {
   if (props.step) {
     formData.processId = props.step.processId
     formData.standardTimeMinutes = props.step.standardTimeMinutes
+    formData.preWaitTimeMinutes = props.step.preWaitTimeMinutes
+    formData.postWaitTimeMinutes = props.step.postWaitTimeMinutes
     formData.description = props.step.description || ''
   } else {
     formData.processId = 0
     formData.standardTimeMinutes = undefined
+    formData.preWaitTimeMinutes = undefined
+    formData.postWaitTimeMinutes = undefined
     formData.description = ''
   }
 }
@@ -147,6 +177,8 @@ async function handleSave() {
         processId: formData.processId,
         standardTimeMinutes: formData.standardTimeMinutes,
         description: formData.description,
+        preWaitTimeMinutes: formData.preWaitTimeMinutes,
+        postWaitTimeMinutes: formData.postWaitTimeMinutes,
       })
       ElMessage.success('更新成功')
     } else if (props.headerId) {
@@ -154,6 +186,8 @@ async function handleSave() {
         processId: formData.processId,
         standardTimeMinutes: formData.standardTimeMinutes,
         description: formData.description,
+        preWaitTimeMinutes: formData.preWaitTimeMinutes,
+        postWaitTimeMinutes: formData.postWaitTimeMinutes,
       })
       ElMessage.success('添加成功')
     }

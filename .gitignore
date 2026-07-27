@@ -21,13 +21,10 @@ iqc_*.py
 iqc_*.mjs
 
 # Docker (local environment config, not for version control)
-.buildx-cache/
-docker/
-**/Dockerfile*
-**/docker-compose*.yml
+.docker/
+daemon.json
 build-dev.bat
 build-dev.sh
-docker-compose.yml
 
 # IDE
 .idea/

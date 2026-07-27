@@ -117,6 +117,10 @@ public class ProductRouteStepDto
     [JsonPropertyName("standardTimeMinutes")]
     public double? StandardTimeMinutes { get; set; }
     public string? Description { get; set; }
+    [JsonPropertyName("preWaitTimeMinutes")]
+    public double? PreWaitTimeMinutes { get; set; }
+    [JsonPropertyName("postWaitTimeMinutes")]
+    public double? PostWaitTimeMinutes { get; set; }
 }
 
 /// <summary>产品工艺路线（含所有步骤）</summary>

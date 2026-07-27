@@ -89,6 +89,8 @@ public class CreateRouteStepDto2
     [JsonPropertyName("stepOrder")] public int? StepOrder { get; set; }
     [JsonPropertyName("standardTimeMinutes")] public double? StandardTimeMinutes { get; set; }
     [JsonPropertyName("description")] public string? Description { get; set; }
+    [JsonPropertyName("preWaitTimeMinutes")] public double? PreWaitTimeMinutes { get; set; }
+    [JsonPropertyName("postWaitTimeMinutes")] public double? PostWaitTimeMinutes { get; set; }
 }
 
 /// <summary>更新步骤</summary>
@@ -97,6 +99,8 @@ public class UpdateRouteStepDto
     [JsonPropertyName("processId")] public long ProcessId { get; set; }
     [JsonPropertyName("standardTimeMinutes")] public double? StandardTimeMinutes { get; set; }
     [JsonPropertyName("description")] public string? Description { get; set; }
+    [JsonPropertyName("preWaitTimeMinutes")] public double? PreWaitTimeMinutes { get; set; }
+    [JsonPropertyName("postWaitTimeMinutes")] public double? PostWaitTimeMinutes { get; set; }
 }
 
 /// <summary>批量排序步骤</summary>

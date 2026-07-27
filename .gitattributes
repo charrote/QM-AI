@@ -1,0 +1,28 @@
+# ─── 强制 LF 行尾符（防止 Windows 拉取后 CRLF 导致 YAML/Compose 解析失败）───
+# text 标记：自动处理转换
+# eol=lf：提交到 Git 时始终用 LF
+*.yml      text eol=lf
+*.yaml     text eol=lf
+*.json     text eol=lf
+*.jsonc    text eol=lf
+*.json5    text eol=lf
+*.env      text eol=lf
+*.cnf      text eol=lf
+*.ini      text eol=lf
+*.toml     text eol=lf
+*.txt      text eol=lf
+Makefile   text eol=lf
+Dockerfile text eol=lf
+
+# ─── 二进制文件（不处理行尾）───
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.ico  binary
+*.pdf  binary
+*.zip  binary
+*.tar.gz  binary
+*.whl  binary
+*.dll  binary
+*.exe  binary

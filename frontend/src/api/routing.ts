@@ -45,11 +45,11 @@ export function getRouteSteps(headerId: number) {
   return request.get<ProductRouteStepDto[]>(`/routings/headers/${headerId}/steps`).then(r => r.data)
 }
 
-export function addRouteStep(headerId: number, data: { processId: number; standardTimeMinutes?: number; description?: string }) {
+export function addRouteStep(headerId: number, data: { processId: number; stepOrder?: number; standardTimeMinutes?: number; description?: string; preWaitTimeMinutes?: number; postWaitTimeMinutes?: number }) {
   return request.post(`/routings/headers/${headerId}/steps`, data).then(r => r.data)
 }
 
-export function updateRouteStep(headerId: number, stepId: number, data: { processId: number; standardTimeMinutes?: number; description?: string }) {
+export function updateRouteStep(headerId: number, stepId: number, data: { processId: number; standardTimeMinutes?: number; description?: string; preWaitTimeMinutes?: number; postWaitTimeMinutes?: number }) {
   return request.put(`/routings/headers/${headerId}/steps/${stepId}`, data).then(r => r.data)
 }
 

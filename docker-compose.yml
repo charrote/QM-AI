@@ -1,0 +1,146 @@
+services:
+  # ─── MySQL ──────────────────────────────────────────────
+  mysql:
+    image: mysql:8.0
+    container_name: qm-ai-mysql
+    restart: unless-stopped
+    env_file: docker/.env.example
+    ports:
+      - "3306:3306"
+    volumes:
+      - ./docker/mysql-conf/my.cnf:/etc/mysql/conf.d/custom.cnf
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u root -p\"$MYSQL_ROOT_PASSWORD\""]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ─── Redis ──────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: qm-ai-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ─── MinIO ──────────────────────────────────────────────
+  minio:
+    image: minio/minio:latest
+    container_name: qm-ai-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    env_file: docker/.env.example
+    ports:
+      - "19000:19000"
+      - "19001:9001"
+    volumes:
+      - minio-data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9000/minio/health/live || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ─── RabbitMQ ──────────────────────────────────────────
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: qm-ai-rabbitmq
+    restart: unless-stopped
+    env_file: docker/.env.example
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z localhost 5672 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ─── Backend (.NET) ─────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: qm-ai-backend
+    restart: unless-stopped
+    ports:
+      - "5611:5611"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__DefaultConnection=Server=mysql;Port=3306;Database=qmai;User=root;Password=qmai_root_2024;Charset=utf8mb4;AllowZeroDateTime=True
+      - Redis__Connection=redis:6379
+      - MinIO__Endpoint=minio:19000
+      - MinIO__AccessKey=qmai_admin
+      - MinIO__SecretKey=qmai_minio_2024
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5611/swagger"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # ─── AI Service (Python) ───────────────────────────────
+  ai-service:
+    build:
+      context: ./ai-service
+      dockerfile: Dockerfile
+    container_name: qm-ai-ai-service
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    depends_on:
+      backend:
+        condition: service_healthy
+    env_file:
+      - .env
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/docs"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # ─── Frontend (Node.js + Nginx) ─────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: qm-ai-frontend
+    restart: unless-stopped
+    ports:
+      - "5610:5610"
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5610"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  mysql-data:
+  redis-data:
+  minio-data:
+  rabbitmq-data:

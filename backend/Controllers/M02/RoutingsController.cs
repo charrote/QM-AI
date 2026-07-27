@@ -125,7 +125,7 @@ public class RoutingsController : ControllerBase
             RouteCode = firstStep != null ? firstStep.ProcessCode : string.Empty,
             RouteName = firstStep != null ? $"{product.Name}工艺路线" : string.Empty,
             TotalSteps = steps.Count,
-            TotalStandardTimeMinutes = steps.Sum(s => s.StandardTimeMinutes ?? 0),
+            TotalStandardTimeMinutes = steps.Sum(s => (s.StandardTimeMinutes ?? 0) + (s.PreWaitTimeMinutes ?? 0) + (s.PostWaitTimeMinutes ?? 0)),
             Steps = steps,
         });
     }
@@ -323,7 +323,7 @@ public class RoutingsController : ControllerBase
             IsActive = header.IsActive,
             SortOrder = header.SortOrder,
             StepCount = steps.Count,
-            TotalStandardTimeMinutes = steps.Sum(s => s.StandardTimeMinutes ?? 0),
+            TotalStandardTimeMinutes = steps.Sum(s => (s.StandardTimeMinutes ?? 0) + (s.PreWaitTimeMinutes ?? 0) + (s.PostWaitTimeMinutes ?? 0)),
             Steps = steps,
             CreatedAt = header.CreatedAt,
             UpdatedAt = header.UpdatedAt,
@@ -431,7 +431,7 @@ public class RoutingsController : ControllerBase
             IsActive = header.IsActive,
             SortOrder = header.SortOrder,
             StepCount = steps.Count,
-            TotalStandardTimeMinutes = steps.Sum(s => s.StandardTimeMinutes ?? 0),
+            TotalStandardTimeMinutes = steps.Sum(s => (s.StandardTimeMinutes ?? 0) + (s.PreWaitTimeMinutes ?? 0) + (s.PostWaitTimeMinutes ?? 0)),
             CreatedAt = header.CreatedAt,
             UpdatedAt = header.UpdatedAt,
         });
@@ -479,7 +479,7 @@ public class RoutingsController : ControllerBase
             IsActive = header.IsActive,
             SortOrder = header.SortOrder,
             StepCount = steps.Count,
-            TotalStandardTimeMinutes = steps.Sum(s => s.StandardTimeMinutes ?? 0),
+            TotalStandardTimeMinutes = steps.Sum(s => (s.StandardTimeMinutes ?? 0) + (s.PreWaitTimeMinutes ?? 0) + (s.PostWaitTimeMinutes ?? 0)),
             CreatedAt = header.CreatedAt,
             UpdatedAt = header.UpdatedAt,
         });
@@ -522,7 +522,7 @@ public class RoutingsController : ControllerBase
             IsActive = header.IsActive,
             SortOrder = header.SortOrder,
             StepCount = steps.Count,
-            TotalStandardTimeMinutes = steps.Sum(s => s.StandardTimeMinutes ?? 0),
+            TotalStandardTimeMinutes = steps.Sum(s => (s.StandardTimeMinutes ?? 0) + (s.PreWaitTimeMinutes ?? 0) + (s.PostWaitTimeMinutes ?? 0)),
             CreatedAt = header.CreatedAt,
             UpdatedAt = header.UpdatedAt,
         });
@@ -617,6 +617,8 @@ public class RoutingsController : ControllerBase
                 ProcessName = s.Process.Name,
                 StandardTimeMinutes = s.StandardTimeMinutes,
                 Description = s.Description,
+                PreWaitTimeMinutes = s.PreWaitTimeMinutes,
+                PostWaitTimeMinutes = s.PostWaitTimeMinutes,
             })
             .ToListAsync();
 
@@ -648,6 +650,8 @@ public class RoutingsController : ControllerBase
             ProcessId = dto.ProcessId,
             StandardTimeMinutes = dto.StandardTimeMinutes,
             Description = dto.Description,
+            PreWaitTimeMinutes = dto.PreWaitTimeMinutes,
+            PostWaitTimeMinutes = dto.PostWaitTimeMinutes,
             IsActive = true,
         };
 
@@ -679,6 +683,8 @@ public class RoutingsController : ControllerBase
             ProcessName = savedStep.Process.Name,
             StandardTimeMinutes = savedStep.StandardTimeMinutes,
             Description = savedStep.Description,
+            PreWaitTimeMinutes = savedStep.PreWaitTimeMinutes,
+            PostWaitTimeMinutes = savedStep.PostWaitTimeMinutes,
         });
     }
 
@@ -699,6 +705,8 @@ public class RoutingsController : ControllerBase
         step.ProcessId = dto.ProcessId;
         step.StandardTimeMinutes = dto.StandardTimeMinutes;
         step.Description = dto.Description ?? step.Description;
+        step.PreWaitTimeMinutes = dto.PreWaitTimeMinutes;
+        step.PostWaitTimeMinutes = dto.PostWaitTimeMinutes;
         step.UpdatedAt = DateTime.UtcNow;
         await _db.SaveChangesAsync();
 
@@ -711,6 +719,8 @@ public class RoutingsController : ControllerBase
             ProcessName = step.Process.Name,
             StandardTimeMinutes = step.StandardTimeMinutes,
             Description = step.Description,
+            PreWaitTimeMinutes = step.PreWaitTimeMinutes,
+            PostWaitTimeMinutes = step.PostWaitTimeMinutes,
         });
     }
 
@@ -802,6 +812,8 @@ public class RoutingsController : ControllerBase
                 ProcessId = dtos[i].ProcessId,
                 StandardTimeMinutes = dtos[i].StandardTimeMinutes,
                 Description = dtos[i].Description,
+                PreWaitTimeMinutes = dtos[i].PreWaitTimeMinutes,
+                PostWaitTimeMinutes = dtos[i].PostWaitTimeMinutes,
                 IsActive = true,
             };
 
@@ -823,6 +835,8 @@ public class RoutingsController : ControllerBase
                 ProcessName = s.Process.Name,
                 StandardTimeMinutes = s.StandardTimeMinutes,
                 Description = s.Description,
+                PreWaitTimeMinutes = s.PreWaitTimeMinutes,
+                PostWaitTimeMinutes = s.PostWaitTimeMinutes,
             })
             .ToListAsync();
 

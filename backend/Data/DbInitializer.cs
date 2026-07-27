@@ -166,12 +166,50 @@ public static class DbInitializer
         await context.SaveChangesAsync();
         #endregion
 
-        #region BOM (P001 精密转轴的物料清单)
+        #region BOM 物料清单
         var boms = new List<Bom>
         {
-            new() { ProductId = products[0].Id, MaterialCode = "MAT-001", MaterialName = "45# 圆钢 Φ50", Quantity = 1.2, Unit = "kg", Level = 1 },
-            new() { ProductId = products[0].Id, MaterialCode = "MAT-002", MaterialName = "轴承 6205", Quantity = 2, Unit = "pcs", Level = 1 },
-            new() { ProductId = products[0].Id, MaterialCode = "MAT-003", MaterialName = "润滑油", Quantity = 0.05, Unit = "L", Level = 1 },
+            // ── P001 精密转轴 A100（机加工件） ─────────────────────────
+            new() { ProductId = products[0].Id, MaterialCode = "MAT-001", MaterialName = "45# 圆钢 Φ50", Quantity = 1.2, Unit = "kg", Level = 1, Remark = "宝钢供料，碳含量0.42-0.50%" },
+            new() { ProductId = products[0].Id, MaterialCode = "MAT-002", MaterialName = "轴承 6205", Quantity = 2, Unit = "pcs", Level = 1, Remark = "SKF供料，深沟球轴承" },
+            new() { ProductId = products[0].Id, MaterialCode = "MAT-003", MaterialName = "润滑油", Quantity = 0.05, Unit = "L", Level = 1, Remark = "中石化长城L-AN46" },
+            new() { ProductId = products[0].Id, MaterialCode = "MAT-004", MaterialName = "防锈油", Quantity = 0.02, Unit = "L", Level = 1, Remark = "包装前防锈处理" },
+            new() { ProductId = products[0].Id, MaterialCode = "MAT-005", MaterialName = "包装盒", Quantity = 1, Unit = "pcs", Level = 1, Remark = "瓦楞纸盒 200×80×80mm" },
+            new() { ProductId = products[0].Id, MaterialCode = "MAT-006", MaterialName = "产品标签", Quantity = 1, Unit = "pcs", Level = 1, Remark = "含批次号、生产日期" },
+
+            // ── P002 壳体 B200（压铸件） ─────────────────────────────
+            new() { ProductId = products[1].Id, MaterialCode = "MAT-101", MaterialName = "ADC12 铝合金锭", Quantity = 2.5, Unit = "kg", Level = 1, Remark = "压铸件主体材料" },
+            new() { ProductId = products[1].Id, MaterialCode = "MAT-102", MaterialName = "脱模剂", Quantity = 0.03, Unit = "L", Level = 1, Remark = "水性脱模剂" },
+            new() { ProductId = products[1].Id, MaterialCode = "MAT-103", MaterialName = "密封圈 O型圈 25×3", Quantity = 2, Unit = "pcs", Level = 1, Remark = "NBR橡胶，耐油" },
+            new() { ProductId = products[1].Id, MaterialCode = "MAT-104", MaterialName = "螺栓 M6×20", Quantity = 4, Unit = "pcs", Level = 1, Remark = "8.8级镀锌螺栓" },
+            new() { ProductId = products[1].Id, MaterialCode = "MAT-105", MaterialName = "垫片 Φ6", Quantity = 4, Unit = "pcs", Level = 1, Remark = "弹簧垫片" },
+            new() { ProductId = products[1].Id, MaterialCode = "MAT-106", MaterialName = "防尘罩", Quantity = 1, Unit = "pcs", Level = 1, Remark = "硅胶材质" },
+            new() { ProductId = products[1].Id, MaterialCode = "MAT-107", MaterialName = "泡沫内衬", Quantity = 1, Unit = "pcs", Level = 1, Remark = "EPE珍珠棉定制" },
+
+            // ── P003 PCB 主板 C300（电子件） ──────────────────────────
+            new() { ProductId = products[2].Id, MaterialCode = "MAT-201", MaterialName = "FR-4 玻纤基板 150×100×1.6", Quantity = 1, Unit = "pcs", Level = 1, Remark = "4层板，阻焊绿油" },
+            new() { ProductId = products[2].Id, MaterialCode = "MAT-202", MaterialName = "MCU STM32F103C8T6", Quantity = 1, Unit = "pcs", Level = 1, Remark = "主控芯片" },
+            new() { ProductId = products[2].Id, MaterialCode = "MAT-203", MaterialName = "电容 100μF/16V", Quantity = 6, Unit = "pcs", Level = 1, Remark = "电解电容" },
+            new() { ProductId = products[2].Id, MaterialCode = "MAT-204", MaterialName = "电容 0.1μF/50V", Quantity = 12, Unit = "pcs", Level = 1, Remark = "陶瓷电容" },
+            new() { ProductId = products[2].Id, MaterialCode = "MAT-205", MaterialName = "电阻 10KΩ 1/4W", Quantity = 8, Unit = "pcs", Level = 1, Remark = "贴片电阻" },
+            new() { ProductId = products[2].Id, MaterialCode = "MAT-206", MaterialName = "USB Type-C 接口", Quantity = 1, Unit = "pcs", Level = 1, Remark = "沉板焊接" },
+            new() { ProductId = products[2].Id, MaterialCode = "MAT-207", MaterialName = "排针 2×10 Pin", Quantity = 2, Unit = "pcs", Level = 1, Remark = "2.54mm间距" },
+            new() { ProductId = products[2].Id, MaterialCode = "MAT-208", MaterialName = "晶振 8MHz", Quantity = 1, Unit = "pcs", Level = 1, Remark = "无源晶振" },
+            new() { ProductId = products[2].Id, MaterialCode = "MAT-209", MaterialName = "防静电袋", Quantity = 1, Unit = "pcs", Level = 1, Remark = "屏蔽包装袋" },
+
+            // ── P004 密封圈 D400（橡胶件） ────────────────────────────
+            new() { ProductId = products[3].Id, MaterialCode = "MAT-301", MaterialName = "NBR 橡胶原料", Quantity = 0.15, Unit = "kg", Level = 1, Remark = "丁腈橡胶，硬度70A" },
+            new() { ProductId = products[3].Id, MaterialCode = "MAT-302", MaterialName = "润滑粉", Quantity = 0.001, Unit = "kg", Level = 1, Remark = "模具脱模用" },
+            new() { ProductId = products[3].Id, MaterialCode = "MAT-303", MaterialName = "PE 自封袋", Quantity = 1, Unit = "pcs", Level = 1, Remark = "包装用" },
+            new() { ProductId = products[3].Id, MaterialCode = "MAT-304", MaterialName = "干燥剂", Quantity = 1, Unit = "pcs", Level = 1, Remark = "硅胶干燥剂 5g" },
+
+            // ── P005 连接线束 E500（标准件） ──────────────────────────
+            new() { ProductId = products[4].Id, MaterialCode = "MAT-401", MaterialName = "PVC 护套线 2×0.75mm²", Quantity = 1.5, Unit = "m", Level = 1, Remark = "线束主线材" },
+            new() { ProductId = products[4].Id, MaterialCode = "MAT-402", MaterialName = "端子 HT-05B", Quantity = 4, Unit = "pcs", Level = 1, Remark = "公母对插端子" },
+            new() { ProductId = products[4].Id, MaterialCode = "MAT-403", MaterialName = "热缩管 Φ6 红", Quantity = 0.1, Unit = "m", Level = 1, Remark = "两端绝缘保护" },
+            new() { ProductId = products[4].Id, MaterialCode = "MAT-404", MaterialName = "扎带 100mm 黑色", Quantity = 2, Unit = "pcs", Level = 1, Remark = "尼龙扎带固定" },
+            new() { ProductId = products[4].Id, MaterialCode = "MAT-405", MaterialName = "缠绕管 Φ8 黑色", Quantity = 0.3, Unit = "m", Level = 1, Remark = "线束保护套管" },
+            new() { ProductId = products[4].Id, MaterialCode = "MAT-406", MaterialName = "PE 包装袋", Quantity = 1, Unit = "pcs", Level = 1, Remark = "含产品标签" },
         };
         context.Boms.AddRange(boms);
         await context.SaveChangesAsync();
