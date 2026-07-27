@@ -7,7 +7,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace QM_AI.API.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialCreate : Migration
+    public partial class InitialSync : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -203,7 +203,7 @@ namespace QM_AI.API.Migrations
                 .Annotation("MySql:CharSet", "utf8mb4");
 
             migrationBuilder.CreateTable(
-                name: "equipments",
+                name: "equipment",
                 columns: table => new
                 {
                     id = table.Column<long>(type: "bigint", nullable: false)
@@ -234,7 +234,7 @@ namespace QM_AI.API.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_equipments", x => x.id);
+                    table.PrimaryKey("PK_equipment", x => x.id);
                 })
                 .Annotation("MySql:CharSet", "utf8mb4");
 
@@ -405,15 +405,17 @@ namespace QM_AI.API.Migrations
                 {
                     id = table.Column<long>(type: "bigint", nullable: false)
                         .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
-                    ParamCode = table.Column<string>(type: "varchar(50)", maxLength: 50, nullable: false)
+                    param_code = table.Column<string>(type: "varchar(50)", maxLength: 50, nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     equipment_id = table.Column<long>(type: "bigint", nullable: true),
                     value = table.Column<decimal>(type: "decimal(65,30)", nullable: true),
-                    ValueRaw = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: true)
+                    value_raw = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: true)
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     timestamp = table.Column<DateTime>(type: "datetime(6)", nullable: false),
                     quality_result = table.Column<string>(type: "varchar(10)", maxLength: 10, nullable: true)
-                        .Annotation("MySql:CharSet", "utf8mb4")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    is_active = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    created_at = table.Column<DateTime>(type: "datetime(6)", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -489,6 +491,7 @@ namespace QM_AI.API.Migrations
                     specification = table.Column<string>(type: "longtext", nullable: true)
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     is_active = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    org_id = table.Column<long>(type: "bigint", nullable: true),
                     created_at = table.Column<DateTime>(type: "datetime(6)", nullable: false),
                     updated_at = table.Column<DateTime>(type: "datetime(6)", nullable: false)
                 },
@@ -830,9 +833,9 @@ namespace QM_AI.API.Migrations
                 {
                     table.PrimaryKey("PK_equipment_quality_correlation", x => x.id);
                     table.ForeignKey(
-                        name: "FK_equipment_quality_correlation_equipments_equipment_id",
+                        name: "FK_equipment_quality_correlation_equipment_equipment_id",
                         column: x => x.equipment_id,
-                        principalTable: "equipments",
+                        principalTable: "equipment",
                         principalColumn: "id",
                         onDelete: ReferentialAction.Cascade);
                 })
@@ -855,9 +858,9 @@ namespace QM_AI.API.Migrations
                 {
                     table.PrimaryKey("PK_equipment_status_history", x => x.id);
                     table.ForeignKey(
-                        name: "FK_equipment_status_history_equipments_equipment_id",
+                        name: "FK_equipment_status_history_equipment_equipment_id",
                         column: x => x.equipment_id,
-                        principalTable: "equipments",
+                        principalTable: "equipment",
                         principalColumn: "id",
                         onDelete: ReferentialAction.Cascade);
                 })
@@ -917,7 +920,7 @@ namespace QM_AI.API.Migrations
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     unit = table.Column<string>(type: "varchar(20)", maxLength: 20, nullable: true)
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    TargetValue = table.Column<decimal>(type: "decimal(15,6)", nullable: true),
+                    target_value = table.Column<decimal>(type: "decimal(15,6)", nullable: true),
                     usl = table.Column<decimal>(type: "decimal(65,30)", nullable: true),
                     lsl = table.Column<decimal>(type: "decimal(65,30)", nullable: true),
                     precision = table.Column<decimal>(type: "decimal(65,30)", nullable: false),
@@ -964,9 +967,9 @@ namespace QM_AI.API.Migrations
                 {
                     table.PrimaryKey("PK_equipment_param_mappings", x => x.id);
                     table.ForeignKey(
-                        name: "FK_equipment_param_mappings_equipments_equipment_id",
+                        name: "FK_equipment_param_mappings_equipment_equipment_id",
                         column: x => x.equipment_id,
-                        principalTable: "equipments",
+                        principalTable: "equipment",
                         principalColumn: "id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
@@ -1085,6 +1088,39 @@ namespace QM_AI.API.Migrations
                         principalTable: "products",
                         principalColumn: "id",
                         onDelete: ReferentialAction.Restrict);
+                })
+                .Annotation("MySql:CharSet", "utf8mb4");
+
+            migrationBuilder.CreateTable(
+                name: "routing_headers",
+                columns: table => new
+                {
+                    id = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
+                    product_id = table.Column<long>(type: "bigint", nullable: false),
+                    route_code = table.Column<string>(type: "varchar(50)", maxLength: 50, nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    route_name = table.Column<string>(type: "varchar(200)", maxLength: 200, nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    route_type = table.Column<string>(type: "varchar(20)", maxLength: 20, nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    description = table.Column<string>(type: "varchar(500)", maxLength: 500, nullable: true)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    is_default = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    is_active = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    sort_order = table.Column<int>(type: "int", nullable: false),
+                    created_at = table.Column<DateTime>(type: "datetime(6)", nullable: false),
+                    updated_at = table.Column<DateTime>(type: "datetime(6)", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_routing_headers", x => x.id);
+                    table.ForeignKey(
+                        name: "FK_routing_headers_products_product_id",
+                        column: x => x.product_id,
+                        principalTable: "products",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.Cascade);
                 })
                 .Annotation("MySql:CharSet", "utf8mb4");
 
@@ -1287,14 +1323,14 @@ namespace QM_AI.API.Migrations
                         .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
                     receipt_no = table.Column<string>(type: "varchar(50)", maxLength: 50, nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    SupplierId = table.Column<long>(type: "bigint", nullable: false),
+                    supplier_id = table.Column<long>(type: "bigint", nullable: false),
                     product_id = table.Column<long>(type: "bigint", nullable: false),
                     batch_no = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: true)
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     quantity = table.Column<int>(type: "int", nullable: false),
                     unit = table.Column<string>(type: "varchar(20)", maxLength: 20, nullable: true)
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    ReceiptDate = table.Column<DateTime>(type: "datetime(6)", nullable: true),
+                    receipt_date = table.Column<DateTime>(type: "datetime(6)", nullable: true),
                     inspector = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: true)
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     status = table.Column<string>(type: "varchar(20)", maxLength: 20, nullable: false)
@@ -1311,8 +1347,8 @@ namespace QM_AI.API.Migrations
                         principalColumn: "id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
-                        name: "FK_iqc_receipts_suppliers_SupplierId",
-                        column: x => x.SupplierId,
+                        name: "FK_iqc_receipts_suppliers_supplier_id",
+                        column: x => x.supplier_id,
                         principalTable: "suppliers",
                         principalColumn: "id",
                         onDelete: ReferentialAction.Restrict);
@@ -1325,22 +1361,16 @@ namespace QM_AI.API.Migrations
                 {
                     id = table.Column<long>(type: "bigint", nullable: false)
                         .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
-                    SupplierId = table.Column<long>(type: "bigint", nullable: false),
-                    score_date = table.Column<DateTime>(type: "datetime(6)", nullable: true),
-                    score = table.Column<decimal>(type: "decimal(65,30)", nullable: true),
-                    DimensionScores = table.Column<string>(type: "json", nullable: true)
-                        .Annotation("MySql:CharSet", "utf8mb4"),
-                    grade = table.Column<string>(type: "varchar(10)", maxLength: 10, nullable: true)
-                        .Annotation("MySql:CharSet", "utf8mb4"),
-                    Evaluation = table.Column<string>(type: "longtext", nullable: true)
-                        .Annotation("MySql:CharSet", "utf8mb4")
+                    supplier_id = table.Column<long>(type: "bigint", nullable: false),
+                    assessment_date = table.Column<DateTime>(type: "datetime(6)", nullable: true),
+                    score = table.Column<decimal>(type: "decimal(65,30)", nullable: true)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_supplier_scores", x => x.id);
                     table.ForeignKey(
-                        name: "FK_supplier_scores_suppliers_SupplierId",
-                        column: x => x.SupplierId,
+                        name: "FK_supplier_scores_suppliers_supplier_id",
+                        column: x => x.supplier_id,
                         principalTable: "suppliers",
                         principalColumn: "id",
                         onDelete: ReferentialAction.Cascade);
@@ -1707,6 +1737,42 @@ namespace QM_AI.API.Migrations
                 .Annotation("MySql:CharSet", "utf8mb4");
 
             migrationBuilder.CreateTable(
+                name: "routing_steps",
+                columns: table => new
+                {
+                    id = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
+                    routing_header_id = table.Column<long>(type: "bigint", nullable: false),
+                    step_order = table.Column<int>(type: "int", nullable: false),
+                    process_id = table.Column<long>(type: "bigint", nullable: false),
+                    standard_time_minutes = table.Column<double>(type: "double", nullable: true),
+                    description = table.Column<string>(type: "varchar(500)", maxLength: 500, nullable: true)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    pre_wait_time_minutes = table.Column<double>(type: "double", nullable: true),
+                    post_wait_time_minutes = table.Column<double>(type: "double", nullable: true),
+                    is_active = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    created_at = table.Column<DateTime>(type: "datetime(6)", nullable: false),
+                    updated_at = table.Column<DateTime>(type: "datetime(6)", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_routing_steps", x => x.id);
+                    table.ForeignKey(
+                        name: "FK_routing_steps_processes_process_id",
+                        column: x => x.process_id,
+                        principalTable: "processes",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_routing_steps_routing_headers_routing_header_id",
+                        column: x => x.routing_header_id,
+                        principalTable: "routing_headers",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.Cascade);
+                })
+                .Annotation("MySql:CharSet", "utf8mb4");
+
+            migrationBuilder.CreateTable(
                 name: "inspection_items",
                 columns: table => new
                 {
@@ -1760,17 +1826,17 @@ namespace QM_AI.API.Migrations
                         .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
                     plan_code = table.Column<string>(type: "varchar(50)", maxLength: 50, nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    PlanName = table.Column<string>(type: "varchar(200)", maxLength: 200, nullable: false)
+                    plan_name = table.Column<string>(type: "varchar(200)", maxLength: 200, nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    InspectionType = table.Column<string>(type: "varchar(10)", maxLength: 10, nullable: false)
+                    inspection_type = table.Column<string>(type: "varchar(10)", maxLength: 10, nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     description = table.Column<string>(type: "varchar(500)", maxLength: 500, nullable: true)
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     product_id = table.Column<long>(type: "bigint", nullable: true),
                     material_id = table.Column<long>(type: "bigint", nullable: true),
-                    SupplierId = table.Column<long>(type: "bigint", nullable: true),
-                    CustomerId = table.Column<long>(type: "bigint", nullable: true),
-                    ProcessId = table.Column<long>(type: "bigint", nullable: true),
+                    supplier_id = table.Column<long>(type: "bigint", nullable: true),
+                    customer_id = table.Column<long>(type: "bigint", nullable: true),
+                    process_id = table.Column<long>(type: "bigint", nullable: true),
                     equipment_id = table.Column<long>(type: "bigint", nullable: true),
                     is_active = table.Column<bool>(type: "tinyint(1)", nullable: false),
                     created_by = table.Column<long>(type: "bigint", nullable: false),
@@ -1781,20 +1847,20 @@ namespace QM_AI.API.Migrations
                 {
                     table.PrimaryKey("PK_inspection_plans", x => x.id);
                     table.ForeignKey(
-                        name: "FK_inspection_plans_customers_CustomerId",
-                        column: x => x.CustomerId,
+                        name: "FK_inspection_plans_customers_customer_id",
+                        column: x => x.customer_id,
                         principalTable: "customers",
                         principalColumn: "id",
                         onDelete: ReferentialAction.SetNull);
                     table.ForeignKey(
-                        name: "FK_inspection_plans_equipments_equipment_id",
+                        name: "FK_inspection_plans_equipment_equipment_id",
                         column: x => x.equipment_id,
-                        principalTable: "equipments",
+                        principalTable: "equipment",
                         principalColumn: "id",
                         onDelete: ReferentialAction.SetNull);
                     table.ForeignKey(
-                        name: "FK_inspection_plans_processes_ProcessId",
-                        column: x => x.ProcessId,
+                        name: "FK_inspection_plans_processes_process_id",
+                        column: x => x.process_id,
                         principalTable: "processes",
                         principalColumn: "id",
                         onDelete: ReferentialAction.SetNull);
@@ -1811,8 +1877,8 @@ namespace QM_AI.API.Migrations
                         principalColumn: "id",
                         onDelete: ReferentialAction.SetNull);
                     table.ForeignKey(
-                        name: "FK_inspection_plans_suppliers_SupplierId",
-                        column: x => x.SupplierId,
+                        name: "FK_inspection_plans_suppliers_supplier_id",
+                        column: x => x.supplier_id,
                         principalTable: "suppliers",
                         principalColumn: "id",
                         onDelete: ReferentialAction.SetNull);
@@ -1867,8 +1933,8 @@ namespace QM_AI.API.Migrations
                         .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
                     inspection_no = table.Column<string>(type: "varchar(50)", maxLength: 50, nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    ReceiptId = table.Column<long>(type: "bigint", nullable: false),
-                    StandardId = table.Column<long>(type: "bigint", nullable: true),
+                    receipt_id = table.Column<long>(type: "bigint", nullable: false),
+                    standard_id = table.Column<long>(type: "bigint", nullable: true),
                     sample_size = table.Column<int>(type: "int", nullable: false),
                     ac = table.Column<int>(type: "int", nullable: false),
                     re = table.Column<int>(type: "int", nullable: false),
@@ -1887,14 +1953,14 @@ namespace QM_AI.API.Migrations
                 {
                     table.PrimaryKey("PK_iqc_inspections", x => x.id);
                     table.ForeignKey(
-                        name: "FK_iqc_inspections_inspection_standards_StandardId",
-                        column: x => x.StandardId,
+                        name: "FK_iqc_inspections_inspection_standards_standard_id",
+                        column: x => x.standard_id,
                         principalTable: "inspection_standards",
                         principalColumn: "id",
                         onDelete: ReferentialAction.SetNull);
                     table.ForeignKey(
-                        name: "FK_iqc_inspections_iqc_receipts_ReceiptId",
-                        column: x => x.ReceiptId,
+                        name: "FK_iqc_inspections_iqc_receipts_receipt_id",
+                        column: x => x.receipt_id,
                         principalTable: "iqc_receipts",
                         principalColumn: "id",
                         onDelete: ReferentialAction.Cascade);
@@ -2061,14 +2127,14 @@ namespace QM_AI.API.Migrations
                 {
                     id = table.Column<long>(type: "bigint", nullable: false)
                         .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
-                    PlanId = table.Column<long>(type: "bigint", nullable: false),
-                    InspectionItemId = table.Column<long>(type: "bigint", nullable: false),
+                    plan_id = table.Column<long>(type: "bigint", nullable: false),
+                    inspection_item_id = table.Column<long>(type: "bigint", nullable: false),
                     sort_order = table.Column<int>(type: "int", nullable: false),
                     usl = table.Column<decimal>(type: "decimal(65,30)", nullable: true),
                     lsl = table.Column<decimal>(type: "decimal(65,30)", nullable: true),
-                    TargetValue = table.Column<decimal>(type: "decimal(15,6)", nullable: true),
-                    Ucl = table.Column<decimal>(type: "decimal(15,6)", nullable: true),
-                    Lcl = table.Column<decimal>(type: "decimal(15,6)", nullable: true),
+                    target_value = table.Column<decimal>(type: "decimal(15,6)", nullable: true),
+                    ucl = table.Column<decimal>(type: "decimal(15,6)", nullable: true),
+                    lcl = table.Column<decimal>(type: "decimal(15,6)", nullable: true),
                     sample_size = table.Column<int>(type: "int", nullable: true),
                     is_required = table.Column<bool>(type: "tinyint(1)", nullable: false)
                 },
@@ -2076,14 +2142,14 @@ namespace QM_AI.API.Migrations
                 {
                     table.PrimaryKey("PK_inspection_plan_items", x => x.id);
                     table.ForeignKey(
-                        name: "FK_inspection_plan_items_inspection_items_InspectionItemId",
-                        column: x => x.InspectionItemId,
+                        name: "FK_inspection_plan_items_inspection_items_inspection_item_id",
+                        column: x => x.inspection_item_id,
                         principalTable: "inspection_items",
                         principalColumn: "id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
-                        name: "FK_inspection_plan_items_inspection_plans_PlanId",
-                        column: x => x.PlanId,
+                        name: "FK_inspection_plan_items_inspection_plans_plan_id",
+                        column: x => x.plan_id,
                         principalTable: "inspection_plans",
                         principalColumn: "id",
                         onDelete: ReferentialAction.Cascade);
@@ -2098,9 +2164,9 @@ namespace QM_AI.API.Migrations
                         .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
                     anomaly_no = table.Column<string>(type: "varchar(50)", maxLength: 50, nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    ReceiptId = table.Column<long>(type: "bigint", nullable: false),
-                    InspectionId = table.Column<long>(type: "bigint", nullable: true),
-                    AnomalyType = table.Column<string>(type: "varchar(20)", maxLength: 20, nullable: false)
+                    receipt_id = table.Column<long>(type: "bigint", nullable: false),
+                    inspection_id = table.Column<long>(type: "bigint", nullable: true),
+                    anomaly_type = table.Column<string>(type: "varchar(20)", maxLength: 20, nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     severity = table.Column<string>(type: "varchar(10)", maxLength: 10, nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4"),
@@ -2108,9 +2174,9 @@ namespace QM_AI.API.Migrations
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     status = table.Column<string>(type: "varchar(20)", maxLength: 20, nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    Handler = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: true)
+                    handler = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: true)
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    ResolvedAt = table.Column<DateTime>(type: "datetime(6)", nullable: true),
+                    resolved_at = table.Column<DateTime>(type: "datetime(6)", nullable: true),
                     created_at = table.Column<DateTime>(type: "datetime(6)", nullable: false),
                     updated_at = table.Column<DateTime>(type: "datetime(6)", nullable: false)
                 },
@@ -2118,14 +2184,14 @@ namespace QM_AI.API.Migrations
                 {
                     table.PrimaryKey("PK_iqc_anomalies", x => x.id);
                     table.ForeignKey(
-                        name: "FK_iqc_anomalies_iqc_inspections_InspectionId",
-                        column: x => x.InspectionId,
+                        name: "FK_iqc_anomalies_iqc_inspections_inspection_id",
+                        column: x => x.inspection_id,
                         principalTable: "iqc_inspections",
                         principalColumn: "id",
                         onDelete: ReferentialAction.SetNull);
                     table.ForeignKey(
-                        name: "FK_iqc_anomalies_iqc_receipts_ReceiptId",
-                        column: x => x.ReceiptId,
+                        name: "FK_iqc_anomalies_iqc_receipts_receipt_id",
+                        column: x => x.receipt_id,
                         principalTable: "iqc_receipts",
                         principalColumn: "id",
                         onDelete: ReferentialAction.Cascade);
@@ -2138,17 +2204,17 @@ namespace QM_AI.API.Migrations
                 {
                     id = table.Column<long>(type: "bigint", nullable: false)
                         .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
-                    InspectionId = table.Column<long>(type: "bigint", nullable: false),
-                    ParamId = table.Column<long>(type: "bigint", nullable: true),
-                    InspectionItemId = table.Column<long>(type: "bigint", nullable: true),
-                    ItemName = table.Column<string>(type: "varchar(200)", maxLength: 200, nullable: true)
+                    inspection_id = table.Column<long>(type: "bigint", nullable: false),
+                    param_id = table.Column<long>(type: "bigint", nullable: true),
+                    inspection_item_id = table.Column<long>(type: "bigint", nullable: true),
+                    item_name = table.Column<string>(type: "varchar(200)", maxLength: 200, nullable: true)
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     measured_value = table.Column<decimal>(type: "decimal(65,30)", nullable: true),
                     usl = table.Column<decimal>(type: "decimal(65,30)", nullable: true),
                     lsl = table.Column<decimal>(type: "decimal(65,30)", nullable: true),
                     result = table.Column<string>(type: "varchar(10)", maxLength: 10, nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    DefectCodeId = table.Column<long>(type: "bigint", nullable: true),
+                    defect_code_id = table.Column<long>(type: "bigint", nullable: true),
                     remark = table.Column<string>(type: "longtext", nullable: true)
                         .Annotation("MySql:CharSet", "utf8mb4")
                 },
@@ -2156,19 +2222,19 @@ namespace QM_AI.API.Migrations
                 {
                     table.PrimaryKey("PK_iqc_inspection_items", x => x.id);
                     table.ForeignKey(
-                        name: "FK_iqc_inspection_items_defect_codes_DefectCodeId",
-                        column: x => x.DefectCodeId,
+                        name: "FK_iqc_inspection_items_defect_codes_defect_code_id",
+                        column: x => x.defect_code_id,
                         principalTable: "defect_codes",
                         principalColumn: "id",
                         onDelete: ReferentialAction.SetNull);
                     table.ForeignKey(
-                        name: "FK_iqc_inspection_items_inspection_items_InspectionItemId",
-                        column: x => x.InspectionItemId,
+                        name: "FK_iqc_inspection_items_inspection_items_inspection_item_id",
+                        column: x => x.inspection_item_id,
                         principalTable: "inspection_items",
                         principalColumn: "id");
                     table.ForeignKey(
-                        name: "FK_iqc_inspection_items_iqc_inspections_InspectionId",
-                        column: x => x.InspectionId,
+                        name: "FK_iqc_inspection_items_iqc_inspections_inspection_id",
+                        column: x => x.inspection_id,
                         principalTable: "iqc_inspections",
                         principalColumn: "id",
                         onDelete: ReferentialAction.Cascade);
@@ -2310,6 +2376,12 @@ namespace QM_AI.API.Migrations
                 column: "group_id");
 
             migrationBuilder.CreateIndex(
+                name: "IX_equipment_equipment_code",
+                table: "equipment",
+                column: "equipment_code",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
                 name: "IX_equipment_param_mappings_equipment_id",
                 table: "equipment_param_mappings",
                 column: "equipment_id");
@@ -2328,12 +2400,6 @@ namespace QM_AI.API.Migrations
                 name: "IX_equipment_status_history_equipment_id_recorded_at",
                 table: "equipment_status_history",
                 columns: new[] { "equipment_id", "recorded_at" });
-
-            migrationBuilder.CreateIndex(
-                name: "IX_equipments_equipment_code",
-                table: "equipments",
-                column: "equipment_code",
-                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_fqc_inspection_items_InspectionId",
@@ -2373,14 +2439,14 @@ namespace QM_AI.API.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "IX_inspection_plan_items_InspectionItemId",
+                name: "IX_inspection_plan_items_inspection_item_id",
                 table: "inspection_plan_items",
-                column: "InspectionItemId");
+                column: "inspection_item_id");
 
             migrationBuilder.CreateIndex(
-                name: "IX_inspection_plan_items_PlanId",
+                name: "IX_inspection_plan_items_plan_id",
                 table: "inspection_plan_items",
-                column: "PlanId");
+                column: "plan_id");
 
             migrationBuilder.CreateIndex(
                 name: "IX_inspection_plans_created_by",
@@ -2388,9 +2454,9 @@ namespace QM_AI.API.Migrations
                 column: "created_by");
 
             migrationBuilder.CreateIndex(
-                name: "IX_inspection_plans_CustomerId",
+                name: "IX_inspection_plans_customer_id",
                 table: "inspection_plans",
-                column: "CustomerId");
+                column: "customer_id");
 
             migrationBuilder.CreateIndex(
                 name: "IX_inspection_plans_equipment_id",
@@ -2409,9 +2475,9 @@ namespace QM_AI.API.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "IX_inspection_plans_ProcessId",
+                name: "IX_inspection_plans_process_id",
                 table: "inspection_plans",
-                column: "ProcessId");
+                column: "process_id");
 
             migrationBuilder.CreateIndex(
                 name: "IX_inspection_plans_product_id",
@@ -2419,9 +2485,9 @@ namespace QM_AI.API.Migrations
                 column: "product_id");
 
             migrationBuilder.CreateIndex(
-                name: "IX_inspection_plans_SupplierId",
+                name: "IX_inspection_plans_supplier_id",
                 table: "inspection_plans",
-                column: "SupplierId");
+                column: "supplier_id");
 
             migrationBuilder.CreateIndex(
                 name: "IX_inspection_standards_process_id",
@@ -2488,29 +2554,29 @@ namespace QM_AI.API.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "IX_iqc_anomalies_InspectionId",
+                name: "IX_iqc_anomalies_inspection_id",
                 table: "iqc_anomalies",
-                column: "InspectionId");
+                column: "inspection_id");
 
             migrationBuilder.CreateIndex(
-                name: "IX_iqc_anomalies_ReceiptId",
+                name: "IX_iqc_anomalies_receipt_id",
                 table: "iqc_anomalies",
-                column: "ReceiptId");
+                column: "receipt_id");
 
             migrationBuilder.CreateIndex(
-                name: "IX_iqc_inspection_items_DefectCodeId",
+                name: "IX_iqc_inspection_items_defect_code_id",
                 table: "iqc_inspection_items",
-                column: "DefectCodeId");
+                column: "defect_code_id");
 
             migrationBuilder.CreateIndex(
-                name: "IX_iqc_inspection_items_InspectionId",
+                name: "IX_iqc_inspection_items_inspection_id",
                 table: "iqc_inspection_items",
-                column: "InspectionId");
+                column: "inspection_id");
 
             migrationBuilder.CreateIndex(
-                name: "IX_iqc_inspection_items_InspectionItemId",
+                name: "IX_iqc_inspection_items_inspection_item_id",
                 table: "iqc_inspection_items",
-                column: "InspectionItemId");
+                column: "inspection_item_id");
 
             migrationBuilder.CreateIndex(
                 name: "IX_iqc_inspections_inspection_no",
@@ -2519,14 +2585,14 @@ namespace QM_AI.API.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "IX_iqc_inspections_ReceiptId",
+                name: "IX_iqc_inspections_receipt_id",
                 table: "iqc_inspections",
-                column: "ReceiptId");
+                column: "receipt_id");
 
             migrationBuilder.CreateIndex(
-                name: "IX_iqc_inspections_StandardId",
+                name: "IX_iqc_inspections_standard_id",
                 table: "iqc_inspections",
-                column: "StandardId");
+                column: "standard_id");
 
             migrationBuilder.CreateIndex(
                 name: "IX_iqc_receipts_product_id",
@@ -2540,9 +2606,9 @@ namespace QM_AI.API.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "IX_iqc_receipts_SupplierId",
+                name: "IX_iqc_receipts_supplier_id",
                 table: "iqc_receipts",
-                column: "SupplierId");
+                column: "supplier_id");
 
             migrationBuilder.CreateIndex(
                 name: "IX_oqc_releases_batch_id",
@@ -2593,9 +2659,9 @@ namespace QM_AI.API.Migrations
                 columns: new[] { "equipment_id", "timestamp" });
 
             migrationBuilder.CreateIndex(
-                name: "IX_param_realtime_values_ParamCode_timestamp",
+                name: "IX_param_realtime_values_param_code_timestamp",
                 table: "param_realtime_values",
-                columns: new[] { "ParamCode", "timestamp" });
+                columns: new[] { "param_code", "timestamp" });
 
             migrationBuilder.CreateIndex(
                 name: "IX_permissions_code",
@@ -2630,6 +2696,33 @@ namespace QM_AI.API.Migrations
                 name: "IX_roles_name",
                 table: "roles",
                 column: "name",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_routing_headers_product_id",
+                table: "routing_headers",
+                column: "product_id");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_routing_headers_route_code_product_id",
+                table: "routing_headers",
+                columns: new[] { "route_code", "product_id" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_routing_headers_route_type",
+                table: "routing_headers",
+                column: "route_type");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_routing_steps_process_id",
+                table: "routing_steps",
+                column: "process_id");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_routing_steps_routing_header_id_step_order",
+                table: "routing_steps",
+                columns: new[] { "routing_header_id", "step_order" },
                 unique: true);
 
             migrationBuilder.CreateIndex(
@@ -2703,9 +2796,9 @@ namespace QM_AI.API.Migrations
                 column: "InspectionItemId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_supplier_scores_SupplierId",
+                name: "IX_supplier_scores_supplier_id",
                 table: "supplier_scores",
-                column: "SupplierId");
+                column: "supplier_id");
 
             migrationBuilder.CreateIndex(
                 name: "IX_suppliers_supplier_code",
@@ -2830,6 +2923,9 @@ namespace QM_AI.API.Migrations
                 name: "permissions");
 
             migrationBuilder.DropTable(
+                name: "routing_steps");
+
+            migrationBuilder.DropTable(
                 name: "routings");
 
             migrationBuilder.DropTable(
@@ -2893,6 +2989,9 @@ namespace QM_AI.API.Migrations
                 name: "iqc_inspections");
 
             migrationBuilder.DropTable(
+                name: "routing_headers");
+
+            migrationBuilder.DropTable(
                 name: "spc_alert_rules");
 
             migrationBuilder.DropTable(
@@ -2911,7 +3010,7 @@ namespace QM_AI.API.Migrations
                 name: "customers");
 
             migrationBuilder.DropTable(
-                name: "equipments");
+                name: "equipment");
 
             migrationBuilder.DropTable(
                 name: "ipqc_patrol_plans");

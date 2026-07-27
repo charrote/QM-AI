@@ -12,8 +12,8 @@ using QM_AI.API.Data;
 namespace QM_AI.API.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260724035832_InitialCreate")]
-    partial class InitialCreate
+    [Migration("20260727081342_InitialSync")]
+    partial class InitialSync
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -290,7 +290,7 @@ namespace QM_AI.API.Migrations
                     b.HasIndex("Code")
                         .IsUnique();
 
-                    b.ToTable("equipments");
+                    b.ToTable("equipment");
                 });
 
             modelBuilder.Entity("QM_AI.API.Models.InspectionStandard", b =>
@@ -507,7 +507,8 @@ namespace QM_AI.API.Migrations
                         .HasColumnName("sort_order");
 
                     b.Property<decimal?>("TargetValue")
-                        .HasColumnType("decimal(15,6)");
+                        .HasColumnType("decimal(15,6)")
+                        .HasColumnName("target_value");
 
                     b.Property<string>("Unit")
                         .HasMaxLength(20)
@@ -590,14 +591,23 @@ namespace QM_AI.API.Migrations
 
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<long>("Id"));
 
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("created_at");
+
                     b.Property<long?>("EquipmentId")
                         .HasColumnType("bigint")
                         .HasColumnName("equipment_id");
 
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("tinyint(1)")
+                        .HasColumnName("is_active");
+
                     b.Property<string>("ParamCode")
                         .IsRequired()
                         .HasMaxLength(50)
-                        .HasColumnType("varchar(50)");
+                        .HasColumnType("varchar(50)")
+                        .HasColumnName("param_code");
 
                     b.Property<string>("QualityResult")
                         .HasMaxLength(10)
@@ -614,7 +624,8 @@ namespace QM_AI.API.Migrations
 
                     b.Property<string>("ValueRaw")
                         .HasMaxLength(100)
-                        .HasColumnType("varchar(100)");
+                        .HasColumnType("varchar(100)")
+                        .HasColumnName("value_raw");
 
                     b.HasKey("Id");
 
@@ -751,7 +762,8 @@ namespace QM_AI.API.Migrations
                         .HasColumnName("created_by");
 
                     b.Property<long?>("CustomerId")
-                        .HasColumnType("bigint");
+                        .HasColumnType("bigint")
+                        .HasColumnName("customer_id");
 
                     b.Property<string>("Description")
                         .HasMaxLength(500)
@@ -765,7 +777,8 @@ namespace QM_AI.API.Migrations
                     b.Property<string>("InspectionType")
                         .IsRequired()
                         .HasMaxLength(10)
-                        .HasColumnType("varchar(10)");
+                        .HasColumnType("varchar(10)")
+                        .HasColumnName("inspection_type");
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("tinyint(1)")
@@ -784,17 +797,20 @@ namespace QM_AI.API.Migrations
                     b.Property<string>("PlanName")
                         .IsRequired()
                         .HasMaxLength(200)
-                        .HasColumnType("varchar(200)");
+                        .HasColumnType("varchar(200)")
+                        .HasColumnName("plan_name");
 
                     b.Property<long?>("ProcessId")
-                        .HasColumnType("bigint");
+                        .HasColumnType("bigint")
+                        .HasColumnName("process_id");
 
                     b.Property<long?>("ProductId")
                         .HasColumnType("bigint")
                         .HasColumnName("product_id");
 
                     b.Property<long?>("SupplierId")
-                        .HasColumnType("bigint");
+                        .HasColumnType("bigint")
+                        .HasColumnName("supplier_id");
 
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("datetime(6)")
@@ -832,21 +848,24 @@ namespace QM_AI.API.Migrations
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<long>("Id"));
 
                     b.Property<long>("InspectionItemId")
-                        .HasColumnType("bigint");
+                        .HasColumnType("bigint")
+                        .HasColumnName("inspection_item_id");
 
                     b.Property<bool>("IsRequired")
                         .HasColumnType("tinyint(1)")
                         .HasColumnName("is_required");
 
                     b.Property<decimal?>("Lcl")
-                        .HasColumnType("decimal(15,6)");
+                        .HasColumnType("decimal(15,6)")
+                        .HasColumnName("lcl");
 
                     b.Property<decimal?>("Lsl")
                         .HasColumnType("decimal(65,30)")
                         .HasColumnName("lsl");
 
                     b.Property<long>("PlanId")
-                        .HasColumnType("bigint");
+                        .HasColumnType("bigint")
+                        .HasColumnName("plan_id");
 
                     b.Property<int?>("SampleSize")
                         .HasColumnType("int")
@@ -857,10 +876,12 @@ namespace QM_AI.API.Migrations
                         .HasColumnName("sort_order");
 
                     b.Property<decimal?>("TargetValue")
-                        .HasColumnType("decimal(15,6)");
+                        .HasColumnType("decimal(15,6)")
+                        .HasColumnName("target_value");
 
                     b.Property<decimal?>("Ucl")
-                        .HasColumnType("decimal(15,6)");
+                        .HasColumnType("decimal(15,6)")
+                        .HasColumnName("ucl");
 
                     b.Property<decimal?>("Usl")
                         .HasColumnType("decimal(65,30)")
@@ -893,7 +914,8 @@ namespace QM_AI.API.Migrations
                     b.Property<string>("AnomalyType")
                         .IsRequired()
                         .HasMaxLength(20)
-                        .HasColumnType("varchar(20)");
+                        .HasColumnType("varchar(20)")
+                        .HasColumnName("anomaly_type");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime(6)")
@@ -905,16 +927,20 @@ namespace QM_AI.API.Migrations
 
                     b.Property<string>("Handler")
                         .HasMaxLength(100)
-                        .HasColumnType("varchar(100)");
+                        .HasColumnType("varchar(100)")
+                        .HasColumnName("handler");
 
                     b.Property<long?>("InspectionId")
-                        .HasColumnType("bigint");
+                        .HasColumnType("bigint")
+                        .HasColumnName("inspection_id");
 
                     b.Property<long>("ReceiptId")
-                        .HasColumnType("bigint");
+                        .HasColumnType("bigint")
+                        .HasColumnName("receipt_id");
 
                     b.Property<DateTime?>("ResolvedAt")
-                        .HasColumnType("datetime(6)");
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("resolved_at");
 
                     b.Property<string>("Severity")
                         .IsRequired()
@@ -989,7 +1015,8 @@ namespace QM_AI.API.Migrations
                         .HasColumnName("re");
 
                     b.Property<long>("ReceiptId")
-                        .HasColumnType("bigint");
+                        .HasColumnType("bigint")
+                        .HasColumnName("receipt_id");
 
                     b.Property<string>("Result")
                         .IsRequired()
@@ -1007,7 +1034,8 @@ namespace QM_AI.API.Migrations
                         .HasColumnName("sampling_level");
 
                     b.Property<long?>("StandardId")
-                        .HasColumnType("bigint");
+                        .HasColumnType("bigint")
+                        .HasColumnName("standard_id");
 
                     b.HasKey("Id");
 
@@ -1031,17 +1059,21 @@ namespace QM_AI.API.Migrations
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<long>("Id"));
 
                     b.Property<long?>("DefectCodeId")
-                        .HasColumnType("bigint");
+                        .HasColumnType("bigint")
+                        .HasColumnName("defect_code_id");
 
                     b.Property<long>("InspectionId")
-                        .HasColumnType("bigint");
+                        .HasColumnType("bigint")
+                        .HasColumnName("inspection_id");
 
                     b.Property<long?>("InspectionItemId")
-                        .HasColumnType("bigint");
+                        .HasColumnType("bigint")
+                        .HasColumnName("inspection_item_id");
 
                     b.Property<string>("ItemName")
                         .HasMaxLength(200)
-                        .HasColumnType("varchar(200)");
+                        .HasColumnType("varchar(200)")
+                        .HasColumnName("item_name");
 
                     b.Property<decimal?>("Lsl")
                         .HasColumnType("decimal(65,30)")
@@ -1052,7 +1084,8 @@ namespace QM_AI.API.Migrations
                         .HasColumnName("measured_value");
 
                     b.Property<long?>("ParamId")
-                        .HasColumnType("bigint");
+                        .HasColumnType("bigint")
+                        .HasColumnName("param_id");
 
                     b.Property<string>("Remark")
                         .HasColumnType("longtext")
@@ -1111,7 +1144,8 @@ namespace QM_AI.API.Migrations
                         .HasColumnName("quantity");
 
                     b.Property<DateTime?>("ReceiptDate")
-                        .HasColumnType("datetime(6)");
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("receipt_date");
 
                     b.Property<string>("ReceiptNo")
                         .IsRequired()
@@ -1126,7 +1160,8 @@ namespace QM_AI.API.Migrations
                         .HasColumnName("status");
 
                     b.Property<long>("SupplierId")
-                        .HasColumnType("bigint");
+                        .HasColumnType("bigint")
+                        .HasColumnName("supplier_id");
 
                     b.Property<string>("Unit")
                         .HasMaxLength(20)
@@ -1154,27 +1189,17 @@ namespace QM_AI.API.Migrations
 
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<long>("Id"));
 
-                    b.Property<string>("DimensionScores")
-                        .HasColumnType("json");
-
-                    b.Property<string>("Evaluation")
-                        .HasColumnType("longtext");
-
-                    b.Property<string>("Grade")
-                        .HasMaxLength(10)
-                        .HasColumnType("varchar(10)")
-                        .HasColumnName("grade");
-
                     b.Property<decimal?>("Score")
                         .HasColumnType("decimal(65,30)")
                         .HasColumnName("score");
 
                     b.Property<DateTime?>("ScoreDate")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("score_date");
+                        .HasColumnName("assessment_date");
 
                     b.Property<long>("SupplierId")
-                        .HasColumnType("bigint");
+                        .HasColumnType("bigint")
+                        .HasColumnName("supplier_id");
 
                     b.HasKey("Id");
 
@@ -3594,6 +3619,10 @@ namespace QM_AI.API.Migrations
                         .HasColumnType("varchar(200)")
                         .HasColumnName("product_name");
 
+                    b.Property<long?>("OrgId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("org_id");
+
                     b.Property<string>("Specification")
                         .HasColumnType("longtext")
                         .HasColumnName("specification");
@@ -3703,6 +3732,134 @@ namespace QM_AI.API.Migrations
                     b.HasIndex("ProductId");
 
                     b.ToTable("routings");
+                });
+
+            modelBuilder.Entity("QM_AI.API.Models.RoutingHeader", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)")
+                        .HasColumnName("description");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("tinyint(1)")
+                        .HasColumnName("is_active");
+
+                    b.Property<bool>("IsDefault")
+                        .HasColumnType("tinyint(1)")
+                        .HasColumnName("is_default");
+
+                    b.Property<long>("ProductId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("product_id");
+
+                    b.Property<string>("RouteCode")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)")
+                        .HasColumnName("route_code");
+
+                    b.Property<string>("RouteName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)")
+                        .HasColumnName("route_name");
+
+                    b.Property<string>("RouteType")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("varchar(20)")
+                        .HasColumnName("route_type");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("int")
+                        .HasColumnName("sort_order");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProductId");
+
+                    b.HasIndex("RouteType");
+
+                    b.HasIndex("RouteCode", "ProductId")
+                        .IsUnique();
+
+                    b.ToTable("routing_headers");
+                });
+
+            modelBuilder.Entity("QM_AI.API.Models.RoutingStep", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)")
+                        .HasColumnName("description");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("tinyint(1)")
+                        .HasColumnName("is_active");
+
+                    b.Property<double?>("PostWaitTimeMinutes")
+                        .HasColumnType("double")
+                        .HasColumnName("post_wait_time_minutes");
+
+                    b.Property<double?>("PreWaitTimeMinutes")
+                        .HasColumnType("double")
+                        .HasColumnName("pre_wait_time_minutes");
+
+                    b.Property<long>("ProcessId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("process_id");
+
+                    b.Property<long>("RoutingHeaderId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("routing_header_id");
+
+                    b.Property<double?>("StandardTimeMinutes")
+                        .HasColumnType("double")
+                        .HasColumnName("standard_time_minutes");
+
+                    b.Property<int>("StepOrder")
+                        .HasColumnType("int")
+                        .HasColumnName("step_order");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProcessId");
+
+                    b.HasIndex("RoutingHeaderId", "StepOrder")
+                        .IsUnique();
+
+                    b.ToTable("routing_steps");
                 });
 
             modelBuilder.Entity("QM_AI.API.Models.Supplier", b =>
@@ -4606,6 +4763,36 @@ namespace QM_AI.API.Migrations
                     b.Navigation("Product");
                 });
 
+            modelBuilder.Entity("QM_AI.API.Models.RoutingHeader", b =>
+                {
+                    b.HasOne("QM_AI.API.Models.Product", "Product")
+                        .WithMany()
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Product");
+                });
+
+            modelBuilder.Entity("QM_AI.API.Models.RoutingStep", b =>
+                {
+                    b.HasOne("QM_AI.API.Models.Process", "Process")
+                        .WithMany()
+                        .HasForeignKey("ProcessId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("QM_AI.API.Models.RoutingHeader", "RoutingHeader")
+                        .WithMany("Steps")
+                        .HasForeignKey("RoutingHeaderId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Process");
+
+                    b.Navigation("RoutingHeader");
+                });
+
             modelBuilder.Entity("QM_AI.API.Models.SysDictItem", b =>
                 {
                     b.HasOne("QM_AI.API.Models.SysDictType", "DictType")
@@ -4734,6 +4921,11 @@ namespace QM_AI.API.Migrations
             modelBuilder.Entity("QM_AI.API.Models.Role", b =>
                 {
                     b.Navigation("Users");
+                });
+
+            modelBuilder.Entity("QM_AI.API.Models.RoutingHeader", b =>
+                {
+                    b.Navigation("Steps");
                 });
 
             modelBuilder.Entity("QM_AI.API.Models.SysDictType", b =>

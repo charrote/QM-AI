@@ -77,7 +77,7 @@ namespace QM_AI.API.Migrations
 
                     b.HasIndex("ProductId");
 
-                    b.ToTable("boms", (string)null);
+                    b.ToTable("boms");
                 });
 
             modelBuilder.Entity("QM_AI.API.Models.Customer", b =>
@@ -138,7 +138,7 @@ namespace QM_AI.API.Migrations
                     b.HasIndex("Code")
                         .IsUnique();
 
-                    b.ToTable("customers", (string)null);
+                    b.ToTable("customers");
                 });
 
             modelBuilder.Entity("QM_AI.API.Models.DefectCode", b =>
@@ -199,7 +199,7 @@ namespace QM_AI.API.Migrations
                     b.HasIndex("Code")
                         .IsUnique();
 
-                    b.ToTable("defect_codes", (string)null);
+                    b.ToTable("defect_codes");
                 });
 
             modelBuilder.Entity("QM_AI.API.Models.Equipment", b =>
@@ -287,7 +287,7 @@ namespace QM_AI.API.Migrations
                     b.HasIndex("Code")
                         .IsUnique();
 
-                    b.ToTable("equipments", (string)null);
+                    b.ToTable("equipment");
                 });
 
             modelBuilder.Entity("QM_AI.API.Models.InspectionStandard", b =>
@@ -381,7 +381,7 @@ namespace QM_AI.API.Migrations
 
                     b.HasIndex("ProductId");
 
-                    b.ToTable("inspection_standards", (string)null);
+                    b.ToTable("inspection_standards");
                 });
 
             modelBuilder.Entity("QM_AI.API.Models.M02_5.ClosureRule", b =>
@@ -441,7 +441,7 @@ namespace QM_AI.API.Migrations
                     b.HasIndex("Code")
                         .IsUnique();
 
-                    b.ToTable("closure_rules", (string)null);
+                    b.ToTable("closure_rules");
                 });
 
             modelBuilder.Entity("QM_AI.API.Models.M02_5.DynamicParam", b =>
@@ -504,7 +504,8 @@ namespace QM_AI.API.Migrations
                         .HasColumnName("sort_order");
 
                     b.Property<decimal?>("TargetValue")
-                        .HasColumnType("decimal(15,6)");
+                        .HasColumnType("decimal(15,6)")
+                        .HasColumnName("target_value");
 
                     b.Property<string>("Unit")
                         .HasMaxLength(20)
@@ -526,7 +527,7 @@ namespace QM_AI.API.Migrations
 
                     b.HasIndex("GroupId");
 
-                    b.ToTable("dynamic_params", (string)null);
+                    b.ToTable("dynamic_params");
                 });
 
             modelBuilder.Entity("QM_AI.API.Models.M02_5.ParamGroup", b =>
@@ -575,7 +576,7 @@ namespace QM_AI.API.Migrations
                     b.HasIndex("Code")
                         .IsUnique();
 
-                    b.ToTable("param_groups", (string)null);
+                    b.ToTable("param_groups");
                 });
 
             modelBuilder.Entity("QM_AI.API.Models.M02_5.ParamRealtimeValue", b =>
@@ -587,14 +588,23 @@ namespace QM_AI.API.Migrations
 
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<long>("Id"));
 
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("created_at");
+
                     b.Property<long?>("EquipmentId")
                         .HasColumnType("bigint")
                         .HasColumnName("equipment_id");
 
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("tinyint(1)")
+                        .HasColumnName("is_active");
+
                     b.Property<string>("ParamCode")
                         .IsRequired()
                         .HasMaxLength(50)
-                        .HasColumnType("varchar(50)");
+                        .HasColumnType("varchar(50)")
+                        .HasColumnName("param_code");
 
                     b.Property<string>("QualityResult")
                         .HasMaxLength(10)
@@ -611,7 +621,8 @@ namespace QM_AI.API.Migrations
 
                     b.Property<string>("ValueRaw")
                         .HasMaxLength(100)
-                        .HasColumnType("varchar(100)");
+                        .HasColumnType("varchar(100)")
+                        .HasColumnName("value_raw");
 
                     b.HasKey("Id");
 
@@ -619,7 +630,7 @@ namespace QM_AI.API.Migrations
 
                     b.HasIndex("ParamCode", "Timestamp");
 
-                    b.ToTable("param_realtime_values", (string)null);
+                    b.ToTable("param_realtime_values");
                 });
 
             modelBuilder.Entity("QM_AI.API.Models.M02_Inspection.InspectionItem", b =>
@@ -727,7 +738,7 @@ namespace QM_AI.API.Migrations
                     b.HasIndex("ItemCode")
                         .IsUnique();
 
-                    b.ToTable("inspection_items", (string)null);
+                    b.ToTable("inspection_items");
                 });
 
             modelBuilder.Entity("QM_AI.API.Models.M02_Inspection.InspectionPlan", b =>
@@ -748,7 +759,8 @@ namespace QM_AI.API.Migrations
                         .HasColumnName("created_by");
 
                     b.Property<long?>("CustomerId")
-                        .HasColumnType("bigint");
+                        .HasColumnType("bigint")
+                        .HasColumnName("customer_id");
 
                     b.Property<string>("Description")
                         .HasMaxLength(500)
@@ -762,7 +774,8 @@ namespace QM_AI.API.Migrations
                     b.Property<string>("InspectionType")
                         .IsRequired()
                         .HasMaxLength(10)
-                        .HasColumnType("varchar(10)");
+                        .HasColumnType("varchar(10)")
+                        .HasColumnName("inspection_type");
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("tinyint(1)")
@@ -781,17 +794,20 @@ namespace QM_AI.API.Migrations
                     b.Property<string>("PlanName")
                         .IsRequired()
                         .HasMaxLength(200)
-                        .HasColumnType("varchar(200)");
+                        .HasColumnType("varchar(200)")
+                        .HasColumnName("plan_name");
 
                     b.Property<long?>("ProcessId")
-                        .HasColumnType("bigint");
+                        .HasColumnType("bigint")
+                        .HasColumnName("process_id");
 
                     b.Property<long?>("ProductId")
                         .HasColumnType("bigint")
                         .HasColumnName("product_id");
 
                     b.Property<long?>("SupplierId")
-                        .HasColumnType("bigint");
+                        .HasColumnType("bigint")
+                        .HasColumnName("supplier_id");
 
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("datetime(6)")
@@ -816,7 +832,7 @@ namespace QM_AI.API.Migrations
 
                     b.HasIndex("SupplierId");
 
-                    b.ToTable("inspection_plans", (string)null);
+                    b.ToTable("inspection_plans");
                 });
 
             modelBuilder.Entity("QM_AI.API.Models.M02_Inspection.InspectionPlanItem", b =>
@@ -829,21 +845,24 @@ namespace QM_AI.API.Migrations
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<long>("Id"));
 
                     b.Property<long>("InspectionItemId")
-                        .HasColumnType("bigint");
+                        .HasColumnType("bigint")
+                        .HasColumnName("inspection_item_id");
 
                     b.Property<bool>("IsRequired")
                         .HasColumnType("tinyint(1)")
                         .HasColumnName("is_required");
 
                     b.Property<decimal?>("Lcl")
-                        .HasColumnType("decimal(15,6)");
+                        .HasColumnType("decimal(15,6)")
+                        .HasColumnName("lcl");
 
                     b.Property<decimal?>("Lsl")
                         .HasColumnType("decimal(65,30)")
                         .HasColumnName("lsl");
 
                     b.Property<long>("PlanId")
-                        .HasColumnType("bigint");
+                        .HasColumnType("bigint")
+                        .HasColumnName("plan_id");
 
                     b.Property<int?>("SampleSize")
                         .HasColumnType("int")
@@ -854,10 +873,12 @@ namespace QM_AI.API.Migrations
                         .HasColumnName("sort_order");
 
                     b.Property<decimal?>("TargetValue")
-                        .HasColumnType("decimal(15,6)");
+                        .HasColumnType("decimal(15,6)")
+                        .HasColumnName("target_value");
 
                     b.Property<decimal?>("Ucl")
-                        .HasColumnType("decimal(15,6)");
+                        .HasColumnType("decimal(15,6)")
+                        .HasColumnName("ucl");
 
                     b.Property<decimal?>("Usl")
                         .HasColumnType("decimal(65,30)")
@@ -869,7 +890,7 @@ namespace QM_AI.API.Migrations
 
                     b.HasIndex("PlanId");
 
-                    b.ToTable("inspection_plan_items", (string)null);
+                    b.ToTable("inspection_plan_items");
                 });
 
             modelBuilder.Entity("QM_AI.API.Models.M03.IqcAnomaly", b =>
@@ -890,7 +911,8 @@ namespace QM_AI.API.Migrations
                     b.Property<string>("AnomalyType")
                         .IsRequired()
                         .HasMaxLength(20)
-                        .HasColumnType("varchar(20)");
+                        .HasColumnType("varchar(20)")
+                        .HasColumnName("anomaly_type");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime(6)")
@@ -902,16 +924,20 @@ namespace QM_AI.API.Migrations
 
                     b.Property<string>("Handler")
                         .HasMaxLength(100)
-                        .HasColumnType("varchar(100)");
+                        .HasColumnType("varchar(100)")
+                        .HasColumnName("handler");
 
                     b.Property<long?>("InspectionId")
-                        .HasColumnType("bigint");
+                        .HasColumnType("bigint")
+                        .HasColumnName("inspection_id");
 
                     b.Property<long>("ReceiptId")
-                        .HasColumnType("bigint");
+                        .HasColumnType("bigint")
+                        .HasColumnName("receipt_id");
 
                     b.Property<DateTime?>("ResolvedAt")
-                        .HasColumnType("datetime(6)");
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("resolved_at");
 
                     b.Property<string>("Severity")
                         .IsRequired()
@@ -938,7 +964,7 @@ namespace QM_AI.API.Migrations
 
                     b.HasIndex("ReceiptId");
 
-                    b.ToTable("iqc_anomalies", (string)null);
+                    b.ToTable("iqc_anomalies");
                 });
 
             modelBuilder.Entity("QM_AI.API.Models.M03.IqcInspection", b =>
@@ -986,7 +1012,8 @@ namespace QM_AI.API.Migrations
                         .HasColumnName("re");
 
                     b.Property<long>("ReceiptId")
-                        .HasColumnType("bigint");
+                        .HasColumnType("bigint")
+                        .HasColumnName("receipt_id");
 
                     b.Property<string>("Result")
                         .IsRequired()
@@ -1004,7 +1031,8 @@ namespace QM_AI.API.Migrations
                         .HasColumnName("sampling_level");
 
                     b.Property<long?>("StandardId")
-                        .HasColumnType("bigint");
+                        .HasColumnType("bigint")
+                        .HasColumnName("standard_id");
 
                     b.HasKey("Id");
 
@@ -1015,7 +1043,7 @@ namespace QM_AI.API.Migrations
 
                     b.HasIndex("StandardId");
 
-                    b.ToTable("iqc_inspections", (string)null);
+                    b.ToTable("iqc_inspections");
                 });
 
             modelBuilder.Entity("QM_AI.API.Models.M03.IqcInspectionItem", b =>
@@ -1028,17 +1056,21 @@ namespace QM_AI.API.Migrations
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<long>("Id"));
 
                     b.Property<long?>("DefectCodeId")
-                        .HasColumnType("bigint");
+                        .HasColumnType("bigint")
+                        .HasColumnName("defect_code_id");
 
                     b.Property<long>("InspectionId")
-                        .HasColumnType("bigint");
+                        .HasColumnType("bigint")
+                        .HasColumnName("inspection_id");
 
                     b.Property<long?>("InspectionItemId")
-                        .HasColumnType("bigint");
+                        .HasColumnType("bigint")
+                        .HasColumnName("inspection_item_id");
 
                     b.Property<string>("ItemName")
                         .HasMaxLength(200)
-                        .HasColumnType("varchar(200)");
+                        .HasColumnType("varchar(200)")
+                        .HasColumnName("item_name");
 
                     b.Property<decimal?>("Lsl")
                         .HasColumnType("decimal(65,30)")
@@ -1049,7 +1081,8 @@ namespace QM_AI.API.Migrations
                         .HasColumnName("measured_value");
 
                     b.Property<long?>("ParamId")
-                        .HasColumnType("bigint");
+                        .HasColumnType("bigint")
+                        .HasColumnName("param_id");
 
                     b.Property<string>("Remark")
                         .HasColumnType("longtext")
@@ -1073,7 +1106,7 @@ namespace QM_AI.API.Migrations
 
                     b.HasIndex("InspectionItemId");
 
-                    b.ToTable("iqc_inspection_items", (string)null);
+                    b.ToTable("iqc_inspection_items");
                 });
 
             modelBuilder.Entity("QM_AI.API.Models.M03.IqcReceipt", b =>
@@ -1108,7 +1141,8 @@ namespace QM_AI.API.Migrations
                         .HasColumnName("quantity");
 
                     b.Property<DateTime?>("ReceiptDate")
-                        .HasColumnType("datetime(6)");
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("receipt_date");
 
                     b.Property<string>("ReceiptNo")
                         .IsRequired()
@@ -1123,7 +1157,8 @@ namespace QM_AI.API.Migrations
                         .HasColumnName("status");
 
                     b.Property<long>("SupplierId")
-                        .HasColumnType("bigint");
+                        .HasColumnType("bigint")
+                        .HasColumnName("supplier_id");
 
                     b.Property<string>("Unit")
                         .HasMaxLength(20)
@@ -1139,7 +1174,7 @@ namespace QM_AI.API.Migrations
 
                     b.HasIndex("SupplierId");
 
-                    b.ToTable("iqc_receipts", (string)null);
+                    b.ToTable("iqc_receipts");
                 });
 
             modelBuilder.Entity("QM_AI.API.Models.M03.SupplierScore", b =>
@@ -1151,33 +1186,23 @@ namespace QM_AI.API.Migrations
 
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<long>("Id"));
 
-                    b.Property<string>("DimensionScores")
-                        .HasColumnType("json");
-
-                    b.Property<string>("Evaluation")
-                        .HasColumnType("longtext");
-
-                    b.Property<string>("Grade")
-                        .HasMaxLength(10)
-                        .HasColumnType("varchar(10)")
-                        .HasColumnName("grade");
-
                     b.Property<decimal?>("Score")
                         .HasColumnType("decimal(65,30)")
                         .HasColumnName("score");
 
                     b.Property<DateTime?>("ScoreDate")
                         .HasColumnType("datetime(6)")
-                        .HasColumnName("score_date");
+                        .HasColumnName("assessment_date");
 
                     b.Property<long>("SupplierId")
-                        .HasColumnType("bigint");
+                        .HasColumnType("bigint")
+                        .HasColumnName("supplier_id");
 
                     b.HasKey("Id");
 
                     b.HasIndex("SupplierId");
 
-                    b.ToTable("supplier_scores", (string)null);
+                    b.ToTable("supplier_scores");
                 });
 
             modelBuilder.Entity("QM_AI.API.Models.M04.IpqcAiRiskScore", b =>
@@ -1226,7 +1251,7 @@ namespace QM_AI.API.Migrations
 
                     b.HasIndex("EquipmentId", "CreatedAt");
 
-                    b.ToTable("ipqc_ai_risk_scores", (string)null);
+                    b.ToTable("ipqc_ai_risk_scores");
                 });
 
             modelBuilder.Entity("QM_AI.API.Models.M04.IpqcClosureStatus", b =>
@@ -1268,7 +1293,7 @@ namespace QM_AI.API.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("ipqc_closure_status", (string)null);
+                    b.ToTable("ipqc_closure_status");
                 });
 
             modelBuilder.Entity("QM_AI.API.Models.M04.IpqcFirstPiece", b =>
@@ -1341,7 +1366,7 @@ namespace QM_AI.API.Migrations
                     b.HasIndex("FpNo")
                         .IsUnique();
 
-                    b.ToTable("ipqc_first_pieces", (string)null);
+                    b.ToTable("ipqc_first_pieces");
                 });
 
             modelBuilder.Entity("QM_AI.API.Models.M04.IpqcFirstPieceItem", b =>
@@ -1405,7 +1430,7 @@ namespace QM_AI.API.Migrations
 
                     b.HasIndex("InspectionItemId");
 
-                    b.ToTable("ipqc_first_piece_items", (string)null);
+                    b.ToTable("ipqc_first_piece_items");
                 });
 
             modelBuilder.Entity("QM_AI.API.Models.M04.IpqcPatrol", b =>
@@ -1490,7 +1515,7 @@ namespace QM_AI.API.Migrations
 
                     b.HasIndex("PatrolPlanId");
 
-                    b.ToTable("ipqc_patrols", (string)null);
+                    b.ToTable("ipqc_patrols");
                 });
 
             modelBuilder.Entity("QM_AI.API.Models.M04.IpqcPatrolItem", b =>
@@ -1551,7 +1576,7 @@ namespace QM_AI.API.Migrations
 
                     b.HasIndex("PatrolId");
 
-                    b.ToTable("ipqc_patrol_items", (string)null);
+                    b.ToTable("ipqc_patrol_items");
                 });
 
             modelBuilder.Entity("QM_AI.API.Models.M04.IpqcPatrolPlan", b =>
@@ -1606,7 +1631,7 @@ namespace QM_AI.API.Migrations
                     b.HasIndex("PlanNo")
                         .IsUnique();
 
-                    b.ToTable("ipqc_patrol_plans", (string)null);
+                    b.ToTable("ipqc_patrol_plans");
                 });
 
             modelBuilder.Entity("QM_AI.API.Models.M05.FqcInspection", b =>
@@ -1692,7 +1717,7 @@ namespace QM_AI.API.Migrations
                     b.HasIndex("InspectionNo")
                         .IsUnique();
 
-                    b.ToTable("fqc_inspections", (string)null);
+                    b.ToTable("fqc_inspections");
                 });
 
             modelBuilder.Entity("QM_AI.API.Models.M05.FqcInspectionItem", b =>
@@ -1753,7 +1778,7 @@ namespace QM_AI.API.Migrations
 
                     b.HasIndex("InspectionItemId");
 
-                    b.ToTable("fqc_inspection_items", (string)null);
+                    b.ToTable("fqc_inspection_items");
                 });
 
             modelBuilder.Entity("QM_AI.API.Models.M05.OqcRelease", b =>
@@ -1819,7 +1844,7 @@ namespace QM_AI.API.Migrations
                     b.HasIndex("ReleaseNumber")
                         .IsUnique();
 
-                    b.ToTable("oqc_releases", (string)null);
+                    b.ToTable("oqc_releases");
                 });
 
             modelBuilder.Entity("QM_AI.API.Models.M05.PackagingConfirmation", b =>
@@ -1859,7 +1884,7 @@ namespace QM_AI.API.Migrations
 
                     b.HasIndex("BatchId");
 
-                    b.ToTable("packaging_confirmations", (string)null);
+                    b.ToTable("packaging_confirmations");
                 });
 
             modelBuilder.Entity("QM_AI.API.Models.M05.ProductBatch", b =>
@@ -1916,7 +1941,7 @@ namespace QM_AI.API.Migrations
 
                     b.HasIndex("ProductId");
 
-                    b.ToTable("product_batches", (string)null);
+                    b.ToTable("product_batches");
                 });
 
             modelBuilder.Entity("QM_AI.API.Models.M06.SpcAlertRule", b =>
@@ -1963,7 +1988,7 @@ namespace QM_AI.API.Migrations
 
                     b.HasIndex("ChartId");
 
-                    b.ToTable("spc_alert_rules", (string)null);
+                    b.ToTable("spc_alert_rules");
                 });
 
             modelBuilder.Entity("QM_AI.API.Models.M06.SpcAlertTrigger", b =>
@@ -2005,7 +2030,7 @@ namespace QM_AI.API.Migrations
 
                     b.HasIndex("ChartId", "TriggeredAt");
 
-                    b.ToTable("spc_alert_triggers", (string)null);
+                    b.ToTable("spc_alert_triggers");
                 });
 
             modelBuilder.Entity("QM_AI.API.Models.M06.SpcAnalysisResult", b =>
@@ -2063,7 +2088,7 @@ namespace QM_AI.API.Migrations
 
                     b.HasIndex("ChartId");
 
-                    b.ToTable("spc_analysis_results", (string)null);
+                    b.ToTable("spc_analysis_results");
                 });
 
             modelBuilder.Entity("QM_AI.API.Models.M06.SpcAnovaResult", b =>
@@ -2114,7 +2139,7 @@ namespace QM_AI.API.Migrations
 
                     b.HasIndex("ChartId");
 
-                    b.ToTable("spc_anova_results", (string)null);
+                    b.ToTable("spc_anova_results");
                 });
 
             modelBuilder.Entity("QM_AI.API.Models.M06.SpcControlChart", b =>
@@ -2189,7 +2214,7 @@ namespace QM_AI.API.Migrations
 
                     b.HasIndex("ParameterCode");
 
-                    b.ToTable("spc_control_charts", (string)null);
+                    b.ToTable("spc_control_charts");
                 });
 
             modelBuilder.Entity("QM_AI.API.Models.M06.SpcDataPoint", b =>
@@ -2232,7 +2257,7 @@ namespace QM_AI.API.Migrations
 
                     b.HasIndex("ChartId", "SubgroupIndex");
 
-                    b.ToTable("spc_data_points", (string)null);
+                    b.ToTable("spc_data_points");
                 });
 
             modelBuilder.Entity("QM_AI.API.Models.M06.SpcDataSource", b =>
@@ -2283,7 +2308,7 @@ namespace QM_AI.API.Migrations
 
                     b.HasIndex("InspectionItemId");
 
-                    b.ToTable("spc_data_sources", (string)null);
+                    b.ToTable("spc_data_sources");
                 });
 
             modelBuilder.Entity("QM_AI.API.Models.M07.Capa", b =>
@@ -2375,7 +2400,7 @@ namespace QM_AI.API.Migrations
 
                     b.HasIndex("Status");
 
-                    b.ToTable("capa", (string)null);
+                    b.ToTable("capa");
                 });
 
             modelBuilder.Entity("QM_AI.API.Models.M07.CapaCorrectiveAction", b =>
@@ -2429,7 +2454,7 @@ namespace QM_AI.API.Migrations
 
                     b.HasIndex("CapaId");
 
-                    b.ToTable("capa_corrective_actions", (string)null);
+                    b.ToTable("capa_corrective_actions");
                 });
 
             modelBuilder.Entity("QM_AI.API.Models.M07.CapaPreventiveAction", b =>
@@ -2483,7 +2508,7 @@ namespace QM_AI.API.Migrations
 
                     b.HasIndex("CapaId");
 
-                    b.ToTable("capa_preventive_actions", (string)null);
+                    b.ToTable("capa_preventive_actions");
                 });
 
             modelBuilder.Entity("QM_AI.API.Models.M07.CapaRootCause", b =>
@@ -2527,7 +2552,7 @@ namespace QM_AI.API.Migrations
 
                     b.HasIndex("CapaId");
 
-                    b.ToTable("capa_root_causes", (string)null);
+                    b.ToTable("capa_root_causes");
                 });
 
             modelBuilder.Entity("QM_AI.API.Models.M07.CapaTemporaryMeasure", b =>
@@ -2562,7 +2587,7 @@ namespace QM_AI.API.Migrations
 
                     b.HasIndex("CapaId");
 
-                    b.ToTable("capa_temporary_measures", (string)null);
+                    b.ToTable("capa_temporary_measures");
                 });
 
             modelBuilder.Entity("QM_AI.API.Models.M07.CapaVerification", b =>
@@ -2612,7 +2637,7 @@ namespace QM_AI.API.Migrations
 
                     b.HasIndex("CapaId");
 
-                    b.ToTable("capa_verifications", (string)null);
+                    b.ToTable("capa_verifications");
                 });
 
             modelBuilder.Entity("QM_AI.API.Models.M07.Defect", b =>
@@ -2702,7 +2727,7 @@ namespace QM_AI.API.Migrations
 
                     b.HasIndex("Status");
 
-                    b.ToTable("defects", (string)null);
+                    b.ToTable("defects");
                 });
 
             modelBuilder.Entity("QM_AI.API.Models.M07.ScrapReworkRecord", b =>
@@ -2769,7 +2794,7 @@ namespace QM_AI.API.Migrations
 
                     b.HasIndex("Type");
 
-                    b.ToTable("scrap_rework_records", (string)null);
+                    b.ToTable("scrap_rework_records");
                 });
 
             modelBuilder.Entity("QM_AI.API.Models.M09.Complaint", b =>
@@ -2851,7 +2876,7 @@ namespace QM_AI.API.Migrations
 
                     b.HasIndex("CustomerId");
 
-                    b.ToTable("complaints", (string)null);
+                    b.ToTable("complaints");
                 });
 
             modelBuilder.Entity("QM_AI.API.Models.M09.ComplaintEvent", b =>
@@ -2889,7 +2914,7 @@ namespace QM_AI.API.Migrations
 
                     b.HasIndex("ComplaintId", "CreatedAt");
 
-                    b.ToTable("complaint_events", (string)null);
+                    b.ToTable("complaint_events");
                 });
 
             modelBuilder.Entity("QM_AI.API.Models.M09.D8Report", b =>
@@ -2968,7 +2993,7 @@ namespace QM_AI.API.Migrations
                     b.HasIndex("ComplaintId")
                         .IsUnique();
 
-                    b.ToTable("d8_reports", (string)null);
+                    b.ToTable("d8_reports");
                 });
 
             modelBuilder.Entity("QM_AI.API.Models.M11.EquipmentParamMapping", b =>
@@ -3024,7 +3049,7 @@ namespace QM_AI.API.Migrations
 
                     b.HasIndex("ParamGroupId");
 
-                    b.ToTable("equipment_param_mappings", (string)null);
+                    b.ToTable("equipment_param_mappings");
                 });
 
             modelBuilder.Entity("QM_AI.API.Models.M11.EquipmentQualityCorrelation", b =>
@@ -3056,7 +3081,7 @@ namespace QM_AI.API.Migrations
 
                     b.HasIndex("EquipmentId", "AnalysisDate");
 
-                    b.ToTable("equipment_quality_correlation", (string)null);
+                    b.ToTable("equipment_quality_correlation");
                 });
 
             modelBuilder.Entity("QM_AI.API.Models.M11.EquipmentStatusHistory", b =>
@@ -3089,7 +3114,7 @@ namespace QM_AI.API.Migrations
 
                     b.HasIndex("EquipmentId", "RecordedAt");
 
-                    b.ToTable("equipment_status_history", (string)null);
+                    b.ToTable("equipment_status_history");
                 });
 
             modelBuilder.Entity("QM_AI.API.Models.M12.Document", b =>
@@ -3165,7 +3190,7 @@ namespace QM_AI.API.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("documents", (string)null);
+                    b.ToTable("documents");
                 });
 
             modelBuilder.Entity("QM_AI.API.Models.M12.DocumentVersion", b =>
@@ -3205,7 +3230,7 @@ namespace QM_AI.API.Migrations
 
                     b.HasIndex("DocumentId");
 
-                    b.ToTable("document_versions", (string)null);
+                    b.ToTable("document_versions");
                 });
 
             modelBuilder.Entity("QM_AI.API.Models.M13.Audit", b =>
@@ -3285,7 +3310,7 @@ namespace QM_AI.API.Migrations
                     b.HasIndex("AuditCode")
                         .IsUnique();
 
-                    b.ToTable("audits", (string)null);
+                    b.ToTable("audits");
                 });
 
             modelBuilder.Entity("QM_AI.API.Models.M13.AuditFinding", b =>
@@ -3370,7 +3395,7 @@ namespace QM_AI.API.Migrations
 
                     b.HasIndex("AuditId");
 
-                    b.ToTable("audit_findings", (string)null);
+                    b.ToTable("audit_findings");
                 });
 
             modelBuilder.Entity("QM_AI.API.Models.Organization", b =>
@@ -3446,7 +3471,7 @@ namespace QM_AI.API.Migrations
 
                     b.HasIndex("ParentId");
 
-                    b.ToTable("organizations", (string)null);
+                    b.ToTable("organizations");
                 });
 
             modelBuilder.Entity("QM_AI.API.Models.Permission", b =>
@@ -3480,7 +3505,7 @@ namespace QM_AI.API.Migrations
                     b.HasIndex("Code")
                         .IsUnique();
 
-                    b.ToTable("permissions", (string)null);
+                    b.ToTable("permissions");
                 });
 
             modelBuilder.Entity("QM_AI.API.Models.Process", b =>
@@ -3540,7 +3565,7 @@ namespace QM_AI.API.Migrations
                     b.HasIndex("Code")
                         .IsUnique();
 
-                    b.ToTable("processes", (string)null);
+                    b.ToTable("processes");
                 });
 
             modelBuilder.Entity("QM_AI.API.Models.Product", b =>
@@ -3591,6 +3616,10 @@ namespace QM_AI.API.Migrations
                         .HasColumnType("varchar(200)")
                         .HasColumnName("product_name");
 
+                    b.Property<long?>("OrgId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("org_id");
+
                     b.Property<string>("Specification")
                         .HasColumnType("longtext")
                         .HasColumnName("specification");
@@ -3609,7 +3638,7 @@ namespace QM_AI.API.Migrations
                     b.HasIndex("Code")
                         .IsUnique();
 
-                    b.ToTable("products", (string)null);
+                    b.ToTable("products");
                 });
 
             modelBuilder.Entity("QM_AI.API.Models.Role", b =>
@@ -3637,7 +3666,7 @@ namespace QM_AI.API.Migrations
                     b.HasIndex("Name")
                         .IsUnique();
 
-                    b.ToTable("roles", (string)null);
+                    b.ToTable("roles");
                 });
 
             modelBuilder.Entity("QM_AI.API.Models.Routing", b =>
@@ -3699,7 +3728,135 @@ namespace QM_AI.API.Migrations
 
                     b.HasIndex("ProductId");
 
-                    b.ToTable("routings", (string)null);
+                    b.ToTable("routings");
+                });
+
+            modelBuilder.Entity("QM_AI.API.Models.RoutingHeader", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)")
+                        .HasColumnName("description");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("tinyint(1)")
+                        .HasColumnName("is_active");
+
+                    b.Property<bool>("IsDefault")
+                        .HasColumnType("tinyint(1)")
+                        .HasColumnName("is_default");
+
+                    b.Property<long>("ProductId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("product_id");
+
+                    b.Property<string>("RouteCode")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)")
+                        .HasColumnName("route_code");
+
+                    b.Property<string>("RouteName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)")
+                        .HasColumnName("route_name");
+
+                    b.Property<string>("RouteType")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("varchar(20)")
+                        .HasColumnName("route_type");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("int")
+                        .HasColumnName("sort_order");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProductId");
+
+                    b.HasIndex("RouteType");
+
+                    b.HasIndex("RouteCode", "ProductId")
+                        .IsUnique();
+
+                    b.ToTable("routing_headers");
+                });
+
+            modelBuilder.Entity("QM_AI.API.Models.RoutingStep", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)")
+                        .HasColumnName("description");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("tinyint(1)")
+                        .HasColumnName("is_active");
+
+                    b.Property<double?>("PostWaitTimeMinutes")
+                        .HasColumnType("double")
+                        .HasColumnName("post_wait_time_minutes");
+
+                    b.Property<double?>("PreWaitTimeMinutes")
+                        .HasColumnType("double")
+                        .HasColumnName("pre_wait_time_minutes");
+
+                    b.Property<long>("ProcessId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("process_id");
+
+                    b.Property<long>("RoutingHeaderId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("routing_header_id");
+
+                    b.Property<double?>("StandardTimeMinutes")
+                        .HasColumnType("double")
+                        .HasColumnName("standard_time_minutes");
+
+                    b.Property<int>("StepOrder")
+                        .HasColumnType("int")
+                        .HasColumnName("step_order");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProcessId");
+
+                    b.HasIndex("RoutingHeaderId", "StepOrder")
+                        .IsUnique();
+
+                    b.ToTable("routing_steps");
                 });
 
             modelBuilder.Entity("QM_AI.API.Models.Supplier", b =>
@@ -3762,7 +3919,7 @@ namespace QM_AI.API.Migrations
                     b.HasIndex("Code")
                         .IsUnique();
 
-                    b.ToTable("suppliers", (string)null);
+                    b.ToTable("suppliers");
                 });
 
             modelBuilder.Entity("QM_AI.API.Models.SysDictItem", b =>
@@ -3820,7 +3977,7 @@ namespace QM_AI.API.Migrations
 
                     b.HasIndex("TypeCode", "SortOrder");
 
-                    b.ToTable("sys_dict_items", (string)null);
+                    b.ToTable("sys_dict_items");
                 });
 
             modelBuilder.Entity("QM_AI.API.Models.SysDictType", b =>
@@ -3865,7 +4022,7 @@ namespace QM_AI.API.Migrations
                     b.HasIndex("TypeCode")
                         .IsUnique();
 
-                    b.ToTable("sys_dict_types", (string)null);
+                    b.ToTable("sys_dict_types");
                 });
 
             modelBuilder.Entity("QM_AI.API.Models.Tool", b =>
@@ -3934,7 +4091,7 @@ namespace QM_AI.API.Migrations
                     b.HasIndex("Code")
                         .IsUnique();
 
-                    b.ToTable("tools", (string)null);
+                    b.ToTable("tools");
                 });
 
             modelBuilder.Entity("QM_AI.API.Models.User", b =>
@@ -3995,7 +4152,7 @@ namespace QM_AI.API.Migrations
                     b.HasIndex("Username")
                         .IsUnique();
 
-                    b.ToTable("users", (string)null);
+                    b.ToTable("users");
                 });
 
             modelBuilder.Entity("QM_AI.API.Models.Bom", b =>
@@ -4603,6 +4760,36 @@ namespace QM_AI.API.Migrations
                     b.Navigation("Product");
                 });
 
+            modelBuilder.Entity("QM_AI.API.Models.RoutingHeader", b =>
+                {
+                    b.HasOne("QM_AI.API.Models.Product", "Product")
+                        .WithMany()
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Product");
+                });
+
+            modelBuilder.Entity("QM_AI.API.Models.RoutingStep", b =>
+                {
+                    b.HasOne("QM_AI.API.Models.Process", "Process")
+                        .WithMany()
+                        .HasForeignKey("ProcessId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("QM_AI.API.Models.RoutingHeader", "RoutingHeader")
+                        .WithMany("Steps")
+                        .HasForeignKey("RoutingHeaderId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Process");
+
+                    b.Navigation("RoutingHeader");
+                });
+
             modelBuilder.Entity("QM_AI.API.Models.SysDictItem", b =>
                 {
                     b.HasOne("QM_AI.API.Models.SysDictType", "DictType")
@@ -4731,6 +4918,11 @@ namespace QM_AI.API.Migrations
             modelBuilder.Entity("QM_AI.API.Models.Role", b =>
                 {
                     b.Navigation("Users");
+                });
+
+            modelBuilder.Entity("QM_AI.API.Models.RoutingHeader", b =>
+                {
+                    b.Navigation("Steps");
                 });
 
             modelBuilder.Entity("QM_AI.API.Models.SysDictType", b =>
