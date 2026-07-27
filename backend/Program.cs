@@ -358,6 +358,33 @@ ORDER BY r.product_id, rh.sort_order, r.step_order;";
     // M15 企业组织层级 & 字典
     cmd.CommandText = @"CREATE TABLE IF NOT EXISTS `organizations` (`id` BIGINT AUTO_INCREMENT PRIMARY KEY, `code` VARCHAR(50) NOT NULL UNIQUE, `name` VARCHAR(200) NOT NULL, `level` VARCHAR(20) NOT NULL, `parent_id` BIGINT, `sort_order` INT DEFAULT 0, `is_active` TINYINT(1) DEFAULT 1, `location` VARCHAR(500), `contact` JSON, `description` TEXT, `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, `created_by` BIGINT, FOREIGN KEY (`parent_id`) REFERENCES `organizations`(`id`) ON DELETE SET NULL) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;";
     await cmd.ExecuteNonQueryAsync();
+
+    // 补建 organizations 表可能缺少的列（表在早期版本创建时可能不含这些字段）
+    var orgAlterCols = new (string Col, string Def)[]
+    {
+        ("created_at", "DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP"),
+        ("updated_at", "DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP"),
+        ("contact", "JSON"),
+        ("created_by", "BIGINT"),
+    };
+    foreach (var (col, def) in orgAlterCols)
+    {
+        try
+        {
+            cmd.CommandText = $"SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'organizations' AND COLUMN_NAME = '{col}'";
+            var colExists = Convert.ToInt64(await cmd.ExecuteScalarAsync());
+            if (colExists == 0)
+            {
+                cmd.CommandText = $"ALTER TABLE `organizations` ADD COLUMN `{col}` {def}";
+                await cmd.ExecuteNonQueryAsync();
+                Console.WriteLine($"[Program] Added missing column organizations.{col}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[Program] Warning: Failed to check/add organizations.{col}: {ex.Message}");
+        }
+    }
     
     cmd.CommandText = @"CREATE TABLE IF NOT EXISTS `sys_dict_types` (`id` BIGINT AUTO_INCREMENT PRIMARY KEY, `type_code` VARCHAR(50) UNIQUE NOT NULL, `type_name` VARCHAR(200) NOT NULL, `is_system` TINYINT(1) DEFAULT 0, `status` TINYINT(1) DEFAULT 1, `remark` TEXT, `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;";
     await cmd.ExecuteNonQueryAsync();
