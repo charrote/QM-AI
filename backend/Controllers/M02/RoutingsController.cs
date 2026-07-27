@@ -649,15 +649,20 @@ public class RoutingsController : ControllerBase
         _db.RoutingSteps.Add(step);
         await _db.SaveChangesAsync();
 
+        // 重新查询已保存的步骤并加载 Process 导航属性
+        var savedStep = await _db.RoutingSteps
+            .Include(s => s.Process)
+            .FirstOrDefaultAsync(s => s.Id == step.Id);
+
         return CreatedAtAction(nameof(ListSteps), new { headerId }, new ProductRouteStepDto
         {
-            Id = step.Id,
-            StepOrder = step.StepOrder,
-            ProcessId = step.ProcessId,
-            ProcessCode = step.Process!.Code,
-            ProcessName = step.Process.Name,
-            StandardTimeMinutes = step.StandardTimeMinutes,
-            Description = step.Description,
+            Id = savedStep.Id,
+            StepOrder = savedStep.StepOrder,
+            ProcessId = savedStep.ProcessId,
+            ProcessCode = savedStep.Process!.Code,
+            ProcessName = savedStep.Process.Name,
+            StandardTimeMinutes = savedStep.StandardTimeMinutes,
+            Description = savedStep.Description,
         });
     }
 
