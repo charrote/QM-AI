@@ -45,7 +45,7 @@ const componentNameMap: Record<string, string> = {
   dashboard: 'Dashboard',
   'basic-product': 'BasicData',
   'basic-process': 'BasicData',
-  'basic-routing': 'BasicData',
+  'basic-routing': 'Routing',
   'basic-bom': 'BasicData',
   'basic-standard': 'BasicData',
   'basic-defect': 'BasicData',
@@ -364,7 +364,6 @@ function getIconComponent(iconName?: string) {
                     </el-icon>
                     {{ org.name }}
                   </span>
-                  <span v-if="org.path" class="org-path">{{ org.path }}</span>
                 </el-dropdown-item>
               </template>
 

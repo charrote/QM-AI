@@ -315,6 +315,8 @@ const tableData = ref<any[]>([])
 const loading = ref(false)
 const total = ref(0)
 const searchKeyword = ref('')
+const defectTypeFilters = ref<string[]>([])
+const severityFilters = ref<string[]>([])
 const page = ref(1)
 const pageSize = ref(20)
 
@@ -358,13 +360,22 @@ const orgOptions = computed(() => {
 async function loadData() {
   loading.value = true
   try {
-    const res = await config.value.api.list({
+    const params: any = {
       page: page.value,
       pageSize: pageSize.value,
       keyword: searchKeyword.value || undefined,
-    })
+    }
+    if (activeEntity.value === 'defect') {
+      if (defectTypeFilters.value.length > 0) params.defectTypes = defectTypeFilters.value
+      if (severityFilters.value.length > 0) params.severities = severityFilters.value
+    }
+    console.log('[loadData] entity:', activeEntity.value, 'params:', JSON.stringify(params))
+    const res = await config.value.api.list(params)
+    console.log('[loadData] got', res.total, 'items')
     tableData.value = res.items
     total.value = res.total
+  } catch (err: any) {
+    console.error('[loadData] error:', err?.message || err)
   } finally {
     loading.value = false
   }
@@ -414,9 +425,19 @@ function handleSearch() {
 
 function handleReset() {
   searchKeyword.value = ''
+  defectTypeFilters.value = []
+  severityFilters.value = []
   page.value = 1
   loadData()
 }
+
+// ─── 监听筛选条件变化自动搜索 ───────────────────
+watch([defectTypeFilters, severityFilters], ([types, sevs]) => {
+  console.log('[watch] defectTypeFilters:', types, 'severityFilters:', sevs, 'entity:', activeEntity.value)
+  if (activeEntity.value === 'defect') {
+    handleSearch()
+  }
+}, { deep: true })
 
 // ─── 新增/编辑 ─────────────────────────────────────────
 function openCreate() {
@@ -544,6 +565,7 @@ function handlePageChange(p: number) {
 // ─── 初始化 ────────────────────────────────────────────
 onMounted(() => {
   syncEntityFromRoute()
+  console.log('[mounted] activeEntity:', activeEntity.value, 'route.path:', route.path)
   loadData()
   loadLookups()
 })
@@ -559,19 +581,6 @@ onMounted(() => {
           <h2 class="page-header__title">基础数据管理</h2>
           <p class="page-header__subtitle">管理产品、工序、供应商等基础数据</p>
         </div>
-      </div>
-      <div class="page-header__actions">
-        <el-input
-          v-model="searchKeyword"
-          placeholder="搜索编码/名称..."
-          clearable
-          class="header-search"
-          @keyup.enter="handleSearch"
-        >
-          <template #prefix>
-            <el-icon><Search /></el-icon>
-          </template>
-        </el-input>
       </div>
     </div>
 
@@ -602,6 +611,71 @@ onMounted(() => {
           </el-tag>
         </div>
         <div class="data-card__toolbar">
+          <!-- 不良代码专属筛选 -->
+          <div v-if="activeEntity === 'defect'" class="filter-bar">
+            <el-input
+              v-model="searchKeyword"
+              placeholder="搜索名称/代码..."
+              clearable
+              style="width: 220px"
+              @keyup.enter="handleSearch"
+              @clear="handleSearch"
+            >
+              <template #prefix>
+                <el-icon><Search /></el-icon>
+              </template>
+            </el-input>
+            <el-select
+              v-model="defectTypeFilters"
+              placeholder="不良类别"
+              clearable
+              multiple
+              collapse-tags
+              :collapse-tags-tooltip="true"
+              style="width: 160px"
+              @clear="handleSearch"
+            >
+              <el-option
+                v-for="opt in getDictOptions('defect_category')"
+                :key="opt.itemValue"
+                :label="opt.itemLabel"
+                :value="opt.itemValue"
+              />
+            </el-select>
+            <el-select
+              v-model="severityFilters"
+              placeholder="严重等级"
+              clearable
+              multiple
+              collapse-tags
+              :collapse-tags-tooltip="true"
+              style="width: 160px"
+              @change="handleSearch"
+              @clear="handleSearch"
+            >
+              <el-option
+                v-for="opt in getDictOptions('severity')"
+                :key="opt.itemValue"
+                :label="opt.itemLabel"
+                :value="opt.itemValue"
+              />
+            </el-select>
+          </div>
+          <!-- 其他实体：仅关键词搜索 -->
+          <div v-else class="filter-bar">
+            <el-input
+              v-model="searchKeyword"
+              placeholder="搜索编码/名称..."
+              clearable
+              style="width: 220px"
+              @keyup.enter="handleSearch"
+              @clear="handleSearch"
+            >
+              <template #prefix>
+                <el-icon><Search /></el-icon>
+              </template>
+            </el-input>
+          </div>
           <el-button @click="handleReset" text>
             <el-icon><Refresh /></el-icon>重置
           </el-button>
@@ -614,7 +688,7 @@ onMounted(() => {
       <!-- 数据表格 -->
       <el-table
         :data="tableData"
-        v-loading="loading"
+        v-loading="loading && activeEntity === 'defect'"
         border
         stripe
         style="width: 100%"
@@ -1446,6 +1520,14 @@ onMounted(() => {
   gap: var(--space-2, 8px);
 }
 
+/* ─── Filter Bar ──────────────────────────── */
+.filter-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2, 8px);
+  flex: 1;
+}
+
 /* ─── Table Index Column ──────────────────── */
 .data-card__table :deep(.el-table__row > .el-table__cell.index-cell),
 .data-card__table :deep(.index-cell) {
@@ -1502,18 +1584,11 @@ onMounted(() => {
 
 /* ─── Dialog ──────────────────────────────── */
 .dialog-body-wrap {
-  max-height: 60vh;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
   overflow-y: auto;
   padding-right: 8px;
-}
-
-.dialog-body-wrap::-webkit-scrollbar {
-  width: 5px;
-}
-
-.dialog-body-wrap::-webkit-scrollbar-thumb {
-  background: var(--border-color, #dcdfe6);
-  border-radius: 3px;
 }
 
 .dialog-form {
@@ -1534,7 +1609,7 @@ onMounted(() => {
 
 /* Form sections */
 .form-section {
-  padding: var(--space-4, 16px) 0;
+  padding: var(--space-3, 12px) 0;
   border-bottom: 1px dashed var(--border-color-light, #ebeef5);
 }
 
@@ -1549,8 +1624,8 @@ onMounted(() => {
   font-size: 13px;
   font-weight: 600;
   color: var(--primary, #1677ff);
-  margin-bottom: var(--space-3, 12px);
-  padding-bottom: var(--space-2, 8px);
+  margin-bottom: var(--space-2, 8px);
+  padding-bottom: var(--space-1, 4px);
   border-bottom: 1px solid var(--primary-light-5, #8bc5ff);
 }
 

@@ -138,11 +138,6 @@ export const useTabStore = defineStore('tab', () => {
     saveTimer = setTimeout(saveTabs, 300)
   })
 
-  watch([tabs, activeTabId], () => {
-    if (saveTimer) clearTimeout(saveTimer)
-    saveTimer = setTimeout(saveTabs, 300)
-  })
-
   return {
     tabs,
     activeTabId,

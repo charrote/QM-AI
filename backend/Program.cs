@@ -195,17 +195,36 @@ using (var scope = app.Services.CreateScope())
     await cmd.ExecuteNonQueryAsync();
 
     // M02.5 多工艺路线：路由步骤表（新结构，兼容旧 routing_steps 表迁移）
-    // 策略：先删除旧 routing_steps 表（如有），再创建新表
+    // 策略：表不存在则创建；表已存在但缺少新列则 ALTER TABLE 补充，确保每次启动都能保持最新 schema
     try
     {
-        cmd.CommandText = @"DROP TABLE IF EXISTS `routing_steps`";
+        cmd.CommandText = @"CREATE TABLE IF NOT EXISTS `routing_steps` (`id` BIGINT AUTO_INCREMENT PRIMARY KEY, `routing_header_id` BIGINT NOT NULL COMMENT '所属路线头 ID', `step_order` INT NOT NULL COMMENT '工序顺序', `process_id` BIGINT COMMENT '关联工序 ID', `standard_time_minutes` DECIMAL(10,2) DEFAULT 0 COMMENT '标准工时（分钟）', `description` VARCHAR(500) COMMENT '步骤备注', `pre_wait_time_minutes` DOUBLE DEFAULT 0 COMMENT '前置等待时间（分钟）', `post_wait_time_minutes` DOUBLE DEFAULT 0 COMMENT '后置等待时间（分钟）', `is_active` TINYINT(1) DEFAULT 1 COMMENT '是否启用', `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (`routing_header_id`) REFERENCES `routing_headers`(`id`) ON DELETE CASCADE, FOREIGN KEY (`process_id`) REFERENCES `processes`(`id`) ON DELETE RESTRICT, UNIQUE KEY `uk_step_order_header` (`routing_header_id`, `step_order`), INDEX `idx_routing_steps_header` (`routing_header_id`), INDEX `idx_routing_steps_process` (`process_id`)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;";
         await cmd.ExecuteNonQueryAsync();
-        cmd.CommandText = @"CREATE TABLE `routing_steps` (`id` BIGINT AUTO_INCREMENT PRIMARY KEY, `routing_header_id` BIGINT NOT NULL COMMENT '所属路线头ID', `step_order` INT NOT NULL COMMENT '工序顺序', `process_id` BIGINT COMMENT '关联工序ID', `standard_time_minutes` DECIMAL(10,2) DEFAULT 0 COMMENT '标准工时（分钟）', `description` VARCHAR(500) COMMENT '步骤备注', `is_active` TINYINT(1) DEFAULT 1 COMMENT '是否启用', `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (`routing_header_id`) REFERENCES `routing_headers`(`id`) ON DELETE CASCADE, FOREIGN KEY (`process_id`) REFERENCES `processes`(`id`) ON DELETE RESTRICT, UNIQUE KEY `uk_step_order_header` (`routing_header_id`, `step_order`), INDEX `idx_routing_steps_header` (`routing_header_id`), INDEX `idx_routing_steps_process` (`process_id`)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;";
-        await cmd.ExecuteNonQueryAsync();
+        Console.WriteLine("[Program] routing_steps table ready (created or already exists).");
     }
     catch (Exception ex)
     {
         Console.WriteLine($"[Program] Warning: Failed to create routing_steps table: {ex.Message}");
+    }
+
+    // 确保 routing_steps 表包含最新列（处理表已存在但缺少新增列的情况）
+    try
+    {
+        cmd.CommandText = @"SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'routing_steps' AND COLUMN_NAME = 'post_wait_time_minutes'";
+        var postExists = (long)(await cmd.ExecuteScalarAsync())!;
+        if (postExists == 0)
+        {
+            cmd.CommandText = @"
+                ALTER TABLE `routing_steps` 
+                ADD COLUMN `pre_wait_time_minutes` DOUBLE DEFAULT 0 COMMENT '前置等待时间（分钟）',
+                ADD COLUMN `post_wait_time_minutes` DOUBLE DEFAULT 0 COMMENT '后置等待时间（分钟）'";
+            await cmd.ExecuteNonQueryAsync();
+            Console.WriteLine("[Program] Added pre_wait_time_minutes and post_wait_time_minutes columns to routing_steps.");
+        }
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"[Program] Warning: Failed to ensure routing_steps columns: {ex.Message}");
     }
 
     // M02.5 多工艺路线：从旧 routings 表迁移数据到 routing_headers / routing_steps
@@ -429,6 +448,28 @@ ORDER BY r.product_id, rh.sort_order, r.step_order;";
     await cmd.ExecuteNonQueryAsync();
     
     cmd.CommandText = @"CREATE TABLE IF NOT EXISTS `supplier_scores` (`id` BIGINT AUTO_INCREMENT PRIMARY KEY, `supplier_id` BIGINT NOT NULL, `score` INT, `assessment_date` DATETIME, FOREIGN KEY (`supplier_id`) REFERENCES `suppliers`(`id`) ON DELETE CASCADE) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;";
+    await cmd.ExecuteNonQueryAsync();
+
+    // ─── M06 SPC 统计过程控制 ─────────────────────────────────────────────
+    cmd.CommandText = @"CREATE TABLE IF NOT EXISTS `spc_control_charts` (`id` BIGINT AUTO_INCREMENT PRIMARY KEY, `name` VARCHAR(200) NOT NULL, `ProcessId` BIGINT NOT NULL, `parameter_code` VARCHAR(50) NOT NULL, `chart_type` VARCHAR(10) NOT NULL, `subgroup_size` INT NOT NULL DEFAULT 5, `usl` DECIMAL(15,6), `lsl` DECIMAL(15,6), `TargetValue` DECIMAL(15,6), `Cl` DECIMAL(15,6), `Ucl` DECIMAL(15,6), `Lcl` DECIMAL(15,6), `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, `created_by` BIGINT, INDEX `idx_spc_charts_name` (`name`), INDEX `idx_spc_charts_parameter` (`parameter_code`)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;";
+    await cmd.ExecuteNonQueryAsync();
+
+    cmd.CommandText = @"CREATE TABLE IF NOT EXISTS `spc_alert_rules` (`id` BIGINT AUTO_INCREMENT PRIMARY KEY, `ChartId` BIGINT NOT NULL, `RuleNumber` INT NOT NULL, `RuleName` VARCHAR(200) NOT NULL, `RuleDescription` TEXT, `Enabled` TINYINT(1) NOT NULL DEFAULT 1, `TriggerThreshold` INT NOT NULL, `SigmaThreshold` DECIMAL(5,2) NOT NULL, `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (`ChartId`) REFERENCES `spc_control_charts`(`id`) ON DELETE CASCADE, INDEX `idx_spc_alert_rules_chart` (`ChartId`)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;";
+    await cmd.ExecuteNonQueryAsync();
+
+    cmd.CommandText = @"CREATE TABLE IF NOT EXISTS `spc_analysis_results` (`id` BIGINT AUTO_INCREMENT PRIMARY KEY, `ChartId` BIGINT NOT NULL, `AnalysisType` VARCHAR(20) NOT NULL, `Cp` DECIMAL(10,4), `Cpk` DECIMAL(10,4), `Pp` DECIMAL(10,4), `Ppk` DECIMAL(10,4), `SigmaWithin` DECIMAL(15,6), `SigmaOverall` DECIMAL(15,6), `EstimatedPpm` DECIMAL(15,2), `DataPointsUsed` INT, `AnalysisPeriodStart` DATETIME, `AnalysisPeriodEnd` DATETIME, `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (`ChartId`) REFERENCES `spc_control_charts`(`id`) ON DELETE CASCADE, INDEX `idx_spc_analysis_chart` (`ChartId`)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;";
+    await cmd.ExecuteNonQueryAsync();
+
+    cmd.CommandText = @"CREATE TABLE IF NOT EXISTS `spc_anova_results` (`id` BIGINT AUTO_INCREMENT PRIMARY KEY, `ChartId` BIGINT NOT NULL, `source` VARCHAR(20) NOT NULL, `SumOfSquares` DECIMAL(20,4) NOT NULL, `DegreesFreedom` INT NOT NULL, `MeanSquare` DECIMAL(20,4) NOT NULL, `FRatio` DECIMAL(10,4) NOT NULL, `PValue` DECIMAL(10,6) NOT NULL, `Significant` TINYINT(1) NOT NULL, `analysis_date` DATETIME NOT NULL, `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (`ChartId`) REFERENCES `spc_control_charts`(`id`) ON DELETE CASCADE, INDEX `idx_spc_anova_chart` (`ChartId`)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;";
+    await cmd.ExecuteNonQueryAsync();
+
+    cmd.CommandText = @"CREATE TABLE IF NOT EXISTS `spc_data_points` (`id` BIGINT AUTO_INCREMENT PRIMARY KEY, `ChartId` BIGINT NOT NULL, `subgroup_index` INT NOT NULL, `individual_values` JSON NOT NULL, `subgroup_mean` DECIMAL(15,6), `subgroup_range` DECIMAL(15,6), `MeasuredAt` DATETIME NOT NULL, `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (`ChartId`) REFERENCES `spc_control_charts`(`id`) ON DELETE CASCADE, INDEX `idx_spc_data_chart` (`ChartId`), INDEX `idx_spc_data_measured` (`MeasuredAt`)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;";
+    await cmd.ExecuteNonQueryAsync();
+
+    cmd.CommandText = @"CREATE TABLE IF NOT EXISTS `spc_alert_triggers` (`id` BIGINT AUTO_INCREMENT PRIMARY KEY, `ChartId` BIGINT NOT NULL, `RuleId` BIGINT NOT NULL, `RuleNumber` INT NOT NULL, `TriggeredAt` DATETIME NOT NULL, `ViolatedPointIndex` INT NOT NULL, `Detail` JSON, `Resolved` TINYINT(1) NOT NULL DEFAULT 0, `ResolvedAt` DATETIME, FOREIGN KEY (`ChartId`) REFERENCES `spc_control_charts`(`id`) ON DELETE CASCADE, FOREIGN KEY (`RuleId`) REFERENCES `spc_alert_rules`(`id`) ON DELETE CASCADE, INDEX `idx_spc_alert_triggers_chart` (`ChartId`), INDEX `idx_spc_alert_triggers_rule` (`RuleId`)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;";
+    await cmd.ExecuteNonQueryAsync();
+
+    cmd.CommandText = @"CREATE TABLE IF NOT EXISTS `spc_data_sources` (`id` BIGINT AUTO_INCREMENT PRIMARY KEY, `ChartId` BIGINT NOT NULL, `source_type` VARCHAR(10) NOT NULL, `InspectionItemId` BIGINT, `product_id` BIGINT, `ProcessId` BIGINT, `SupplierId` BIGINT, `CustomerId` BIGINT, `equipment_id` BIGINT, `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (`ChartId`) REFERENCES `spc_control_charts`(`id`) ON DELETE CASCADE, FOREIGN KEY (`InspectionItemId`) REFERENCES `inspection_items`(`id`) ON DELETE SET NULL) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;";
     await cmd.ExecuteNonQueryAsync();
 
     await DbInitializer.Initialize(context);

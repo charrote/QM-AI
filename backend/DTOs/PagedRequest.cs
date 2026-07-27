@@ -13,6 +13,10 @@ public class PagedRequest
     public string? SortOrder { get; set; } = "asc";
     /// <summary>所属组织ID（可选，用于数据权限过滤）</summary>
     public long? OrgId { get; set; }
+    /// <summary>不良类别多选过滤（如：外观,尺寸）</summary>
+    public string[]? DefectTypes { get; set; }
+    /// <summary>严重等级多选过滤（如：CR,MA）</summary>
+    public string[]? Severities { get; set; }
 }
 
 /// <summary>

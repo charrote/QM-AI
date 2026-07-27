@@ -37,9 +37,10 @@ try {
     }
   }
 
-  /** 递归构建扁平列表 */
+  /** 递归构建扁平列表（仅包含激活的组织） */
   function buildFlatList(nodes: OrganizationTreeNode[], parentPath: string) {
     for (const node of nodes) {
+      if (!node.isActive) continue
       const path = parentPath ? `${parentPath} / ${node.name}` : node.name
       orgList.value.push({
         id: node.id,

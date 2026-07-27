@@ -125,7 +125,7 @@ public class RoutingsController : ControllerBase
             RouteCode = firstStep != null ? firstStep.ProcessCode : string.Empty,
             RouteName = firstStep != null ? $"{product.Name}工艺路线" : string.Empty,
             TotalSteps = steps.Count,
-            TotalStandardTimeMinutes = steps.Sum(s => (s.StandardTimeMinutes ?? 0) + (s.PreWaitTimeMinutes ?? 0) + (s.PostWaitTimeMinutes ?? 0)),
+            TotalStandardTimeMinutes = steps.Sum(s => s.StandardTimeMinutes ?? 0),
             Steps = steps,
         });
     }
@@ -268,7 +268,7 @@ public class RoutingsController : ControllerBase
             IsActive = h.IsActive,
             SortOrder = h.SortOrder,
             StepCount = h.Steps.Count,
-            TotalStandardTimeMinutes = h.Steps.Sum(s => s.StandardTimeMinutes ?? 0),
+            TotalStandardTimeMinutes = h.Steps.Sum(s => (s.StandardTimeMinutes ?? 0) + (s.PreWaitTimeMinutes ?? 0) + (s.PostWaitTimeMinutes ?? 0)),
             CreatedAt = h.CreatedAt,
             UpdatedAt = h.UpdatedAt,
         }).ToList();
@@ -307,6 +307,8 @@ public class RoutingsController : ControllerBase
                 ProcessName = s.Process.Name,
                 StandardTimeMinutes = s.StandardTimeMinutes,
                 Description = s.Description,
+                PreWaitTimeMinutes = s.PreWaitTimeMinutes,
+                PostWaitTimeMinutes = s.PostWaitTimeMinutes,
             }).ToList();
 
         return Ok(new RouteDetailDto

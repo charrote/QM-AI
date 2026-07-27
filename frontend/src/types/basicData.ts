@@ -6,6 +6,8 @@ export interface PagedRequest {
   status?: string
   sortBy?: string
   sortOrder?: string
+  defectTypes?: string[]
+  severities?: string[]
 }
 
 export interface PagedResult<T> {

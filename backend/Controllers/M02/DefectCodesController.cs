@@ -22,6 +22,10 @@ public class DefectCodesController : ControllerBase
         var query = _db.DefectCodes.AsQueryable();
         if (!string.IsNullOrWhiteSpace(req.Keyword))
             query = query.Where(d => d.Code.Contains(req.Keyword) || d.Name.Contains(req.Keyword));
+        if (req.DefectTypes != null && req.DefectTypes.Length > 0)
+            query = query.Where(d => req.DefectTypes.Contains(d.DefectType!));
+        if (req.Severities != null && req.Severities.Length > 0)
+            query = query.Where(d => req.Severities.Contains(d.Severity));
 
         var total = await query.CountAsync();
         var items = await query

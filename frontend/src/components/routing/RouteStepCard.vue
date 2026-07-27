@@ -12,68 +12,64 @@
     @dragover="handleDragOver"
     @dragleave="handleDragLeave"
     @drop="handleDrop"
-    @dblclick="emit('edit')"
+    @dblclick.stop="emit('dblclick', step)"
   >
-    <!-- 拖拽手柄 -->
-    <div class="route-step-card__handle" @mousedown.prevent>
-      <el-icon class="handle-icon"><Rank /></el-icon>
-    </div>
+    <!-- 占位卡片 -->
+    <template v-if="isPlaceholder">
+      <div class="route-step-card__placeholder-text">
+        <el-icon><Plus /></el-icon>
+        <span>插入到此</span>
+      </div>
+    </template>
 
-    <!-- 步骤信息 -->
-    <div class="route-step-card__body">
-      <template v-if="isPlaceholder">
-        <div class="route-step-card__placeholder-text">
-          <el-icon><Plus /></el-icon>
-          <span>插入到此</span>
-        </div>
-      </template>
-      <template v-else>
-        <div class="route-step-card__header">
-          <span class="route-step-card__step-num">步骤 {{ step.stepOrder }}</span>
-          <el-icon v-if="draggable" class="route-step-card__drag-hint"><Operation /></el-icon>
-        </div>
+    <!-- 步骤卡片 -->
+    <template v-else>
+      <!-- 顶部：步骤序号 + 删除按钮 -->
+      <div class="route-step-card__top">
+        <span class="route-step-card__step-num">步骤 {{ step.stepOrder }}</span>
+        <el-popconfirm
+          title="确认删除此步骤？"
+          confirm-button-text="删除"
+          cancel-button-text="取消"
+          @confirm="emit('delete', step.id)"
+        >
+          <template #reference>
+            <el-button size="small" text type="danger" class="route-step-card__delete-btn">
+              <el-icon><Delete /></el-icon>
+            </el-button>
+          </template>
+        </el-popconfirm>
+      </div>
+
+      <!-- 中间：工序名称 -->
+      <div class="route-step-card__body">
         <div class="route-step-card__process-name">{{ step.processName }}</div>
-        <div class="route-step-card__process-code">{{ step.processCode }}</div>
-        <div class="route-step-card__meta">
-          <el-icon><Timer /></el-icon>
-          <span>{{ formatTime(step.standardTimeMinutes) }}</span>
-        </div>
-        <div class="route-step-card__meta" v-if="step.preWaitTimeMinutes || step.postWaitTimeMinutes">
-          <el-icon><Clock /></el-icon>
-          <span>
-            <template v-if="step.preWaitTimeMinutes">前置{{ step.preWaitTimeMinutes }}min</template>
-            <template v-if="step.preWaitTimeMinutes && step.postWaitTimeMinutes"> / </template>
-            <template v-if="step.postWaitTimeMinutes">后置{{ step.postWaitTimeMinutes }}min</template>
-          </span>
-        </div>
-      </template>
-    </div>
+        <div v-if="step.processCode" class="route-step-card__process-code">{{ step.processCode }}</div>
+      </div>
 
-    <!-- 操作按钮 -->
-    <div class="route-step-card__actions">
-      <el-button size="small" text @click.stop="emit('edit')">
-        <el-icon><EditPen /></el-icon>
-      </el-button>
-      <el-popconfirm
-        title="确认删除此步骤？"
-        confirm-button-text="删除"
-        cancel-button-text="取消"
-        @confirm="emit('delete', step.id)"
-      >
-        <template #reference>
-          <el-button size="small" text type="danger" @click.stop>
-            <el-icon><Delete /></el-icon>
-          </el-button>
-        </template>
-      </el-popconfirm>
-    </div>
+      <!-- 底部：时间信息 -->
+      <div class="route-step-card__time">
+        <div v-if="step.preWaitTimeMinutes" class="route-step-card__time-item">
+          <span class="route-step-card__time-label">前置</span>
+          <span class="route-step-card__time-value">{{ step.preWaitTimeMinutes }}min</span>
+        </div>
+        <div class="route-step-card__time-item">
+          <span class="route-step-card__time-label">标准</span>
+          <span class="route-step-card__time-value">{{ formatTime(step.standardTimeMinutes) }}</span>
+        </div>
+        <div v-if="step.postWaitTimeMinutes" class="route-step-card__time-item">
+          <span class="route-step-card__time-label">后置</span>
+          <span class="route-step-card__time-value">{{ step.postWaitTimeMinutes }}min</span>
+        </div>
+      </div>
+    </template>
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { ProductRouteStepDto } from '@/types/routing'
-import { Rank, Operation, Timer, Clock, EditPen, Delete, Plus } from '@element-plus/icons-vue'
+import { Delete, Plus } from '@element-plus/icons-vue'
 
 defineOptions({ name: 'RouteStepCard' })
 
@@ -86,13 +82,13 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  edit: []
   delete: [id: number]
   dragStart: [e: DragEvent, id: number]
   dragEnd: [e: DragEvent]
   dragOver: [e: DragEvent, id: number]
   dragLeave: [e: DragEvent]
   drop: [e: DragEvent, id: number]
+  dblclick: [step: ProductRouteStepDto]
 }>()
 
 const isPlaceholder = computed(() => props.step._isPlaceholder === true)
@@ -143,20 +139,18 @@ function formatTime(minutes?: number): string {
 <style scoped>
 .route-step-card {
   display: flex;
-  align-items: center;
+  flex-direction: column;
   width: 180px;
-  min-height: 120px;
+  min-height: 140px;
   background: var(--el-bg-color);
   border: 1.5px solid var(--el-border-color-light);
   border-radius: 10px;
-  padding: 0;
+  padding: 12px;
   cursor: grab;
   transition: all 0.2s ease;
   flex-shrink: 0;
   position: relative;
   overflow: visible;
-  margin-right: 0;
-  /* 防止拖拽时选中文字 */
   user-select: none;
   -webkit-user-select: none;
 }
@@ -171,7 +165,6 @@ function formatTime(minutes?: number): string {
   transform: scale(0.98);
   cursor: grabbing;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  /* 拖拽时保持原样，不改变颜色 */
   opacity: 1 !important;
   visibility: visible !important;
 }
@@ -180,8 +173,7 @@ function formatTime(minutes?: number): string {
   position: relative;
 }
 
-/* 插入指示器：完全在卡片之间的空隙中，不触及卡片 */
-/* 插入到卡片左侧（之前）→ 指示器在左侧空隙中 */
+/* 插入指示器 */
 .route-step-card--drag-over.insert-top::before {
   content: '';
   position: absolute;
@@ -196,7 +188,6 @@ function formatTime(minutes?: number): string {
   animation: insertPulse 1s ease-in-out infinite;
 }
 
-/* 插入到卡片右侧（之后）→ 指示器在右侧空隙中 */
 .route-step-card--drag-over.insert-bottom::after {
   content: '';
   position: absolute;
@@ -216,24 +207,12 @@ function formatTime(minutes?: number): string {
   50% { opacity: 0.4; }
 }
 
-/* ─── 占位卡片（拖拽实时预览）──────────────────────────────── */
+/* 占位卡片 */
 .route-step-card--placeholder {
   background: var(--el-fill-color-light) !important;
   border: 2px dashed var(--el-border-color-dark) !important;
   opacity: 0.6;
   cursor: default;
-}
-
-.route-step-card--placeholder .route-step-card__handle {
-  opacity: 0 !important;
-}
-
-.route-step-card--placeholder .route-step-card__actions {
-  opacity: 0 !important;
-}
-
-.route-step-card--placeholder .route-step-card__process-name {
-  color: var(--el-text-color-secondary);
 }
 
 .route-step-card__placeholder-text {
@@ -253,12 +232,98 @@ function formatTime(minutes?: number): string {
   color: var(--el-text-color-placeholder);
 }
 
+/* 顶部：步骤序号 + 删除按钮 */
+.route-step-card__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.route-step-card__step-num {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--el-color-primary);
+  background: var(--el-color-primary-light-9);
+  padding: 2px 10px;
+  border-radius: 10px;
+}
+
+.route-step-card__delete-btn {
+  padding: 4px;
+  opacity: 1;
+  transition: opacity 0.2s;
+}
+
+.route-step-card:hover .route-step-card__delete-btn {
+  opacity: 1;
+}
+
+/* 中间：工序名称 */
+.route-step-card__body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  margin-bottom: 12px;
+  min-height: 0;
+}
+
+.route-step-card__process-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-bottom: 4px;
+}
+
+.route-step-card__process-code {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 底部：时间信息 */
+.route-step-card__time {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-top: 10px;
+  border-top: 1px solid var(--el-border-color-lighter);
+}
+
+.route-step-card__time-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  flex: 1;
+}
+
+.route-step-card__time-label {
+  font-size: 10px;
+  color: var(--el-text-color-placeholder);
+  line-height: 1;
+}
+
+.route-step-card__time-value {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--el-text-color-regular);
+  line-height: 1.2;
+}
+
 /* 拖拽容器中的插入位置指示 */
 .flow-container {
   position: relative;
 }
 
-/* 插入位置虚线指示器 */
 .flow-container .insert-indicator {
   position: absolute;
   height: 3px;
@@ -273,97 +338,5 @@ function formatTime(minutes?: number): string {
 @keyframes pulse {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.6; }
-}
-
-.route-step-card__handle {
-  width: 32px;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--el-fill-color-light);
-  border-right: 1px solid var(--el-border-color-lighter);
-  flex-shrink: 0;
-  opacity: 0;
-  transition: opacity 0.2s;
-  cursor: grab;
-}
-
-.route-step-card:hover .route-step-card__handle {
-  opacity: 1;
-}
-
-.handle-icon {
-  color: var(--el-text-color-placeholder);
-  font-size: 14px;
-}
-
-.route-step-card__body {
-  flex: 1;
-  padding: 12px 14px;
-  min-width: 0;
-}
-
-.route-step-card__header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 6px;
-}
-
-.route-step-card__step-num {
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--el-color-primary);
-  background: var(--el-color-primary-light-9);
-  padding: 1px 8px;
-  border-radius: 10px;
-}
-
-.route-step-card__drag-hint {
-  color: var(--el-text-color-secondary);
-  font-size: 12px;
-}
-
-.route-step-card__process-name {
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--el-text-color-primary);
-  line-height: 1.3;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.route-step-card__process-code {
-  font-size: 12px;
-  color: var(--el-text-color-secondary);
-  margin-top: 2px;
-}
-
-.route-step-card__meta {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  margin-top: 8px;
-  font-size: 12px;
-  color: var(--el-text-color-regular);
-}
-
-.route-step-card__meta .el-icon {
-  font-size: 14px;
-}
-
-.route-step-card__actions {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding-right: 8px;
-  opacity: 0;
-  transition: opacity 0.2s;
-}
-
-.route-step-card:hover .route-step-card__actions {
-  opacity: 1;
 }
 </style>

@@ -4,21 +4,22 @@ defineOptions({ name: 'Routing' })
 import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import {
-  Document, Search, Plus, Refresh,
-  CopyDocument, Loading, Edit, Delete,
+  Document, DocumentChecked, Search, Plus, Refresh, Close, Warning,
+  CopyDocument, Loading, Edit, Delete, List,
 } from '@element-plus/icons-vue'
 import { productApi } from '@/api/basicData'
 import {
   getRouteHeaders, getRouteDetail, reorderRouteSteps,
-  deleteRouteStep,
+  deleteRouteStep, cloneRouteHeader,
 } from '@/api/routing'
 import type { Product } from '@/types/basicData'
 import type { RouteHeaderDto, RouteListDto, RouteDetailDto, ProductRouteStepDto, RouteType } from '@/types/routing'
+import { ROUTE_TYPE_OPTIONS } from '@/types/routing'
 import RouteStepCard from '@/components/routing/RouteStepCard.vue'
 import RouteStepDrawer from '@/components/routing/RouteStepDrawer.vue'
 import RouteTypeTag from '@/components/routing/RouteTypeTag.vue'
 import RouteHeaderDrawer from '@/components/routing/RouteHeaderDrawer.vue'
-import CloneDialog from '@/components/routing/CloneDialog.vue'
+import CloneDrawer from '@/components/routing/CloneDrawer.vue'
 
 // ─── 数据状态 ──────────────────────────────────────────
 const products = ref<Product[]>([])
@@ -48,7 +49,17 @@ const stepDrawerStepId = ref<number | null>(null)
 const headerDrawerVisible = ref(false)
 const editingHeader = ref<RouteHeaderDto | null>(null)
 
-const cloneDialogVisible = ref(false)
+// ─── 内联克隆卡片状态 ───────────────────────────────
+const cloneCardVisible = ref(false)
+const cloneSourceProductId = ref<number | undefined>()
+const cloneSourceHeaderId = ref<number | undefined>()
+const cloneSourceRoutes = ref<RouteHeaderDto[]>([])
+const cloneSourceSteps = ref<ProductRouteStepDto[]>([])
+const cloneTargetProductId = ref<number | undefined>()
+const cloneTargetRouteCode = ref('')
+const cloneTargetRouteName = ref('')
+const cloneTargetRouteType = ref<RouteType>('ALT')
+const cloneSubmitting = ref(false)
 
 // ─── 产品列表搜索 ──────────────────────────────────────
 watch(searchKeyword, (val) => {
@@ -276,9 +287,70 @@ async function handleDeleteStep(stepId: number) {
   } catch { /* error handled by interceptor */ }
 }
 
-// ─── 克隆路线 ──────────────────────────────────────────
-function openCloneDialog() {
-  cloneDialogVisible.value = true
+// ─── 克隆路线（内联卡片） ──────────────────────────
+function openCloneCard() {
+  cloneSourceProductId.value = undefined
+  cloneSourceHeaderId.value = undefined
+  cloneSourceRoutes.value = []
+  cloneSourceSteps.value = []
+  cloneTargetProductId.value = selectedProductId.value ?? undefined
+  cloneTargetRouteCode.value = ''
+  cloneTargetRouteName.value = ''
+  cloneTargetRouteType.value = 'ALT'
+  cloneCardVisible.value = true
+}
+
+async function onCloneSourceRouteChange() {
+  cloneSourceHeaderId.value = undefined
+  cloneSourceSteps.value = []
+  if (!cloneSourceProductId.value) return
+
+  try {
+    const result = await getRouteHeaders(cloneSourceProductId.value)
+    cloneSourceRoutes.value = result.routes || []
+  } catch {
+    cloneSourceRoutes.value = []
+  }
+}
+
+async function onCloneSourceHeaderChange() {
+  if (!cloneSourceHeaderId.value) {
+    cloneSourceSteps.value = []
+    return
+  }
+  try {
+    const detail: RouteDetailDto = await getRouteDetail(cloneSourceHeaderId.value)
+    cloneSourceSteps.value = detail.steps
+  } catch {
+    cloneSourceSteps.value = []
+  }
+}
+
+function cancelCloneCard() {
+  cloneCardVisible.value = false
+}
+
+async function handleCloneCard() {
+  if (!cloneSourceHeaderId.value || !cloneTargetProductId.value || !cloneTargetRouteCode.value) {
+    ElMessage.warning('请完善克隆表单信息')
+    return
+  }
+  cloneSubmitting.value = true
+  try {
+    await cloneRouteHeader({
+      sourceHeaderId: cloneSourceHeaderId.value,
+      targetProductId: cloneTargetProductId.value,
+      targetRouteCode: cloneTargetRouteCode.value,
+      targetRouteName: cloneTargetRouteName.value || cloneTargetRouteCode.value,
+      targetRouteType: cloneTargetRouteType.value,
+    })
+    ElMessage.success('路线克隆成功')
+    cloneCardVisible.value = false
+    refreshRoute()
+  } catch { /* error handled by interceptor */ }
+  finally {
+    cloneSubmitting.value = false
+  }
 }
 
 // ─── 刷新数据 ──────────────────────────────────────────
@@ -313,6 +385,17 @@ const currentProductCode = computed(() => {
 const totalSteps = computed(() => activeRouteDetail.value?.stepCount || 0)
 const total工时 = computed(() => activeRouteDetail.value?.totalStandardTimeMinutes || 0)
 const currentRoute = computed(() => routeHeaders.value.find(r => r.id === activeRouteId.value) || null)
+
+const cloneTargetProduct = computed(() =>
+  products.value.find(p => p.id === cloneTargetProductId.value)
+)
+
+const canCloneCard = computed(() =>
+  !!cloneSourceHeaderId.value &&
+  !!cloneTargetProductId.value &&
+  !!cloneTargetRouteCode.value &&
+  cloneSourceSteps.value.length > 0
+)
 
 // ─── 初始化 ──────────────────────────────────────────
 onMounted(async () => {
@@ -385,7 +468,7 @@ onMounted(async () => {
           <div class="data-card__header">
             <span class="data-card__title">工艺路线</span>
             <div class="data-card__actions">
-              <el-button @click="openCloneDialog">
+              <el-button @click="openCloneCard">
                 <el-icon><CopyDocument /></el-icon>克隆路线
               </el-button>
               <el-button type="primary" @click="openCreateRoute">
@@ -499,7 +582,7 @@ onMounted(async () => {
                 @drag-over="(e: DragEvent, id: number) => handleCardDragOver(e, id, index)"
                 @drag-leave="handleCardDragLeave"
                 @drop="(e: DragEvent, id: number) => handleCardDrop(e, index)"
-                @edit="openEditStep(step)"
+                @dblclick="(s) => openEditStep(s)"
                 @delete="handleDeleteStep"
               />
               <span
@@ -544,9 +627,10 @@ onMounted(async () => {
       @closed="editingHeader = null"
     />
 
-    <!-- 克隆路线对话框 -->
-    <CloneDialog
-      v-model="cloneDialogVisible"
+    <!-- 克隆路线抽屉 -->
+    <CloneDrawer
+      v-model="cloneCardVisible"
+      :default-product-id="selectedProductId"
       @cloned="refreshRoute"
     />
   </div>

@@ -1,12 +1,15 @@
 <template>
-  <el-dialog
+  <el-drawer
     v-model="visible"
     title="克隆工艺路线"
-    width="600px"
+    size="600px"
+    direction="rtl"
     :close-on-click-modal="false"
-    destroy-on-close
+    :show-close="false"
+    :destroy-on-close="true"
+    @keydown.esc.prevent
   >
-    <div class="clone-dialog">
+    <div class="clone-drawer">
       <!-- 源路线 -->
       <div class="clone-section">
         <div class="clone-section__title">
@@ -78,19 +81,16 @@
         </div>
         <el-form label-width="80px" size="default">
           <el-form-item label="目标产品">
-            <el-select
-              v-model="targetProductId"
-              filterable
-              placeholder="选择目标产品"
+            <el-input
+              :value="defaultProductName"
+              readonly
+              placeholder="默认当前选中产品"
               style="width: 100%"
             >
-              <el-option
-                v-for="p in products"
-                :key="p.id"
-                :label="`${p.code} - ${p.name}`"
-                :value="p.id"
-              />
-            </el-select>
+              <template #prefix>
+                <el-icon><Goods /></el-icon>
+              </template>
+            </el-input>
           </el-form-item>
           <el-form-item label="路线编号">
             <el-input
@@ -132,7 +132,7 @@
     </div>
 
     <template #footer>
-      <div class="dialog-footer">
+      <div class="drawer-footer">
         <el-button @click="visible = false">取消</el-button>
         <el-button
           type="primary"
@@ -144,12 +144,13 @@
         </el-button>
       </div>
     </template>
-  </el-dialog>
+  </el-drawer>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import { ElMessage } from 'element-plus'
+import { Goods } from '@element-plus/icons-vue'
 import type { Product } from '@/types/basicData'
 import type { RouteHeaderDto, ProductRouteStepDto, RouteType, RouteDetailDto } from '@/types/routing'
 import { ROUTE_TYPE_OPTIONS } from '@/types/routing'
@@ -157,14 +158,16 @@ import { productApi } from '@/api/basicData'
 import { getRouteHeaders, getRouteDetail } from '@/api/routing'
 import { cloneRouteHeader } from '@/api/routing'
 
-defineOptions({ name: 'CloneDialog' })
+defineOptions({ name: 'CloneDrawer' })
 
 const emit = defineEmits<{
+  'update:modelValue': [value: boolean]
   cloned: []
 }>()
 
 const props = defineProps<{
   modelValue: boolean
+  defaultProductId?: number
 }>()
 
 const visible = ref(props.modelValue)
@@ -179,30 +182,44 @@ const targetRouteType = ref<RouteType>('ALT')
 const sourceRoutes = ref<RouteHeaderDto[]>([])
 const sourceSteps = ref<ProductRouteStepDto[]>([])
 const routeTypeOptions = ROUTE_TYPE_OPTIONS
+// 追踪是否刚刚执行了克隆操作（用于区分"取消关闭"和"克隆成功关闭"）
+let justCloned = false
 
 const targetProduct = computed(() => products.value.find(p => p.id === targetProductId.value))
+
+const defaultProductName = computed(() => {
+  if (!props.defaultProductId) return ''
+  const product = products.value.find(p => p.id === props.defaultProductId)
+  return product ? `${product.code} - ${product.name}` : ''
+})
 
 const canClone = computed(() =>
   !!sourceHeaderId.value &&
   !!targetProductId.value &&
-  sourceProductId.value !== targetProductId.value &&
   !!targetRouteCode.value &&
   sourceSteps.value.length > 0
 )
 
 watch(() => props.modelValue, (val) => {
-  visible.value = val
+  // 同步父组件传过来的 modelValue 值（处理外部修改，如刷新等）
+  if (visible.value !== val) {
+    visible.value = val
+  }
   if (val) init()
-})
+}, { immediate: true })
 
+// 当 drawer 关闭时，通知父组件更新 v-model
 watch(visible, (val) => {
-  if (!val) emit('cloned')
+  if (!val && !justCloned) {
+    emit('update:modelValue', false)
+  }
+  justCloned = false
 })
 
 async function init() {
   sourceProductId.value = undefined
   sourceHeaderId.value = undefined
-  targetProductId.value = undefined
+  targetProductId.value = props.defaultProductId || undefined
   targetRouteCode.value = ''
   targetRouteName.value = ''
   targetRouteType.value = 'ALT'
@@ -220,7 +237,13 @@ async function onSourceProductChange() {
   sourceRoutes.value = []
   sourceSteps.value = []
 
-  if (!sourceProductId.value) return
+  if (!sourceProductId.value) {
+    // 目标产品保持不变（锁定为当前选中产品）
+    return
+  }
+
+  // 目标产品始终为当前选中产品，不随源产品变化
+  // targetProductId.value 已在 init() 中设置为 props.defaultProductId
 
   try {
     const result = await getRouteHeaders(sourceProductId.value)
@@ -245,7 +268,16 @@ async function onSourceHeaderChange() {
 }
 
 async function handleClone() {
-  if (!sourceHeaderId.value || !targetProductId.value || !targetRouteCode.value) return
+  if (!sourceHeaderId.value || !targetProductId.value || !targetRouteCode.value) {
+    if (!targetProductId.value) {
+      ElMessage.warning('请先选择目标产品')
+    } else if (!sourceHeaderId.value) {
+      ElMessage.warning('请先选择源路线')
+    } else {
+      ElMessage.warning('请填写路线编号')
+    }
+    return
+  }
 
   cloning.value = true
   try {
@@ -257,6 +289,7 @@ async function handleClone() {
       targetRouteType: targetRouteType.value,
     })
     ElMessage.success('路线克隆成功')
+    justCloned = true
     visible.value = false
   } catch { /* error handled by interceptor */ }
   finally {
@@ -266,7 +299,7 @@ async function handleClone() {
 </script>
 
 <style scoped>
-.clone-dialog {
+.clone-drawer {
   padding: 10px 10px 0;
 }
 
@@ -363,7 +396,7 @@ async function handleClone() {
   white-space: nowrap;
 }
 
-.dialog-footer {
+.drawer-footer {
   display: flex;
   justify-content: flex-end;
   gap: 10px;

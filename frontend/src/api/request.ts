@@ -2,11 +2,27 @@ import axios, { type AxiosError, type InternalAxiosRequestConfig } from 'axios'
 import { useAuthStore } from '@/stores/authStore'
 import { ElMessage } from 'element-plus'
 
+function serializeParams(params: Record<string, any>): string {
+  const parts: string[] = []
+  for (const [key, value] of Object.entries(params)) {
+    if (value === null || value === undefined) continue
+    if (Array.isArray(value)) {
+      for (const v of value) parts.push(`${encodeURIComponent(key)}=${encodeURIComponent(v)}`)
+    } else {
+      parts.push(`${encodeURIComponent(key)}=${encodeURIComponent(value)}`)
+    }
+  }
+  return parts.join('&')
+}
+
 const request = axios.create({
   baseURL: '/api/v1',
   timeout: 30000,
   headers: {
     'Content-Type': 'application/json',
+  },
+  paramsSerializer: {
+    serialize: serializeParams,
   },
 })
 
