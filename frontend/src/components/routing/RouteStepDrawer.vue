@@ -1,12 +1,12 @@
 <template>
   <el-drawer
-    v-model="visible"
+    v-model="modelValue"
     :title="drawerTitle"
     size="520px"
     direction="rtl"
     :close-on-click-modal="false"
     :show-close="false"
-    :destroy-on-close="false"
+    :destroy-on-close="true"
     :append-to-body="true"
     @keydown.esc.prevent
   >
@@ -91,7 +91,6 @@ const props = defineProps<{
   step?: ProductRouteStepDto | null
 }>()
 
-const visible = ref(props.modelValue)
 const saving = ref(false)
 const formRef = ref()
 const processOptions = ref<Process[]>([])
@@ -109,13 +108,9 @@ const rules = {
   processId: [{ required: true, message: '请选择工序', trigger: 'change' }],
 }
 
+// 完全由父组件 modelValue 控制，不再维护内部 visible ref
 watch(() => props.modelValue, (val) => {
-  visible.value = val
   if (val) initForm()
-})
-
-watch(visible, (val) => {
-  if (!val) emit('saved')
 })
 
 async function initForm() {
@@ -156,7 +151,8 @@ async function handleSave() {
       })
       ElMessage.success('添加成功')
     }
-    visible.value = false
+    emit('update:modelValue', false)
+    emit('saved')
   } catch { /* error handled by interceptor */ }
   finally {
     saving.value = false
@@ -164,7 +160,7 @@ async function handleSave() {
 }
 
 function handleCancel() {
-  visible.value = false
+  emit('update:modelValue', false)
 }
 </script>
 
