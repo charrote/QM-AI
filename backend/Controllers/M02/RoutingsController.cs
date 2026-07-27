@@ -636,10 +636,15 @@ public class RoutingsController : ControllerBase
         if (!header.IsActive)
             return BadRequest(new { message = "路线头已停用" });
 
+        // 自动计算步骤序号：未提供时使用最大序号 + 1
+        int stepOrder = dto.StepOrder ?? (await _db.RoutingSteps
+            .Where(s => s.RoutingHeaderId == headerId && s.IsActive)
+            .MaxAsync(s => (int?)(s.StepOrder)) ?? 0) + 1;
+
         var step = new RoutingStep
         {
             RoutingHeaderId = headerId,
-            StepOrder = dto.StepOrder ?? 0,
+            StepOrder = stepOrder,
             ProcessId = dto.ProcessId,
             StandardTimeMinutes = dto.StandardTimeMinutes,
             Description = dto.Description,
@@ -647,12 +652,23 @@ public class RoutingsController : ControllerBase
         };
 
         _db.RoutingSteps.Add(step);
-        await _db.SaveChangesAsync();
+
+        try
+        {
+            await _db.SaveChangesAsync();
+        }
+        catch (Microsoft.EntityFrameworkCore.DbUpdateException)
+        {
+            return BadRequest(new { message = "步骤序号与现有步骤冲突，请重试" });
+        }
 
         // 重新查询已保存的步骤并加载 Process 导航属性
         var savedStep = await _db.RoutingSteps
             .Include(s => s.Process)
             .FirstOrDefaultAsync(s => s.Id == step.Id);
+
+        if (savedStep == null)
+            return StatusCode(500, new { message = "保存步骤后查询失败" });
 
         return CreatedAtAction(nameof(ListSteps), new { headerId }, new ProductRouteStepDto
         {
@@ -766,15 +782,23 @@ public class RoutingsController : ControllerBase
             return BadRequest(new { message = "路线头已停用" });
 
         var created = new List<RoutingStep>();
+        // 先查询该路线头当前最大序号，作为批量创建的起始序号
+        int baseOrder = await _db.RoutingSteps
+            .Where(s => s.RoutingHeaderId == headerId && s.IsActive)
+            .MaxAsync(s => (int?)(s.StepOrder)) ?? 0;
+
         for (int i = 0; i < dtos.Count; i++)
         {
             if (!await _db.Processes.AnyAsync(p => p.Id == dtos[i].ProcessId))
                 return BadRequest(new { message = $"工序 ID {dtos[i].ProcessId} 不存在" });
 
+            // 未指定 StepOrder 时按顺序递增
+            int stepOrder = dtos[i].StepOrder ?? (baseOrder + i + 1);
+
             var step = new RoutingStep
             {
                 RoutingHeaderId = headerId,
-                StepOrder = dtos[i].StepOrder ?? 0,
+                StepOrder = stepOrder,
                 ProcessId = dtos[i].ProcessId,
                 StandardTimeMinutes = dtos[i].StandardTimeMinutes,
                 Description = dtos[i].Description,
