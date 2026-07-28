@@ -85,61 +85,61 @@ SET @sql = IF(@exist = 0,
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 -- ============================================================================
--- 4. equipments 表 - 添加缺失字段
+-- 4. equipment 表 - 添加缺失字段
 -- ============================================================================
 SET @exist = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS 
-    WHERE TABLE_SCHEMA = 'qmai' AND TABLE_NAME = 'equipments' AND COLUMN_NAME = 'production_line');
+    WHERE TABLE_SCHEMA = 'qmai' AND TABLE_NAME = 'equipment' AND COLUMN_NAME = 'production_line');
 SET @sql = IF(@exist = 0,
-    'ALTER TABLE equipments ADD COLUMN production_line VARCHAR(100) COMMENT ''所在产线（冗余）'' AFTER model;',
+    'ALTER TABLE equipment ADD COLUMN production_line VARCHAR(100) COMMENT ''所在产线（冗余）'' AFTER model;',
     'SELECT "production_line already exists" AS msg');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 SET @exist = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS 
-    WHERE TABLE_SCHEMA = 'qmai' AND TABLE_NAME = 'equipments' AND COLUMN_NAME = 'workshop');
+    WHERE TABLE_SCHEMA = 'qmai' AND TABLE_NAME = 'equipment' AND COLUMN_NAME = 'workshop');
 SET @sql = IF(@exist = 0,
-    'ALTER TABLE equipments ADD COLUMN workshop VARCHAR(100) COMMENT ''所在车间（冗余）'' AFTER production_line;',
+    'ALTER TABLE equipment ADD COLUMN workshop VARCHAR(100) COMMENT ''所在车间（冗余）'' AFTER production_line;',
     'SELECT "workshop already exists" AS msg');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 SET @exist = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS 
-    WHERE TABLE_SCHEMA = 'qmai' AND TABLE_NAME = 'equipments' AND COLUMN_NAME = 'has_mqtt_connection');
+    WHERE TABLE_SCHEMA = 'qmai' AND TABLE_NAME = 'equipment' AND COLUMN_NAME = 'has_mqtt_connection');
 SET @sql = IF(@exist = 0,
-    'ALTER TABLE equipments ADD COLUMN has_mqtt_connection TINYINT(1) DEFAULT 0 COMMENT ''是否关联MQTT'' AFTER equipment_type;',
+    'ALTER TABLE equipment ADD COLUMN has_mqtt_connection TINYINT(1) DEFAULT 0 COMMENT ''是否关联MQTT'' AFTER equipment_type;',
     'SELECT "has_mqtt_connection already exists" AS msg');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 SET @exist = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS 
-    WHERE TABLE_SCHEMA = 'qmai' AND TABLE_NAME = 'equipments' AND COLUMN_NAME = 'mqtt_topic_prefix');
+    WHERE TABLE_SCHEMA = 'qmai' AND TABLE_NAME = 'equipment' AND COLUMN_NAME = 'mqtt_topic_prefix');
 SET @sql = IF(@exist = 0,
-    'ALTER TABLE equipments ADD COLUMN mqtt_topic_prefix VARCHAR(500) COMMENT ''MQTT Topic前缀'' AFTER has_mqtt_connection;',
+    'ALTER TABLE equipment ADD COLUMN mqtt_topic_prefix VARCHAR(500) COMMENT ''MQTT Topic前缀'' AFTER has_mqtt_connection;',
     'SELECT "mqtt_topic_prefix already exists" AS msg');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 SET @exist = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS 
-    WHERE TABLE_SCHEMA = 'qmai' AND TABLE_NAME = 'equipments' AND COLUMN_NAME = 'updated_at');
+    WHERE TABLE_SCHEMA = 'qmai' AND TABLE_NAME = 'equipment' AND COLUMN_NAME = 'updated_at');
 SET @sql = IF(@exist = 0,
-    'ALTER TABLE equipments ADD COLUMN updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT ''更新时间'' AFTER is_active;',
+    'ALTER TABLE equipment ADD COLUMN updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT ''更新时间'' AFTER is_active;',
     'SELECT "updated_at already exists" AS msg');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 SET @exist = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS 
-    WHERE TABLE_SCHEMA = 'qmai' AND TABLE_NAME = 'equipments' AND COLUMN_NAME = 'org_id');
+    WHERE TABLE_SCHEMA = 'qmai' AND TABLE_NAME = 'equipment' AND COLUMN_NAME = 'org_id');
 SET @sql = IF(@exist = 0,
-    'ALTER TABLE equipments ADD COLUMN org_id BIGINT COMMENT ''所属组织'' AFTER equipment_name;',
+    'ALTER TABLE equipment ADD COLUMN org_id BIGINT COMMENT ''所属组织'' AFTER equipment_name;',
     'SELECT "org_id already exists" AS msg');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 SET @exist = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS 
-    WHERE TABLE_SCHEMA = 'qmai' AND TABLE_NAME = 'equipments' AND COLUMN_NAME = 'workshop_id');
+    WHERE TABLE_SCHEMA = 'qmai' AND TABLE_NAME = 'equipment' AND COLUMN_NAME = 'workshop_id');
 SET @sql = IF(@exist = 0,
-    'ALTER TABLE equipments ADD COLUMN workshop_id BIGINT COMMENT ''关联车间(组织ID)'' AFTER org_id;',
+    'ALTER TABLE equipment ADD COLUMN workshop_id BIGINT COMMENT ''关联车间(组织ID)'' AFTER org_id;',
     'SELECT "workshop_id already exists" AS msg');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 SET @exist = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS 
-    WHERE TABLE_SCHEMA = 'qmai' AND TABLE_NAME = 'equipments' AND COLUMN_NAME = 'line_id');
+    WHERE TABLE_SCHEMA = 'qmai' AND TABLE_NAME = 'equipment' AND COLUMN_NAME = 'line_id');
 SET @sql = IF(@exist = 0,
-    'ALTER TABLE equipments ADD COLUMN line_id BIGINT COMMENT ''关联产线(组织ID)'' AFTER workshop_id;',
+    'ALTER TABLE equipment ADD COLUMN line_id BIGINT COMMENT ''关联产线(组织ID)'' AFTER workshop_id;',
     'SELECT "line_id already exists" AS msg');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
