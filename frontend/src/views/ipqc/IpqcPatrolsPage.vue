@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Search, Refresh, List, Check, Clock } from '@element-plus/icons-vue'
+import { Search, Refresh, List, Check, Clock, Delete, Document, Plus } from '@element-plus/icons-vue'
 import { patrolApi } from '@/api/ipqc'
 import { inspectionPlanApi } from '@/api/inspectionPlan'
 import type { IpqcPatrol, IpqcPatrolDetail, SubmitIpqcPatrol, IpqcPatrolItemSubmit } from '@/types/ipqc'
@@ -207,44 +207,43 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="page-container">
-    <!-- Page Header -->
-    <div class="page-header">
-      <div class="page-header__icon-wrapper">
-        <el-icon :size="28"><List /></el-icon>
-      </div>
-      <div class="page-header__info">
-        <h1 class="page-header__title">巡检记录</h1>
-        <p class="page-header__subtitle">查看和管理现场巡检任务执行情况</p>
+  <div class="page-content">
+    <!-- Page Header Banner -->
+    <div class="page-header-banner page-header-banner--info">
+      <div class="page-header-banner-main">
+        <div class="page-header-banner-icon">
+          <el-icon :size="24"><List /></el-icon>
+        </div>
+        <div class="page-header-banner-text">
+          <h1 class="page-header-banner-title">巡检记录</h1>
+          <p class="page-header-banner-subtitle">查看和管理现场巡检任务执行情况</p>
+        </div>
+        <div style="margin-left:auto; display:flex; gap:8px">
+          <el-button :icon="Refresh" @click="loadData" :loading="loading">刷新</el-button>
+        </div>
       </div>
     </div>
 
-    <!-- Toolbar -->
+    <!-- Filter Bar -->
     <div class="action-bar">
-      <div class="action-bar__left">
-        <el-input
-          v-model="searchKeyword"
-          placeholder="搜索巡检编号"
-          :prefix-icon="Search"
-          clearable
-          style="width: 260px"
-          @clear="loadData"
-          @keyup.enter="loadData"
-        />
-        <el-select
-          v-model="statusFilter"
-          placeholder="状态筛选"
-          clearable
-          style="width: 140px"
-          @change="loadData"
-        >
-          <el-option v-for="o in IPQC_PATROL_STATUS_OPTIONS" :key="o.value" :label="o.label" :value="o.value" />
-        </el-select>
-        <el-button @click="loadData">
-          <el-icon><Refresh /></el-icon>
-          刷新
-        </el-button>
-      </div>
+      <el-input
+        v-model="searchKeyword"
+        placeholder="搜索巡检编号"
+        :prefix-icon="Search"
+        clearable
+        style="width: 260px"
+        @clear="loadData"
+        @keyup.enter="loadData"
+      />
+      <el-select
+        v-model="statusFilter"
+        placeholder="状态筛选"
+        clearable
+        style="width: 140px"
+        @change="loadData"
+      >
+        <el-option v-for="o in IPQC_PATROL_STATUS_OPTIONS" :key="o.value" :label="o.label" :value="o.value" />
+      </el-select>
     </div>
 
     <!-- Table Card -->
@@ -253,8 +252,7 @@ onMounted(async () => {
         :data="items"
         stripe
         v-loading="loading"
-        :row-class-name="() => 'data-card__row'"
-        style="width: 100%"
+        class="data-card__table"
       >
         <el-table-column prop="patrolNo" label="巡检编号" min-width="170" show-overflow-tooltip />
         <el-table-column prop="planNo" label="计划编号" min-width="170" show-overflow-tooltip />
@@ -289,14 +287,14 @@ onMounted(async () => {
         </el-table-column>
         <el-table-column label="结论" width="90" align="center">
           <template #default="{ row }">
-            <el-tag :type="conclusionTag(row.conclusion)" size="small" effect="dark">
+            <el-tag :type="conclusionTag(row.conclusion)" size="small" effect="dark" class="status-badge">
               {{ row.conclusion === 'qualified' ? '合格' : row.conclusion === 'unqualified' ? '不合格' : '待定' }}
             </el-tag>
           </template>
         </el-table-column>
         <el-table-column label="状态" width="100" align="center">
           <template #default="{ row }">
-            <el-tag :type="statusTag(row.status)" size="small" effect="dark">{{ statusLabel(row.status) }}</el-tag>
+            <el-tag :type="statusTag(row.status)" size="small" effect="dark" class="status-badge">{{ statusLabel(row.status) }}</el-tag>
           </template>
         </el-table-column>
         <el-table-column label="操作" width="240" fixed="right" align="center">
@@ -333,87 +331,78 @@ onMounted(async () => {
       :title="dialogTitle"
       width="760px"
       :close-on-click-modal="false"
-      top="5vh"
+      destroy-on-close
     >
       <div v-if="dialogVisible && patrolDetail">
         <!-- Patrol Info -->
-        <div class="patrol-info-card">
-          <div class="patrol-info-row">
-            <div class="patrol-info-item">
-              <span class="patrol-info-label">设备</span>
-              <span class="patrol-info-value">{{ patrolDetail.equipmentName || '-' }}</span>
-            </div>
-            <div class="patrol-info-item">
-              <span class="patrol-info-label">工序</span>
-              <span class="patrol-info-value">{{ patrolDetail.processName || '-' }}</span>
-            </div>
+        <div class="quick-info">
+          <div class="quick-info__item">
+            <div class="quick-info__label">设备</div>
+            <div class="quick-info__value">{{ patrolDetail.equipmentName || '-' }}</div>
           </div>
-          <div class="patrol-info-row">
-            <div class="patrol-info-item">
-              <span class="patrol-info-label">计划时间</span>
-              <span class="patrol-info-value">{{ formatDate(patrolDetail.scheduledTime) }}</span>
-            </div>
-            <div class="patrol-info-item">
-              <span class="patrol-info-label">实际时间</span>
-              <span class="patrol-info-value">{{ formatDate(patrolDetail.actualTime) }}</span>
-            </div>
+          <div class="quick-info__item">
+            <div class="quick-info__label">工序</div>
+            <div class="quick-info__value">{{ patrolDetail.processName || '-' }}</div>
+          </div>
+          <div class="quick-info__item">
+            <div class="quick-info__label">计划时间</div>
+            <div class="quick-info__value" style="font-size:var(--font-base); font-weight:400">{{ formatDate(patrolDetail.scheduledTime) }}</div>
+          </div>
+          <div class="quick-info__item">
+            <div class="quick-info__label">实际时间</div>
+            <div class="quick-info__value" style="font-size:var(--font-base); font-weight:400">{{ formatDate(patrolDetail.actualTime) }}</div>
           </div>
         </div>
 
         <!-- Conclusion & Remarks -->
         <div class="dialog-section">
-          <div class="dialog-section__title">
-            <el-icon><Document /></el-icon>
-            <span>检验结论</span>
+          <div class="dialog-section-header">
+            <el-icon class="dialog-section-icon"><Document /></el-icon>
+            检验结论
           </div>
-          <div class="form-row">
-            <el-form :model="submitForm" label-width="80px" size="default">
-              <el-form-item label="结论">
-                <el-select v-model="submitForm.conclusion" style="width: 220px">
-                  <el-option v-for="o in IPQC_PATROL_CONCLUSION_OPTIONS" :key="o.value" :label="o.label" :value="o.value" />
-                </el-select>
-              </el-form-item>
-              <el-form-item label="备注">
-                <el-input v-model="submitForm.remarks" type="textarea" :rows="2" placeholder="备注信息" />
-              </el-form-item>
-            </el-form>
-          </div>
+          <el-form :model="submitForm" label-width="80px" size="default">
+            <el-form-item label="结论">
+              <el-select v-model="submitForm.conclusion" style="width: 220px">
+                <el-option v-for="o in IPQC_PATROL_CONCLUSION_OPTIONS" :key="o.value" :label="o.label" :value="o.value" />
+              </el-select>
+            </el-form-item>
+            <el-form-item label="备注">
+              <el-input v-model="submitForm.remarks" type="textarea" :rows="2" placeholder="备注信息" />
+            </el-form-item>
+          </el-form>
         </div>
 
         <!-- Inspection Items -->
         <div class="dialog-section">
-          <div class="dialog-section__title">
-            <el-icon><List /></el-icon>
-            <span>检验项明细</span>
+          <div class="dialog-section-header">
+            <el-icon class="dialog-section-icon"><List /></el-icon>
+            检验项明细
           </div>
-          <div class="items-list">
-            <div v-for="(item, idx) in submitForm.items" :key="idx" class="item-card">
-              <div class="item-card__header">
-                <el-input
-                  v-model="item.itemName"
-                  placeholder="项目名称"
-                  style="width: 160px"
-                  :disabled="!!item.id"
-                  size="default"
-                />
-                <el-select v-model="item.dataType" style="width: 110px" :disabled="!!item.id" size="default">
-                  <el-option v-for="o in DATA_TYPE_OPTIONS" :key="o.value" :label="o.label" :value="o.value" />
-                </el-select>
-                <el-input-number
-                  v-model="item.actualValue"
-                  :precision="4"
-                  :step="0.1"
-                  style="width: 160px"
-                  controls-position="right"
-                  size="default"
-                />
-                <el-select v-model="item.result" style="width: 120px" size="default">
-                  <el-option v-for="o in INSPECTION_RESULT_OPTIONS" :key="o.value" :label="o.label" :value="o.value" />
-                </el-select>
-                <el-button v-if="!item.id" link type="danger" size="small" @click="removePatrolItem(idx)">
-                  <el-icon><Close /></el-icon>
-                </el-button>
-              </div>
+          <div class="submit-list">
+            <div v-for="(item, idx) in submitForm.items" :key="idx" class="submit-row">
+              <div class="submit-index">{{ idx + 1 }}</div>
+              <el-input
+                v-model="item.itemName"
+                placeholder="项目名称"
+                style="width: 160px"
+                :disabled="!!item.id"
+                size="default"
+              />
+              <el-select v-model="item.dataType" style="width: 110px" :disabled="!!item.id" size="default">
+                <el-option v-for="o in DATA_TYPE_OPTIONS" :key="o.value" :label="o.label" :value="o.value" />
+              </el-select>
+              <el-input-number
+                v-model="item.actualValue"
+                :precision="4"
+                :step="0.1"
+                style="width: 160px"
+                controls-position="right"
+                size="default"
+              />
+              <el-select v-model="item.result" style="width: 120px" size="default">
+                <el-option v-for="o in INSPECTION_RESULT_OPTIONS" :key="o.value" :label="o.label" :value="o.value" />
+              </el-select>
+              <el-button v-if="!item.id" link type="danger" size="small" :icon="Delete" @click="removePatrolItem(idx)" />
             </div>
             <el-button type="primary" link @click="addPatrolItem">
               <el-icon><Plus /></el-icon>
@@ -435,97 +424,6 @@ onMounted(async () => {
 </template>
 
 <style scoped>
-.page-container {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  gap: 16px;
-}
-
-/* ─── Page Header ──────────────────── */
-.page-header {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 0 4px;
-}
-
-.page-header__icon-wrapper {
-  width: 44px;
-  height: 44px;
-  border-radius: 10px;
-  background: var(--el-color-primary-light-9, #ecf5ff);
-  color: var(--el-color-primary, #409eff);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.page-header__info {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.page-header__title {
-  margin: 0;
-  font-size: 20px;
-  font-weight: 600;
-  color: var(--text-primary, #303133);
-  line-height: 1.3;
-}
-
-.page-header__subtitle {
-  margin: 0;
-  font-size: 13px;
-  color: var(--text-secondary, #909399);
-  line-height: 1.4;
-}
-
-/* ─── Action Bar ───────────────────── */
-.action-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-
-.action-bar__left {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-/* ─── Data Card ────────────────────── */
-.data-card {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  background: var(--bg-card, #fff);
-  border-radius: 8px;
-  box-shadow: var(--shadow-sm, 0 1px 2px rgba(0,0,0,0.06));
-  overflow: hidden;
-}
-
-.data-card__row {
-  transition: background-color 0.2s;
-}
-
-.data-card__row:hover {
-  background-color: var(--el-fill-color-light, #f5f7fa) !important;
-}
-
-.data-card__footer {
-  display: flex;
-  justify-content: flex-end;
-  padding: 12px 16px;
-  border-top: 1px solid var(--el-border-color-lighter, #ebeef5);
-}
-
-/* ─── Time Cell ────────────────────── */
 .time-cell {
   display: flex;
   align-items: center;
@@ -546,88 +444,5 @@ onMounted(async () => {
 .stat-fail {
   color: var(--el-color-danger, #f56c6c);
   font-weight: 600;
-}
-
-/* ─── Patrol Info Card ─────────────── */
-.patrol-info-card {
-  background: var(--el-fill-color-lighter, #f2f6fc);
-  border-radius: 8px;
-  padding: 16px;
-  margin-bottom: 20px;
-}
-
-.patrol-info-row {
-  display: flex;
-  gap: 24px;
-  margin-bottom: 8px;
-}
-
-.patrol-info-row:last-child {
-  margin-bottom: 0;
-}
-
-.patrol-info-item {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  flex: 1;
-}
-
-.patrol-info-label {
-  font-size: 12px;
-  color: var(--el-text-secondary, #909399);
-}
-
-.patrol-info-value {
-  font-size: 14px;
-  color: var(--text-primary, #303133);
-  font-weight: 500;
-}
-
-/* ─── Dialog Sections ──────────────── */
-.dialog-section {
-  margin-bottom: 20px;
-}
-
-.dialog-section__title {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-primary, #303133);
-  margin-bottom: 12px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid var(--el-border-color-lighter, #ebeef5);
-}
-
-.dialog-section__title .el-icon {
-  color: var(--el-color-primary, #409eff);
-}
-
-.form-row {
-  display: flex;
-  gap: 16px;
-  flex-wrap: wrap;
-}
-
-/* ─── Inspection Items ─────────────── */
-.items-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.item-card {
-  background: var(--el-fill-color-lighter, #f2f6fc);
-  border-radius: 6px;
-  padding: 10px 12px;
-}
-
-.item-card__header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
 }
 </style>

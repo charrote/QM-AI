@@ -2,10 +2,10 @@
 import { ref, reactive, onMounted, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
-  receiptApi, inspectionApi, anomalyApi, supplierScoreApi,
-  samplingPlanApi, aiRiskApi, traceApi
+  receiptApi, inspectionApi, anomalyApi,
+  aiRiskApi
 } from '@/api/iqc'
-import { Box, Document, WarningFilled, DataAnalysis, Search, ScaleToOriginal, Cpu } from '@element-plus/icons-vue'
+import { Box, Document, WarningFilled, Cpu, Edit } from '@element-plus/icons-vue'
 import { supplierApi } from '@/api/basicData'
 import { productApi } from '@/api/basicData'
 import type { PagedResult } from '@/types/basicData'
@@ -13,15 +13,14 @@ import type {
   IqcReceipt, IqcReceiptDetail, CreateIqcReceipt, UpdateIqcReceipt,
   IqcInspection, IqcInspectionDetail, CreateIqcInspection, SubmitIqcInspection,
   IqcAnomaly, CreateIqcAnomaly, UpdateIqcAnomaly, ResolveIqcAnomaly,
-  SupplierScore, UpdateSupplierScore,
-  SamplingPlan, SamplingPlanRequest,
-  AiRiskScore, BatchTrace,
+  AiRiskScore,
 } from '@/types/iqc'
 import {
   IQC_RECEIPT_STATUS_OPTIONS, IQC_INSPECTION_RESULT_OPTIONS,
   IQC_ANOMALY_TYPE_OPTIONS, IQC_SEVERITY_OPTIONS,
-  IQC_ANOMALY_STATUS_OPTIONS, SAMPLING_LEVEL_OPTIONS,
+  IQC_ANOMALY_STATUS_OPTIONS, IQC_DISPOSITION_OPTIONS, SAMPLING_LEVEL_OPTIONS,
 } from '@/types/iqc'
+import SamplingPlanCalculator from '@/components/SamplingPlanCalculator.vue'
 
 defineOptions({ name: 'IqcTab' })
 
@@ -29,7 +28,7 @@ defineOptions({ name: 'IqcTab' })
 // State
 // ═══════════════════════════════════════════════════════════════════
 
-const activeSubTab = ref<'receipts' | 'inspections' | 'anomalies' | 'suppliers' | 'trace'>('receipts')
+const activeSubTab = ref<'receipts' | 'inspections' | 'anomalies'>('receipts')
 const searchKeyword = ref('')
 const page = ref(1)
 const pageSize = ref(20)
@@ -59,6 +58,8 @@ const newInspectionVisible = ref(false)
 // ─── 异常单 ────────────────────────────────────────
 const anomalies = ref<IqcAnomaly[]>([])
 const anomalyDialogVisible = ref(false)
+const isEditingAnomaly = ref(false)
+const editingAnomalyId = ref<number>(0)
 const anomalyForm = reactive<CreateIqcAnomaly>({
   receiptId: 0, anomalyType: 'quality', severity: 'major', description: ''
 })
@@ -66,28 +67,16 @@ const resolveAnomalyVisible = ref(false)
 const resolveForm = reactive<ResolveIqcAnomaly>({ resolution: '' })
 const resolveAnomalyId = ref<number>(0)
 
-// ─── 供应商评分 ─────────────────────────────────────
-const supplierScore = ref<SupplierScore | null>(null)
-const supplierScoreVisible = ref(false)
-const scoreSupplierId = ref<number>(0)
+// ─── 下拉选项 ─────────────────────────────────────
 const supplierOptions = ref<Array<{ value: number; label: string }>>([])
 const productOptions = ref<Array<{ value: number; label: string }>>([])
-
-// ─── 批次追溯 ──────────────────────────────────────
-const traceBatchNo = ref('')
-const traceResult = ref<BatchTrace | null>(null)
-const traceLoading = ref(false)
 
 // ─── AI 风险面板 ────────────────────────────────────
 const aiRiskResult = ref<AiRiskScore | null>(null)
 const aiRiskLoading = ref(false)
 const selectedReceiptId = ref<number | null>(null)
 
-// ─── 抽样方案 ──────────────────────────────────────
-const samplingPlanResult = ref<SamplingPlan | null>(null)
-const samplingPlanForm = reactive<SamplingPlanRequest>({
-  lotSize: 100, samplingLevel: 'II', aqlValue: 1.0
-})
+// ─── 抽样方案 (shared component) ──────────────
 
 // ═══════════════════════════════════════════════════════════════════
 // Helpers
@@ -222,18 +211,6 @@ async function loadAiRisk(receiptId: number) {
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// 抽样方案计算
-// ═══════════════════════════════════════════════════════════════════
-
-async function calculateSamplingPlan() {
-  try {
-    samplingPlanResult.value = await samplingPlanApi.calculate(samplingPlanForm)
-  } catch (e) {
-    ElMessage.error('抽样方案计算失败')
-  }
-}
-
-// ═══════════════════════════════════════════════════════════════════
 // 检验单
 // ═══════════════════════════════════════════════════════════════════
 
@@ -354,6 +331,8 @@ async function loadAnomalies() {
 }
 
 function openCreateAnomaly(receiptId?: number) {
+  isEditingAnomaly.value = false
+  editingAnomalyId.value = 0
   anomalyForm.receiptId = receiptId || 0
   anomalyForm.inspectionId = undefined
   anomalyForm.anomalyType = 'quality'
@@ -363,18 +342,55 @@ function openCreateAnomaly(receiptId?: number) {
   anomalyDialogVisible.value = true
 }
 
+function openEditAnomaly(row: IqcAnomaly) {
+  isEditingAnomaly.value = true
+  editingAnomalyId.value = row.id
+  anomalyForm.receiptId = row.receiptId
+  anomalyForm.anomalyType = row.anomalyType
+  anomalyForm.severity = row.severity
+  anomalyForm.description = row.description || ''
+  anomalyForm.handler = row.handler || ''
+  anomalyDialogVisible.value = true
+}
+
 async function saveAnomaly() {
   if (!anomalyForm.receiptId) {
     ElMessage.warning('请选择来料登记')
     return
   }
+  if (!anomalyForm.anomalyType || !anomalyForm.severity || !anomalyForm.description) {
+    ElMessage.warning('请填写异常类型、严重程度和描述')
+    return
+  }
   try {
-    await anomalyApi.create(anomalyForm)
-    ElMessage.success('异常单已创建')
+    if (isEditingAnomaly.value) {
+      await anomalyApi.update(editingAnomalyId.value, anomalyForm)
+      ElMessage.success('异常单已更新')
+    } else {
+      await anomalyApi.create(anomalyForm)
+      ElMessage.success('异常单已创建')
+    }
     anomalyDialogVisible.value = false
     await loadAnomalies()
   } catch (e: any) {
-    ElMessage.error(e?.response?.data?.message || '创建失败')
+    ElMessage.error(e?.response?.data?.message || '操作失败')
+  }
+}
+
+async function deleteAnomaly(row: IqcAnomaly) {
+  try {
+    await ElMessageBox.confirm(`确定关闭异常单「${row.anomalyNo}」吗？`, '确认关闭', {
+      type: 'warning',
+      confirmButtonText: '关闭',
+      cancelButtonText: '取消',
+    })
+    await anomalyApi.update(row.id, { status: 'closed' })
+    ElMessage.success('异常单已关闭')
+    await loadAnomalies()
+  } catch (e: any) {
+    if (e !== 'cancel') {
+      ElMessage.error(e?.response?.data?.message || '操作失败')
+    }
   }
 }
 
@@ -401,7 +417,7 @@ async function resolveAnomaly() {
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// 供应商评分
+// 下拉选项加载
 // ═══════════════════════════════════════════════════════════════════
 
 async function loadSuppliers() {
@@ -422,49 +438,6 @@ async function loadProducts() {
   }
 }
 
-async function loadSupplierScore() {
-  if (!scoreSupplierId.value) return
-  try {
-    supplierScore.value = await supplierScoreApi.get(scoreSupplierId.value)
-  } catch {
-    supplierScore.value = null
-  }
-}
-
-async function updateSupplierScore() {
-  if (!scoreSupplierId.value || !supplierScore.value) return
-  try {
-    await supplierScoreApi.update(scoreSupplierId.value, {
-      score: supplierScore.value.score,
-      grade: supplierScore.value.grade,
-      evaluation: supplierScore.value.evaluation,
-    })
-    ElMessage.success('供应商评分已更新')
-  } catch (e: any) {
-    ElMessage.error(e?.response?.data?.message || '更新失败')
-  }
-}
-
-// ═══════════════════════════════════════════════════════════════════
-// 批次追溯
-// ═══════════════════════════════════════════════════════════════════
-
-async function searchTrace() {
-  if (!traceBatchNo.value.trim()) {
-    ElMessage.warning('请输入批次号')
-    return
-  }
-  traceLoading.value = true
-  traceResult.value = null
-  try {
-    traceResult.value = await traceApi.byBatch(traceBatchNo.value.trim())
-  } catch {
-    ElMessage.warning('未找到该批次记录')
-  } finally {
-    traceLoading.value = false
-  }
-}
-
 // ═══════════════════════════════════════════════════════════════════
 // Lifecycle
 // ═══════════════════════════════════════════════════════════════════
@@ -473,7 +446,6 @@ onMounted(async () => {
   await loadReceipts()
   await loadSuppliers()
   await loadProducts()
-  calculateSamplingPlan()
 })
 
 // ═══════════════════════════════════════════════════════════════════
@@ -492,7 +464,6 @@ async function onSubTabChange(tab: string) {
     case 'receipts': await loadReceipts(); break
     case 'inspections': await loadInspections(); break
     case 'anomalies': await loadAnomalies(); break
-    case 'suppliers': loadSupplierScore(); break
   }
 }
 </script>
@@ -518,18 +489,6 @@ async function onSubTabChange(tab: string) {
           <template #label>
             <el-icon style="vertical-align: middle"><WarningFilled /></el-icon>
             <span style="vertical-align: middle">来料异常</span>
-          </template>
-        </el-tab-pane>
-        <el-tab-pane name="suppliers">
-          <template #label>
-            <el-icon style="vertical-align: middle"><DataAnalysis /></el-icon>
-            <span style="vertical-align: middle">供应商评分</span>
-          </template>
-        </el-tab-pane>
-        <el-tab-pane name="trace">
-          <template #label>
-            <el-icon style="vertical-align: middle"><Search /></el-icon>
-            <span style="vertical-align: middle">批次追溯</span>
           </template>
         </el-tab-pane>
       </el-tabs>
@@ -657,219 +616,96 @@ async function onSubTabChange(tab: string) {
     <!-- TAB: 来料异常 -->
     <!-- ══════════════════════════════════════════════════════════════ -->
     <div v-if="activeSubTab === 'anomalies'" class="subtab-content">
-      <div class="toolbar-row">
-        <el-input
-          v-model="searchKeyword"
-          placeholder="搜索异常单号..."
-          clearable
-          style="width: 300px"
-          @keyup.enter="loadAnomalies"
-        />
-        <el-button type="primary" @click="openCreateAnomaly()">+ 新建异常单</el-button>
-        <el-button @click="loadAnomalies">刷新</el-button>
-      </div>
+      <div class="data-card">
+        <div class="panel-header">
+          <div class="panel-header-left">
+            <el-icon class="panel-icon"><WarningFilled /></el-icon>
+            <span>异常记录</span>
+          </div>
+          <div class="panel-actions">
+            <el-button type="primary" size="small" @click="openCreateAnomaly()">
+              + 新建异常单
+            </el-button>
+          </div>
+        </div>
 
-      <el-table :data="anomalies" stripe style="width: 100%" >
-        <el-table-column prop="anomalyNo" label="异常单号" width="180" />
-        <el-table-column prop="receiptNo" label="来料单号" width="150" />
-        <el-table-column label="类型" width="90">
-          <template #default="{ row }">{{ statusLabel(row.anomalyType, IQC_ANOMALY_TYPE_OPTIONS) }}</template>
-        </el-table-column>
-        <el-table-column label="严重程度" width="80">
-          <template #default="{ row }">
-            <el-tag :type="row.severity === 'critical' ? 'danger' : row.severity === 'major' ? 'warning' : 'info'" size="small">
-              {{ statusLabel(row.severity, IQC_SEVERITY_OPTIONS) }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column prop="description" label="描述" min-width="200" show-overflow-tooltip />
-        <el-table-column label="状态" width="90">
-          <template #default="{ row }">
-            <el-tag :type="calculateResultColor(row.status)" size="small" effect="plain">
-              {{ statusLabel(row.status, IQC_ANOMALY_STATUS_OPTIONS) }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column prop="handler" label="处理人" width="90" />
-        <el-table-column label="操作" width="120" fixed="right">
-          <template #default="{ row }">
-            <el-button
-              v-if="row.status === 'open' || row.status === 'processing'"
-              link size="small" type="success"
-              @click="openResolveAnomaly(row)"
-            >解决</el-button>
-          </template>
-        </el-table-column>
-      </el-table>
+        <div class="data-card-body">
+          <!-- Search Toolbar -->
+          <div class="toolbar-row">
+            <el-input
+              v-model="searchKeyword"
+              placeholder="搜索异常单号..."
+              clearable
+              style="width: 280px"
+            >
+              <template #prefix>
+                <el-icon><WarningFilled /></el-icon>
+              </template>
+            </el-input>
+            <el-button link @click="loadAnomalies">刷新</el-button>
+          </div>
 
-      <div class="pagination-row">
-        <el-pagination
-          v-model:current-page="page"
-          v-model:page-size="pageSize"
-          :total="total"
-          layout="total, prev, pager, next"
-          size="small"
-          @current-change="loadAnomalies"
-        />
-      </div>
-    </div>
-
-    <!-- ══════════════════════════════════════════════════════════════ -->
-    <!-- TAB: 供应商评分 -->
-    <!-- ══════════════════════════════════════════════════════════════ -->
-    <div v-if="activeSubTab === 'suppliers'" class="subtab-content">
-      <div class="toolbar-row">
-        <el-select v-model="scoreSupplierId" placeholder="选择供应商" filterable style="width: 300px" @change="loadSupplierScore">
-          <el-option
-            v-for="opt in supplierOptions"
-            :key="opt.value"
-            :label="opt.label"
-            :value="opt.value"
-          />
-        </el-select>
-      </div>
-
-      <div v-if="supplierScore" class="score-card">
-        <el-card>
-          <template #header>
-            <div class="card-header">
-              <span>供应商评分 - {{ supplierScore.supplierName }}</span>
-              <el-button type="primary" size="small" @click="updateSupplierScore">保存评分</el-button>
-            </div>
-          </template>
-          <el-form label-width="120px" >
-            <el-form-item label="综合评分">
-              <el-input-number v-model="supplierScore.score" :min="0" :max="100" :precision="2" style="width: 200px" />
-              <el-tag :type="supplierScore.grade === 'A' ? 'success' : supplierScore.grade === 'B' ? 'primary' : supplierScore.grade === 'C' ? 'warning' : 'danger'" style="margin-left: 12px">
-                {{ supplierScore.grade }} 级
-              </el-tag>
-            </el-form-item>
-            <el-form-item label="评级">
-              <el-select v-model="supplierScore.grade" style="width: 200px">
-                <el-option label="A 级 (优秀)" value="A" />
-                <el-option label="B 级 (良好)" value="B" />
-                <el-option label="C 级 (合格)" value="C" />
-                <el-option label="D 级 (不合格)" value="D" />
-              </el-select>
-            </el-form-item>
-            <el-form-item label="评估日期">
-              <span>{{ formatDate(supplierScore.scoreDate) }}</span>
-            </el-form-item>
-            <el-form-item label="评估意见">
-              <el-input v-model="supplierScore.evaluation" type="textarea" :rows="3" />
-            </el-form-item>
-          </el-form>
-        </el-card>
-      </div>
-
-      <div v-else-if="scoreSupplierId" class="empty-state">
-        <p>暂无评分数据，提交检验后将自动生成评分</p>
-      </div>
-    </div>
-
-    <!-- ══════════════════════════════════════════════════════════════ -->
-    <!-- TAB: 批次追溯 -->
-    <!-- ══════════════════════════════════════════════════════════════ -->
-    <div v-if="activeSubTab === 'trace'" class="subtab-content">
-      <div class="toolbar-row">
-        <el-input
-          v-model="traceBatchNo"
-          placeholder="输入批次号..."
-          style="width: 300px"
-          @keyup.enter="searchTrace"
-        />
-        <el-button type="primary" :loading="traceLoading" @click="searchTrace">追溯查询</el-button>
-      </div>
-
-      <div v-if="traceResult" class="trace-result">
-        <!-- 来料信息 -->
-        <el-card v-if="traceResult.receipt" class="trace-card">
-          <template #header>
-            <el-icon style="vertical-align: middle"><Box /></el-icon>
-            <span style="vertical-align: middle">来料信息</span>
-          </template>
-          <el-descriptions :column="3" border>
-            <el-descriptions-item label="单号">{{ traceResult.receipt.receiptNo }}</el-descriptions-item>
-            <el-descriptions-item label="供应商">{{ traceResult.receipt.supplierName }}</el-descriptions-item>
-            <el-descriptions-item label="物料">{{ traceResult.receipt.productName }}</el-descriptions-item>
-            <el-descriptions-item label="批次号">{{ traceResult.receipt.batchNo }}</el-descriptions-item>
-            <el-descriptions-item label="数量">{{ traceResult.receipt.quantity }} {{ traceResult.receipt.unit }}</el-descriptions-item>
-            <el-descriptions-item label="状态">
-              <el-tag :type="calculateResultColor(traceResult.receipt.status)" size="small">
-                {{ statusLabel(traceResult.receipt.status, IQC_RECEIPT_STATUS_OPTIONS) }}
-              </el-tag>
-            </el-descriptions-item>
-          </el-descriptions>
-        </el-card>
-
-        <!-- 检验记录 -->
-        <el-card v-if="traceResult.inspections.length > 0" class="trace-card">
-          <template #header>
-            <el-icon style="vertical-align: middle"><Document /></el-icon>
-            <span style="vertical-align: middle">检验记录 ({{ traceResult.inspections.length }})</span>
-          </template>
-          <el-table :data="traceResult.inspections"  stripe>
-            <el-table-column prop="inspectionNo" label="检验单号" width="180" />
-            <el-table-column prop="sampleSize" label="样本量" width="70" />
-            <el-table-column label="Ac/Re" width="70">
-              <template #default="{ row }">{{ row.ac }}/{{ row.re }}</template>
-            </el-table-column>
-            <el-table-column prop="defectQty" label="不合格" width="70" />
-            <el-table-column label="结果" width="80">
+          <!-- Table -->
+          <el-table :data="anomalies" stripe style="width: 100%">
+            <el-table-column prop="anomalyNo" label="异常单号" width="180" />
+            <el-table-column prop="receiptNo" label="来料单号" width="150" />
+            <el-table-column label="类型" width="100">
               <template #default="{ row }">
-                <el-tag :type="row.result === 'pass' ? 'success' : 'danger'" size="small">
-                  {{ row.result === 'pass' ? '合格' : '不合格' }}
+                <el-tag size="small" effect="plain">
+                  {{ statusLabel(row.anomalyType, IQC_ANOMALY_TYPE_OPTIONS) }}
                 </el-tag>
               </template>
             </el-table-column>
-            <el-table-column prop="inspector" label="检验员" width="90" />
-            <el-table-column prop="inspectedAt" label="时间" width="160">
-              <template #default="{ row }">{{ formatDate(row.inspectedAt) }}</template>
-            </el-table-column>
-          </el-table>
-        </el-card>
-
-        <!-- 异常记录 -->
-        <el-card v-if="traceResult.anomalies.length > 0" class="trace-card">
-          <template #header>
-            <el-icon style="vertical-align: middle"><WarningFilled /></el-icon>
-            <span style="vertical-align: middle">异常记录 ({{ traceResult.anomalies.length }})</span>
-          </template>
-          <el-table :data="traceResult.anomalies"  stripe>
-            <el-table-column prop="anomalyNo" label="异常单号" width="180" />
-            <el-table-column label="类型" width="80">
-              <template #default="{ row }">{{ statusLabel(row.anomalyType, IQC_ANOMALY_TYPE_OPTIONS) }}</template>
-            </el-table-column>
-            <el-table-column label="严重程度" width="80">
+            <el-table-column label="严重程度" width="100">
               <template #default="{ row }">
-                <el-tag :type="row.severity === 'critical' ? 'danger' : 'warning'" size="small">
+                <el-tag :type="row.severity === 'critical' ? 'danger' : row.severity === 'major' ? 'warning' : 'info'" size="small" effect="plain">
                   {{ statusLabel(row.severity, IQC_SEVERITY_OPTIONS) }}
                 </el-tag>
               </template>
             </el-table-column>
             <el-table-column prop="description" label="描述" min-width="200" show-overflow-tooltip />
-            <el-table-column label="状态" width="80">
+            <el-table-column label="状态" width="100">
               <template #default="{ row }">
-                <el-tag :type="row.status === 'resolved' || row.status === 'closed' ? 'success' : 'danger'" size="small">
+                <el-tag :type="calculateResultColor(row.status)" size="small" effect="plain">
                   {{ statusLabel(row.status, IQC_ANOMALY_STATUS_OPTIONS) }}
                 </el-tag>
               </template>
             </el-table-column>
+            <el-table-column prop="handler" label="处理人" width="90" />
+            <el-table-column prop="createdAt" label="创建时间" width="170">
+              <template #default="{ row }">{{ row.createdAt ? row.createdAt.replace('T', ' ').substring(0, 16) : '' }}</template>
+            </el-table-column>
+            <el-table-column label="操作" width="200" fixed="right">
+              <template #default="{ row }">
+                <el-button link size="small" type="primary" @click="openEditAnomaly(row)">编辑</el-button>
+                <el-button
+                  v-if="row.status === 'open' || row.status === 'processing'"
+                  link size="small" type="success"
+                  @click="openResolveAnomaly(row)"
+                >解决</el-button>
+                <el-button link size="small" type="danger" @click="deleteAnomaly(row)">关闭</el-button>
+              </template>
+            </el-table-column>
           </el-table>
-        </el-card>
 
-        <!-- 供应商评分 -->
-        <el-card v-if="traceResult.supplierScore" class="trace-card">
-          <template #header>
-            <el-icon style="vertical-align: middle"><DataAnalysis /></el-icon>
-            <span style="vertical-align: middle">供应商评分</span>
-          </template>
-          <el-descriptions :column="3" border>
-            <el-descriptions-item label="评分">{{ traceResult.supplierScore.score }}</el-descriptions-item>
-            <el-descriptions-item label="评级">{{ traceResult.supplierScore.grade }} 级</el-descriptions-item>
-            <el-descriptions-item label="评估日期">{{ formatDate(traceResult.supplierScore.scoreDate) }}</el-descriptions-item>
-          </el-descriptions>
-        </el-card>
+          <div v-if="anomalies.length === 0" class="empty-hint">
+            暂无异常记录
+          </div>
+
+          <!-- Pagination -->
+          <div class="pagination-row">
+            <el-pagination
+              v-model:current-page="page"
+              v-model:page-size="pageSize"
+              :total="total"
+              :page-sizes="[10, 20, 50, 100]"
+              layout="total, sizes, prev, pager, next, jumper"
+              size="small"
+              @size-change="loadAnomalies"
+              @current-change="loadAnomalies"
+            />
+          </div>
+        </div>
       </div>
     </div>
 
@@ -1191,111 +1027,113 @@ async function onSubTabChange(tab: string) {
     </el-dialog>
 
     <!-- ══════════════════════════════════════════════════════════════ -->
-    <!-- DIALOG: 新建异常单 -->
+    <!-- Drawer: 新建/编辑异常单 -->
     <!-- ══════════════════════════════════════════════════════════════ -->
-    <el-dialog
+    <el-drawer
       v-model="anomalyDialogVisible"
-      title="新建异常单"
-      width="520px"
+      :title="isEditingAnomaly ? '编辑异常单' : '新建异常单'"
+      size="560px"
+      direction="rtl"
       :close-on-click-modal="false"
     >
-      <el-form :model="anomalyForm" label-width="100px" >
-        <el-form-item label="来料登记ID" required>
-          <el-input-number v-model="anomalyForm.receiptId" :min="1" style="width: 100%" />
-        </el-form-item>
-        <el-row :gutter="16">
-          <el-col :span="12">
-            <el-form-item label="异常类型">
-              <el-select v-model="anomalyForm.anomalyType" style="width: 100%">
-                <el-option v-for="opt in IQC_ANOMALY_TYPE_OPTIONS" :key="opt.value" :label="opt.label" :value="opt.value" />
-              </el-select>
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="严重程度">
-              <el-select v-model="anomalyForm.severity" style="width: 100%">
-                <el-option v-for="opt in IQC_SEVERITY_OPTIONS" :key="opt.value" :label="opt.label" :value="opt.value" />
-              </el-select>
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-form-item label="描述">
-          <el-input v-model="anomalyForm.description" type="textarea" :rows="3" />
-        </el-form-item>
-        <el-form-item label="处理人">
-          <el-input v-model="anomalyForm.handler" />
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="anomalyDialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="saveAnomaly">创建</el-button>
-      </template>
-    </el-dialog>
+      <div class="dialog-section">
+        <div class="dialog-section-header">
+          <el-icon class="dialog-section-icon"><Document /></el-icon>
+          <span class="dialog-section-title">来料信息</span>
+        </div>
+        <el-form :model="anomalyForm" label-width="100px">
+          <el-form-item label="来料登记ID" required>
+            <el-input-number v-model="anomalyForm.receiptId" :min="1" style="width: 100%" />
+          </el-form-item>
+        </el-form>
+      </div>
 
-    <!-- ══════════════════════════════════════════════════════════════ -->
-    <!-- DIALOG: 解决异常单 -->
-    <!-- ══════════════════════════════════════════════════════════════ -->
-    <el-dialog
-      v-model="resolveAnomalyVisible"
-      title="解决异常单"
-      width="480px"
-      :close-on-click-modal="false"
-    >
-      <el-form :model="resolveForm" label-width="100px" >
-        <el-form-item label="解决方案" required>
-          <el-input v-model="resolveForm.resolution" type="textarea" :rows="4" placeholder="请描述解决方案..." />
-        </el-form-item>
-        <el-form-item label="处理人">
-          <el-input v-model="resolveForm.handler" />
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="resolveAnomalyVisible = false">取消</el-button>
-        <el-button type="primary" @click="resolveAnomaly">确认解决</el-button>
-      </template>
-    </el-dialog>
-
-    <!-- ══════════════════════════════════════════════════════════════ -->
-    <!-- Panel: 抽样方案计算器 (embedded) -->
-    <!-- ══════════════════════════════════════════════════════════════ -->
-    <div v-if="activeSubTab === 'receipts' || activeSubTab === 'inspections'" class="sampling-panel">
-      <el-collapse>
-        <el-collapse-item name="sampling">
-          <template #title>
-            <el-icon style="vertical-align: middle"><ScaleToOriginal /></el-icon>
-            <span style="vertical-align: middle">GB/T 2828.1 抽样方案计算器</span>
-          </template>
-          <el-row :gutter="16" style="margin-bottom: 8px">
-            <el-col :span="6">
-              <el-form-item label="批量" >
-                <el-input-number v-model="samplingPlanForm.lotSize" :min="1" :max="500000" style="width: 100%" />
-              </el-form-item>
-            </el-col>
-            <el-col :span="6">
-              <el-form-item label="检验水平" >
-                <el-select v-model="samplingPlanForm.samplingLevel" style="width: 100%">
-                  <el-option v-for="opt in SAMPLING_LEVEL_OPTIONS" :key="opt.value" :label="opt.label" :value="opt.value" />
+      <div class="dialog-section">
+        <div class="dialog-section-header">
+          <el-icon class="dialog-section-icon"><WarningFilled /></el-icon>
+          <span class="dialog-section-title">异常信息</span>
+        </div>
+        <el-form :model="anomalyForm" label-width="100px">
+          <el-row :gutter="16">
+            <el-col :span="12">
+              <el-form-item label="异常类型" required>
+                <el-select v-model="anomalyForm.anomalyType" style="width: 100%">
+                  <el-option
+                    v-for="opt in IQC_ANOMALY_TYPE_OPTIONS"
+                    :key="opt.value"
+                    :label="opt.label"
+                    :value="opt.value"
+                  />
                 </el-select>
               </el-form-item>
             </el-col>
-            <el-col :span="6">
-              <el-form-item label="AQL 值" >
-                <el-input-number v-model="samplingPlanForm.aqlValue" :min="0.01" :step="0.1" :precision="2" style="width: 100%" />
+            <el-col :span="12">
+              <el-form-item label="严重程度" required>
+                <el-select v-model="anomalyForm.severity" style="width: 100%">
+                  <el-option
+                    v-for="opt in IQC_SEVERITY_OPTIONS"
+                    :key="opt.value"
+                    :label="opt.label"
+                    :value="opt.value"
+                  />
+                </el-select>
               </el-form-item>
             </el-col>
-            <el-col :span="6" style="display: flex; align-items: flex-start; padding-top: 2px">
-              <el-button type="primary" size="small" @click="calculateSamplingPlan">计算</el-button>
-            </el-col>
           </el-row>
-          <div v-if="samplingPlanResult" class="sampling-result">
-            <el-tag>字母代码: {{ samplingPlanResult.sampleCode }}</el-tag>
-            <el-tag type="success">样本量: {{ samplingPlanResult.sampleSize }}</el-tag>
-            <el-tag type="warning">Ac: {{ samplingPlanResult.ac }}</el-tag>
-            <el-tag type="danger">Re: {{ samplingPlanResult.re }}</el-tag>
-          </div>
-        </el-collapse-item>
-      </el-collapse>
-    </div>
+          <el-form-item label="描述" required>
+            <el-input v-model="anomalyForm.description" type="textarea" :rows="3" placeholder="请描述异常详情..." />
+          </el-form-item>
+          <el-form-item label="处理人">
+            <el-input v-model="anomalyForm.handler" placeholder="请输入处理人姓名" />
+          </el-form-item>
+        </el-form>
+      </div>
+
+      <template #footer>
+        <div style="display: flex; gap: 8px; justify-content: flex-end;">
+          <el-button size="small" @click="anomalyDialogVisible = false">取消</el-button>
+          <el-button size="small" type="primary" @click="saveAnomaly">
+            {{ isEditingAnomaly ? '保存修改' : '创建' }}
+          </el-button>
+        </div>
+      </template>
+    </el-drawer>
+
+    <!-- ══════════════════════════════════════════════════════════════ -->
+    <!-- Drawer: 解决异常单 -->
+    <!-- ══════════════════════════════════════════════════════════════ -->
+    <el-drawer
+      v-model="resolveAnomalyVisible"
+      title="解决异常单"
+      size="520px"
+      direction="rtl"
+      :close-on-click-modal="false"
+    >
+      <div class="dialog-section">
+        <div class="dialog-section-header">
+          <el-icon class="dialog-section-icon"><Edit /></el-icon>
+          <span class="dialog-section-title">解决方案</span>
+        </div>
+        <el-form :model="resolveForm" label-width="80px">
+          <el-form-item label="解决方案" required>
+            <el-input v-model="resolveForm.resolution" type="textarea" :rows="5" placeholder="请描述解决方案..." />
+          </el-form-item>
+          <el-form-item label="处理人">
+            <el-input v-model="resolveForm.handler" placeholder="请输入处理人姓名" />
+          </el-form-item>
+        </el-form>
+      </div>
+
+      <template #footer>
+        <div style="display: flex; gap: 8px; justify-content: flex-end;">
+          <el-button size="small" @click="resolveAnomalyVisible = false">取消</el-button>
+          <el-button size="small" type="primary" @click="resolveAnomaly">确认解决</el-button>
+        </div>
+      </template>
+    </el-drawer>
+
+    <!-- 抽样方案计算器 (shared) -->
+    <SamplingPlanCalculator v-if="activeSubTab === 'receipts' || activeSubTab === 'inspections'" mode="panel" />
   </div>
 </template>
 
@@ -1314,6 +1152,101 @@ async function onSubTabChange(tab: string) {
   flex: 1;
   display: flex;
   flex-direction: column;
+}
+
+/* ─── Data Card ──────────────────────────────── */
+.data-card {
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-light);
+  border-radius: 6px;
+  overflow: hidden;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.data-card-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 12px;
+  overflow-y: auto;
+}
+
+/* ─── Panel Header ───────────────────────────── */
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--el-border-color-light);
+  background: var(--el-fill-color-blank);
+  flex-shrink: 0;
+}
+
+.panel-header-left {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+
+.panel-icon {
+  font-size: 16px;
+  color: var(--el-color-danger);
+}
+
+.panel-actions {
+  display: flex;
+  gap: 8px;
+}
+
+/* ─── Dialog Sections ─────────────────────────── */
+.dialog-section {
+  margin-bottom: 16px;
+}
+
+.dialog-section:last-of-type {
+  margin-bottom: 0;
+}
+
+.dialog-section-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  background: var(--el-fill-color-light);
+  border-radius: 6px;
+  margin-bottom: 12px;
+}
+
+.dialog-section-icon {
+  font-size: 15px;
+  color: var(--el-color-danger);
+}
+
+.dialog-section-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--el-text-color-regular);
+}
+
+/* ─── Common ──────────────────────────────────── */
+.empty-hint {
+  text-align: center;
+  color: var(--el-text-color-disabled);
+  font-size: 12px;
+  padding: 20px 0;
+}
+
+/* ─── Table ───────────────────────────────────── */
+.el-table :deep(.el-table__header-wrapper th) {
+  background: var(--el-fill-color-blank) !important;
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--el-text-color-regular);
 }
 
 .toolbar-row {
@@ -1456,21 +1389,29 @@ async function onSubTabChange(tab: string) {
   gap: 6px;
 }
 
-/* Sampling panel */
-.sampling-panel {
-  margin-top: 8px;
-}
-
-.sampling-result {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  flex-wrap: wrap;
-}
-
 .empty-state {
   text-align: center;
   padding: 40px;
   color: var(--el-text-color-secondary);
+}
+</style>
+
+<style>
+/* Non-scoped styles for Element Plus link buttons in table */
+.subtab-content .el-button.is-link {
+  border: none !important;
+  box-shadow: none !important;
+  background-color: transparent !important;
+}
+
+.subtab-content .el-button.is-link:active,
+.subtab-content .el-button.is-link:focus,
+.subtab-content .el-button.is-link:focus-visible,
+.subtab-content .el-button.is-link:hover {
+  color: inherit !important;
+  background-color: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  outline: none !important;
 }
 </style>

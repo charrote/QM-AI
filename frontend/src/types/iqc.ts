@@ -109,41 +109,87 @@ export interface IqcInspectionItem {
   remark?: string
 }
 
-// ─── 异常单 ─────────────────────────────────────────
+// ─── 异常单（增强版 - 标杆设计） ─────────────────────────────────
 export interface IqcAnomaly {
   id: number
   anomalyNo: string
   receiptId: number
   receiptNo?: string
   inspectionId?: number
+  failedItemIds?: string
+  defectQty?: number
   anomalyType: string
   severity: string
   description?: string
+  isolatedInventory?: number
+  disposition?: string
+  dispositionBy?: string
+  dispositionDate?: string
+  handlerDept?: string
   status: string
   handler?: string
+  mrbReviewed?: boolean
+  mrbReviewer?: string
+  mrbReviewedAt?: string
+  capaId?: number
+  firstResponseAt?: string
+  supplierNotified?: boolean
+  supplierResponseAt?: string
   resolvedAt?: string
   createdAt: string
+  updatedAt: string
 }
 
 export interface CreateIqcAnomaly {
   anomalyNo?: string
   receiptId: number
   inspectionId?: number
+  failedItemIds?: string
+  defectQty?: number
   anomalyType: string
   severity: string
   description?: string
+  isolatedInventory?: number
+  handlerDept?: string
   handler?: string
 }
 
 export interface UpdateIqcAnomaly {
   status?: string
   handler?: string
+  handlerDept?: string
   description?: string
+  isolatedInventory?: number
+  disposition?: string
+  dispositionBy?: string
+  dispositionDate?: string
+  mrbReviewed?: boolean
+  mrbReviewer?: string
+  mrbReviewedAt?: string
+  capaId?: number
+  firstResponseAt?: string
+  supplierNotified?: boolean
+  supplierResponseAt?: string
 }
 
 export interface ResolveIqcAnomaly {
   resolution: string
   handler?: string
+}
+
+export interface MrbReview {
+  approved: boolean
+  reviewer?: string
+  reviewComments?: string
+}
+
+export interface DispositionDecision {
+  disposition: string
+  dispositionBy?: string
+}
+
+export interface NotifySupplier {
+  message?: string
 }
 
 // ─── 供应商评分 ───────────────────────────────────────
@@ -228,6 +274,8 @@ export const IQC_ANOMALY_TYPE_OPTIONS = [
   { value: 'quality', label: '质量问题' },
   { value: 'quantity', label: '数量问题' },
   { value: 'document', label: '单据问题' },
+  { value: 'packaging', label: '包装问题' },
+  { value: 'environment', label: '环境问题' },
   { value: 'other', label: '其他' },
 ]
 
@@ -239,9 +287,22 @@ export const IQC_SEVERITY_OPTIONS = [
 
 export const IQC_ANOMALY_STATUS_OPTIONS = [
   { value: 'open', label: '待处理', type: 'danger' },
+  { value: 'quarantined', label: '待隔离', type: 'danger' },
+  { value: 'investigating', label: '调查中', type: 'warning' },
+  { value: 'mrb_reviewing', label: 'MRB评审中', type: 'warning' },
+  { value: 'mrb_approved', label: 'MRB通过', type: 'success' },
+  { value: 'disposed', label: '已处置', type: 'info' },
   { value: 'processing', label: '处理中', type: 'warning' },
   { value: 'resolved', label: '已解决', type: 'success' },
   { value: 'closed', label: '已关闭', type: 'info' },
+]
+
+export const IQC_DISPOSITION_OPTIONS = [
+  { value: 'none', label: '待处置' },
+  { value: 'return', label: '退货' },
+  { value: 'concession', label: '让步接收' },
+  { value: 'rework', label: '返工挑选' },
+  { value: 'special_purchase', label: '特采' },
 ]
 
 export const SAMPLING_LEVEL_OPTIONS = [

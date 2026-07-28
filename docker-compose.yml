@@ -49,22 +49,22 @@ services:
       timeout: 5s
       retries: 5
 
-  # ─── RabbitMQ ──────────────────────────────────────────
-  rabbitmq:
-    image: rabbitmq:3-management-alpine
-    container_name: qm-ai-rabbitmq
-    restart: unless-stopped
-    env_file: docker/.env.example
-    ports:
-      - "5672:5672"
-      - "15672:15672"
-    volumes:
-      - rabbitmq-data:/var/lib/rabbitmq
-    healthcheck:
-      test: ["CMD-SHELL", "nc -z localhost 5672 || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+  # ─── RabbitMQ (临时注释，等待物联网阶段再启用) ─────
+  # rabbitmq:
+  #   image: rabbitmq:3-management-alpine
+  #   container_name: qm-ai-rabbitmq
+  #   restart: unless-stopped
+  #   env_file: docker/.env.example
+  #   ports:
+  #     - "5672:5672"
+  #     - "15672:15672"
+  #   volumes:
+  #     - rabbitmq-data:/var/lib/rabbitmq
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "nc -z localhost 5672 || exit 1"]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 5
 
   # ─── Backend (.NET) ─────────────────────────────────────
   backend:
@@ -82,8 +82,8 @@ services:
         condition: service_healthy
       minio:
         condition: service_healthy
-      rabbitmq:
-        condition: service_healthy
+      # rabbitmq:
+      #   condition: service_healthy
     env_file:
       - .env
     environment:
@@ -143,4 +143,4 @@ volumes:
   mysql-data:
   redis-data:
   minio-data:
-  rabbitmq-data:
+  # rabbitmq-data:  # 物联网阶段再启用

@@ -462,25 +462,44 @@ public class IqcService
     }
 
     /// <summary>
-    /// 自动创建异常单
+    /// 自动创建异常单（不合格品自动触发）
+    /// 自动完成：异常创建 → 隔离 → 不合格数量统计 → 来料状态更新
     /// </summary>
     private async Task AutoCreateAnomaly(IqcInspection inspection)
     {
-        var anomalyNo = $"ANC-{DateTime.Now:yyyyMMdd}-{inspection.Id:D4}";
+        var anomalyNo = $"ANM-{DateTime.Now:yyyyMMdd}-{inspection.Id:D4}";
+
+        // 获取不合格检验项目ID列表
+        var failedItems = (inspection.Items ?? new List<IqcInspectionItem>())
+            .Where(it => it.Result == "fail")
+            .Select(it => it.Id)
+            .ToList();
 
         var anomaly = new IqcAnomaly
         {
             AnomalyNo = anomalyNo,
             ReceiptId = inspection.ReceiptId,
             InspectionId = inspection.Id,
+            FailedItemIds = failedItems.Count > 0 ? System.Text.Json.JsonSerializer.Serialize(failedItems) : null,
+            DefectQty = inspection.DefectQty,
             AnomalyType = "quality",
             Severity = inspection.DefectQty > inspection.Re ? "critical" : "major",
-            Description = $"来料检验不合格：检验单 {inspection.InspectionNo}，不合格数 {inspection.DefectQty}，Ac={inspection.Ac}，Re={inspection.Re}",
-            Status = "open",
-            Handler = inspection.Inspector
+            Description = $"来料检验不合格：检验单 {inspection.InspectionNo}，不合格数 {inspection.DefectQty}/{inspection.SampleSize}，Ac={inspection.Ac}，Re={inspection.Re}",
+            IsolatedInventory = inspection.Receipt?.Quantity ?? 0,
+            Status = "quarantined",
+            Handler = inspection.Inspector,
+            FirstResponseAt = DateTime.UtcNow,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
         };
 
         _db.IqcAnomalies.Add(anomaly);
+
+        // 更新来料登记状态为隔离/异常
+        var receipt = await _db.IqcReceipts.FindAsync(inspection.ReceiptId);
+        if (receipt != null) receipt.Status = "anomaly";
+
+        await _db.SaveChangesAsync();
     }
 
     /// <summary>
@@ -556,13 +575,14 @@ public class IqcService
     }
 
     // ═══════════════════════════════════════════════════════════════
-    // 异常单 (Anomaly)
+    // 异常单 (Anomaly) - 增强版：完整流程支持
     // ═══════════════════════════════════════════════════════════════
 
     public async Task<PagedResult<IqcAnomalyListDto>> ListAnomalies(PagedRequest req)
     {
         var query = _db.IqcAnomalies
             .Include(a => a.Receipt)
+            .Include(a => a.Inspection)
             .AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(req.Keyword))
@@ -585,13 +605,28 @@ public class IqcService
                 ReceiptId = a.ReceiptId,
                 ReceiptNo = a.Receipt!.ReceiptNo,
                 InspectionId = a.InspectionId,
+                FailedItemIds = a.FailedItemIds,
+                DefectQty = a.DefectQty,
                 AnomalyType = a.AnomalyType,
                 Severity = a.Severity,
                 Description = a.Description,
+                IsolatedInventory = a.IsolatedInventory,
+                Disposition = a.Disposition,
+                DispositionBy = a.DispositionBy,
+                DispositionDate = a.DispositionDate,
+                HandlerDept = a.HandlerDept,
                 Status = a.Status,
                 Handler = a.Handler,
+                MrbReviewed = a.MrbReviewed,
+                MrbReviewer = a.MrbReviewer,
+                MrbReviewedAt = a.MrbReviewedAt,
+                CapaId = a.CapaId,
+                FirstResponseAt = a.FirstResponseAt,
+                SupplierNotified = a.SupplierNotified,
+                SupplierResponseAt = a.SupplierResponseAt,
                 ResolvedAt = a.ResolvedAt,
-                CreatedAt = a.CreatedAt
+                CreatedAt = a.CreatedAt,
+                UpdatedAt = a.UpdatedAt
             })
             .ToListAsync();
 
@@ -604,46 +639,49 @@ public class IqcService
         };
     }
 
-    public async Task<IqcAnomalyListDto?> CreateAnomaly(CreateIqcAnomalyDto dto)
+    /// <summary>
+    /// 创建异常单（增强版）
+    /// 状态自动设为 quarantined（待隔离），标记首次响应时间
+    /// </summary>
+    public async Task<IqcAnomalyListDto> CreateAnomaly(CreateIqcAnomalyDto dto)
     {
-        var anomalyNo = dto.AnomalyNo ?? $"ANC-{DateTime.Now:yyyyMMdd}-{Guid.NewGuid().ToString()[..4]}";
+        var anomalyNo = dto.AnomalyNo ?? $"ANM-{DateTime.Now:yyyyMMdd}-{GenerateAnomalySeq()}";
 
         var entity = new IqcAnomaly
         {
             AnomalyNo = anomalyNo,
             ReceiptId = dto.ReceiptId,
             InspectionId = dto.InspectionId,
+            FailedItemIds = dto.FailedItemIds,
+            DefectQty = dto.DefectQty,
             AnomalyType = dto.AnomalyType,
             Severity = dto.Severity,
             Description = dto.Description,
-            Status = "open",
-            Handler = dto.Handler
+            IsolatedInventory = dto.IsolatedInventory,
+            HandlerDept = dto.HandlerDept,
+            Status = "quarantined", // 异常创建后自动进入隔离状态
+            Handler = dto.Handler,
+            FirstResponseAt = DateTime.UtcNow,
+            CreatedBy = dto.CreatedBy,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
         };
 
         _db.IqcAnomalies.Add(entity);
 
-        // 更新来料登记状态
+        // 更新来料登记状态为异常/隔离
         var receipt = await _db.IqcReceipts.FindAsync(dto.ReceiptId);
-        if (receipt != null) receipt.Status = "anomaly";
+        if (receipt != null && receipt.Status == "pending")
+            receipt.Status = "anomaly";
 
         await _db.SaveChangesAsync();
 
-        return new IqcAnomalyListDto
-        {
-            Id = entity.Id,
-            AnomalyNo = entity.AnomalyNo,
-            ReceiptId = entity.ReceiptId,
-            InspectionId = entity.InspectionId,
-            AnomalyType = entity.AnomalyType,
-            Severity = entity.Severity,
-            Description = entity.Description,
-            Status = entity.Status,
-            Handler = entity.Handler,
-            ResolvedAt = entity.ResolvedAt,
-            CreatedAt = entity.CreatedAt
-        };
+        return MapAnomalyToDto(entity);
     }
 
+    /// <summary>
+    /// 更新异常单（通用更新）
+    /// </summary>
     public async Task<IqcAnomalyListDto?> UpdateAnomaly(long id, UpdateIqcAnomalyDto dto)
     {
         var entity = await _db.IqcAnomalies.FindAsync(id);
@@ -651,22 +689,110 @@ public class IqcService
 
         if (dto.Status != null) entity.Status = dto.Status;
         if (dto.Handler != null) entity.Handler = dto.Handler;
+        if (dto.HandlerDept != null) entity.HandlerDept = dto.HandlerDept;
         if (dto.Description != null) entity.Description = dto.Description;
+        if (dto.IsolatedInventory.HasValue) entity.IsolatedInventory = dto.IsolatedInventory.Value;
+        if (dto.FirstResponseAt.HasValue) entity.FirstResponseAt = dto.FirstResponseAt.Value;
 
-        if (dto.Status == "resolved" || dto.Status == "closed")
-            entity.ResolvedAt = DateTime.UtcNow;
+        // MRB 评审相关
+        if (dto.MrbReviewed.HasValue) entity.MrbReviewed = dto.MrbReviewed.Value;
+        if (dto.MrbReviewer != null) entity.MrbReviewer = dto.MrbReviewer;
+        if (dto.MrbReviewedAt.HasValue) entity.MrbReviewedAt = dto.MrbReviewedAt.Value;
 
+        // 处置相关
+        if (dto.Disposition != null) entity.Disposition = dto.Disposition;
+        if (dto.DispositionBy != null) entity.DispositionBy = dto.DispositionBy;
+        if (dto.DispositionDate.HasValue) entity.DispositionDate = dto.DispositionDate.Value;
+
+        // CAPA 关联
+        if (dto.CapaId.HasValue) entity.CapaId = dto.CapaId.Value;
+
+        // 供应商通知
+        if (dto.SupplierNotified.HasValue) entity.SupplierNotified = dto.SupplierNotified.Value;
+        if (dto.SupplierResponseAt.HasValue) entity.SupplierResponseAt = dto.SupplierResponseAt.Value;
+
+        // 自动状态流转
+        if (dto.MrbReviewed == true && entity.Status == "mrb_reviewing")
+            entity.Status = "mrb_approved";
+        if (entity.Status == "open" && entity.FirstResponseAt.HasValue)
+            entity.Status = "investigating";
+
+        entity.UpdatedBy = dto.UpdatedBy;
         entity.UpdatedAt = DateTime.UtcNow;
+
         await _db.SaveChangesAsync();
 
         return await ListAnomalies(new PagedRequest { Page = 1, PageSize = 1, Keyword = entity.AnomalyNo })
             .ContinueWith(t => t.Result.Items.FirstOrDefault());
     }
 
-    public async Task<bool> ResolveAnomaly(long id, ResolveIqcAnomalyDto dto)
+    /// <summary>
+    /// 完成 MRB 评审（多部门会签）
+    /// </summary>
+    public async Task<IqcAnomalyListDto> MrbReview(long id, MrbReviewDto dto)
     {
         var entity = await _db.IqcAnomalies.FindAsync(id);
-        if (entity == null) return false;
+        if (entity == null) throw new KeyNotFoundException("异常单不存在");
+
+        entity.MrbReviewed = true;
+        entity.MrbReviewer = dto.Reviewer;
+        entity.MrbReviewedAt = DateTime.UtcNow;
+        entity.Status = dto.Approved ? "mrb_approved" : "investigating"; // 驳回则退回调查
+        if (!string.IsNullOrWhiteSpace(dto.ReviewComments))
+            entity.Description = $"{entity.Description}\n[MRB评审] {dto.ReviewComments}";
+        entity.UpdatedBy = dto.UpdatedBy;
+        entity.UpdatedAt = DateTime.UtcNow;
+
+        await _db.SaveChangesAsync();
+        return MapAnomalyToDto(entity);
+    }
+
+    /// <summary>
+    /// 做出处置决定
+    /// </summary>
+    public async Task<IqcAnomalyListDto> MakeDisposition(long id, DispositionDto dto)
+    {
+        var entity = await _db.IqcAnomalies.FindAsync(id);
+        if (entity == null) throw new KeyNotFoundException("异常单不存在");
+
+        entity.Disposition = dto.Disposition;
+        entity.DispositionBy = dto.DispositionBy;
+        entity.DispositionDate = DateTime.UtcNow;
+        entity.Status = "disposed";
+        entity.UpdatedBy = dto.UpdatedBy;
+        entity.UpdatedAt = DateTime.UtcNow;
+
+        await _db.SaveChangesAsync();
+        return MapAnomalyToDto(entity);
+    }
+
+    /// <summary>
+    /// 通知供应商
+    /// </summary>
+    public async Task<IqcAnomalyListDto> NotifySupplier(long id, NotifySupplierDto dto)
+    {
+        var entity = await _db.IqcAnomalies.FindAsync(id);
+        if (entity == null) throw new KeyNotFoundException("异常单不存在");
+
+        entity.SupplierNotified = true;
+        entity.SupplierResponseAt = DateTime.UtcNow;
+        if (!string.IsNullOrWhiteSpace(dto.Message))
+            entity.Description = $"{entity.Description}\n[通知供应商] {dto.Message}";
+        entity.UpdatedBy = dto.UpdatedBy;
+        entity.UpdatedAt = DateTime.UtcNow;
+
+        await _db.SaveChangesAsync();
+        return MapAnomalyToDto(entity);
+    }
+
+    /// <summary>
+    /// 解决异常单（增强版）
+    /// 支持多步骤状态流转：open → investigating → resolved
+    /// </summary>
+    public async Task<IqcAnomalyListDto> ResolveAnomaly(long id, ResolveIqcAnomalyDto dto)
+    {
+        var entity = await _db.IqcAnomalies.FindAsync(id);
+        if (entity == null) throw new KeyNotFoundException("异常单不存在");
 
         entity.Status = "resolved";
         entity.Handler = dto.Handler ?? entity.Handler;
@@ -674,10 +800,72 @@ public class IqcService
         entity.Description = entity.Description != null
             ? $"{entity.Description}\n[解决] {dto.Resolution}"
             : $"[解决] {dto.Resolution}";
+        entity.UpdatedBy = dto.UpdatedBy;
         entity.UpdatedAt = DateTime.UtcNow;
 
         await _db.SaveChangesAsync();
-        return true;
+        return MapAnomalyToDto(entity);
+    }
+
+    /// <summary>
+    /// 关闭异常单
+    /// </summary>
+    public async Task<IqcAnomalyListDto> CloseAnomaly(long id)
+    {
+        var entity = await _db.IqcAnomalies.FindAsync(id);
+        if (entity == null) throw new KeyNotFoundException("异常单不存在");
+
+        entity.Status = "closed";
+        entity.UpdatedAt = DateTime.UtcNow;
+
+        await _db.SaveChangesAsync();
+        return MapAnomalyToDto(entity);
+    }
+
+    /// <summary>
+    /// 映射 Entity → DTO（增强版）
+    /// </summary>
+    private IqcAnomalyListDto MapAnomalyToDto(IqcAnomaly entity)
+    {
+        return new IqcAnomalyListDto
+        {
+            Id = entity.Id,
+            AnomalyNo = entity.AnomalyNo,
+            ReceiptId = entity.ReceiptId,
+            InspectionId = entity.InspectionId,
+            FailedItemIds = entity.FailedItemIds,
+            DefectQty = entity.DefectQty,
+            AnomalyType = entity.AnomalyType,
+            Severity = entity.Severity,
+            Description = entity.Description,
+            IsolatedInventory = entity.IsolatedInventory,
+            Disposition = entity.Disposition,
+            DispositionBy = entity.DispositionBy,
+            DispositionDate = entity.DispositionDate,
+            HandlerDept = entity.HandlerDept,
+            Status = entity.Status,
+            Handler = entity.Handler,
+            MrbReviewed = entity.MrbReviewed,
+            MrbReviewer = entity.MrbReviewer,
+            MrbReviewedAt = entity.MrbReviewedAt,
+            CapaId = entity.CapaId,
+            FirstResponseAt = entity.FirstResponseAt,
+            SupplierNotified = entity.SupplierNotified,
+            SupplierResponseAt = entity.SupplierResponseAt,
+            ResolvedAt = entity.ResolvedAt,
+            CreatedAt = entity.CreatedAt,
+            UpdatedAt = entity.UpdatedAt
+        };
+    }
+
+    /// <summary>
+    /// 生成异常单号（序号递增格式：ANM-YYYYMMDD-NNNN）
+    /// </summary>
+    private static int _nextAnomalySeq = 1;
+    private string GenerateAnomalySeq()
+    {
+        var count = Interlocked.Increment(ref _nextAnomalySeq);
+        return count.ToString("D4");
     }
 
     // ═══════════════════════════════════════════════════════════════

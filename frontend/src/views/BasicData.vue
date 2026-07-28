@@ -1480,107 +1480,6 @@ onMounted(() => {
   flex-shrink: 0;
 }
 
-/* ─── Data Card ───────────────────────────── */
-.data-card {
-  background: var(--bg-white, #fff);
-  border-radius: var(--radius-lg, 8px);
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
-  overflow: hidden;
-}
-
-.data-card__header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: var(--space-4, 16px) var(--space-5, 20px);
-  border-bottom: 1px solid var(--border-color, #e4e7ed);
-  background: var(--bg-white, #fff);
-}
-
-.data-card__title {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2, 8px);
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--text-primary, #1a1a1a);
-}
-
-.data-card__title .el-icon {
-  color: var(--primary, #1677ff);
-}
-
-.data-card__count {
-  font-weight: 400;
-}
-
-.data-card__toolbar {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2, 8px);
-}
-
-/* ─── Filter Bar ──────────────────────────── */
-.filter-bar {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2, 8px);
-  flex: 1;
-}
-
-/* ─── Table Index Column ──────────────────── */
-.data-card__table :deep(.el-table__row > .el-table__cell.index-cell),
-.data-card__table :deep(.index-cell) {
-  white-space: nowrap !important;
-}
-
-.data-card__table :deep(.index-cell .el-table__cell) {
-  white-space: nowrap !important;
-}
-
-.data-card__table :deep(.index-cell .cell) {
-  white-space: nowrap !important;
-  display: inline-block;
-  min-width: 100%;
-}
-
-/* ─── Table ───────────────────────────────── */
-.data-card__table {
-  border-radius: 0;
-}
-
-.data-card__table :deep(.el-table__row) {
-  transition: background-color 0.15s ease;
-}
-
-.data-card__table :deep(.el-table__row:hover) {
-  background-color: var(--primary-light, #e6f4ff);
-}
-
-.data-card__table :deep(.el-table__row--striped) {
-  --el-table-tr-bg-color: transparent;
-}
-
-.data-card__table :deep(.el-table th.el-table__cell) {
-  background: var(--bg-gray, #fafafa) !important;
-  color: var(--text-primary, #1a1a1a);
-  font-weight: 600;
-  font-size: 12px;
-}
-
-/* ─── Pagination ──────────────────────────── */
-.data-card__footer {
-  display: flex;
-  justify-content: flex-end;
-  padding: var(--space-3, 12px) var(--space-5, 20px);
-  border-top: 1px solid var(--border-color, #e4e7ed);
-  background: var(--bg-white, #fff);
-}
-
-.data-card__pagination {
-  display: flex;
-  align-items: center;
-}
 
 /* ─── Dialog ──────────────────────────────── */
 .dialog-body-wrap {
@@ -1680,29 +1579,34 @@ onMounted(() => {
   gap: var(--space-3, 12px);
 }
 
-/* ─── Action Buttons ──────────────────────── */
-.data-card__table :deep(.el-button--primary.is-link) {
-  padding: 0 4px;
-  border: none !important;
-  box-shadow: none !important;
+/* ─── Drawer ──────────────────────────────── */
+.data-drawer :deep(.el-drawer) {
+  border-radius: var(--radius-lg, 8px) 0 0 var(--radius-lg, 8px);
+  overflow: hidden;
 }
 
-.data-card__table :deep(.el-button--primary.is-link:hover),
-.data-card__table :deep(.el-button--primary.is-link:focus) {
-  border: none !important;
-  box-shadow: none !important;
-  outline: none;
+.data-drawer :deep(.el-drawer__header) {
+  padding: 18px 24px;
+  border-bottom: 1px solid var(--border-color, #e4e7ed);
+  margin: 0;
+  background: var(--bg-white, #fff);
+  margin-bottom: 0;
 }
 
-.data-card__table :deep(.el-button--primary.is-link:focus-visible) {
-  outline: none;
-  box-shadow: none;
+.data-drawer :deep(.el-drawer__close-btn) {
+  top: 18px;
+  right: 24px;
 }
 
-/* ─── Status Tags ─────────────────────────── */
-.data-card__table :deep(.el-tag) {
-  border-radius: var(--radius-sm, 4px);
-  font-weight: 500;
+.data-drawer :deep(.el-drawer__title) {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary, #1a1a1a);
+}
+
+.data-drawer :deep(.el-drawer__body) {
+  padding: 0;
+  background: var(--bg-white, #fff);
 }
 
 /* ─── Responsive ──────────────────────────── */

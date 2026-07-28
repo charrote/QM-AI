@@ -22,6 +22,7 @@ const loading = ref(false)
 const dialogVisible = ref(false)
 const processes = ref<Process[]>([])
 const equipmentList = ref<Equipment[]>([])
+const saving = ref(false)
 
 const form = ref<CreateIpqcPatrolPlan>({
   processId: 0,
@@ -103,6 +104,7 @@ async function handleSave() {
     ElMessage.warning('请填写完整信息')
     return
   }
+  saving.value = true
   try {
     if (editingId.value) {
       await patrolPlanApi.update(editingId.value, form.value as UpdateIpqcPatrolPlan)
@@ -115,6 +117,8 @@ async function handleSave() {
     await loadData()
   } catch (e: any) {
     ElMessage.error(e?.response?.data?.message || '保存失败')
+  } finally {
+    saving.value = false
   }
 }
 
@@ -146,50 +150,44 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="page-container">
-    <!-- Page Header -->
-    <div class="page-header">
-      <div class="page-header__icon-wrapper">
-        <el-icon :size="28"><Document /></el-icon>
-      </div>
-      <div class="page-header__info">
-        <h1 class="page-header__title">巡检计划管理</h1>
-        <p class="page-header__subtitle">配置巡检规则，自动生成巡检任务</p>
+  <div class="page-content">
+    <!-- Page Header Banner -->
+    <div class="page-header-banner page-header-banner--primary">
+      <div class="page-header-banner-main">
+        <div class="page-header-banner-icon">
+          <el-icon :size="24"><Document /></el-icon>
+        </div>
+        <div class="page-header-banner-text">
+          <h1 class="page-header-banner-title">巡检计划管理</h1>
+          <p class="page-header-banner-subtitle">配置巡检规则，自动生成巡检任务</p>
+        </div>
+        <div style="margin-left:auto; display:flex; gap:8px">
+          <el-button type="primary" :icon="Plus" @click="openCreate">新建计划</el-button>
+          <el-button :icon="Refresh" @click="loadData" :loading="loading">刷新</el-button>
+        </div>
       </div>
     </div>
 
-    <!-- Toolbar -->
+    <!-- Filter Bar -->
     <div class="action-bar">
-      <div class="action-bar__left">
-        <el-input
-          v-model="searchKeyword"
-          placeholder="搜索计划编号"
-          :prefix-icon="Search"
-          clearable
-          style="width: 260px"
-          @clear="loadData"
-          @keyup.enter="loadData"
-        />
-        <el-select
-          v-model="statusFilter"
-          placeholder="状态筛选"
-          clearable
-          style="width: 140px"
-          @change="loadData"
-        >
-          <el-option v-for="o in IPQC_PATROL_PLAN_STATUS_OPTIONS" :key="o.value" :label="o.label" :value="o.value" />
-        </el-select>
-        <el-button @click="loadData">
-          <el-icon><Refresh /></el-icon>
-          刷新
-        </el-button>
-      </div>
-      <div class="action-bar__right">
-        <el-button type="primary" @click="openCreate">
-          <el-icon><Plus /></el-icon>
-          新建计划
-        </el-button>
-      </div>
+      <el-input
+        v-model="searchKeyword"
+        placeholder="搜索计划编号"
+        :prefix-icon="Search"
+        clearable
+        style="width: 260px"
+        @clear="loadData"
+        @keyup.enter="loadData"
+      />
+      <el-select
+        v-model="statusFilter"
+        placeholder="状态筛选"
+        clearable
+        style="width: 140px"
+        @change="loadData"
+      >
+        <el-option v-for="o in IPQC_PATROL_PLAN_STATUS_OPTIONS" :key="o.value" :label="o.label" :value="o.value" />
+      </el-select>
     </div>
 
     <!-- Table Card -->
@@ -198,8 +196,7 @@ onMounted(async () => {
         :data="items"
         stripe
         v-loading="loading"
-        :row-class-name="() => 'data-card__row'"
-        style="width: 100%"
+        class="data-card__table"
         @row-click="() => {}"
       >
         <el-table-column prop="planNo" label="计划编号" min-width="180" show-overflow-tooltip />
@@ -208,14 +205,14 @@ onMounted(async () => {
         <el-table-column prop="patrolIntervalMin" label="间隔(分钟)" width="120" align="center" />
         <el-table-column label="自动生成" width="100" align="center">
           <template #default="{ row }">
-            <el-tag :type="row.autoGenerate ? 'success' : 'info'" size="small" effect="dark">
+            <el-tag :type="row.autoGenerate ? 'success' : 'info'" size="small" effect="dark" class="status-badge">
               {{ row.autoGenerate ? '是' : '否' }}
             </el-tag>
           </template>
         </el-table-column>
         <el-table-column label="状态" width="100" align="center">
           <template #default="{ row }">
-            <el-tag :type="statusTag(row.status)" size="small" effect="dark">{{ statusLabel(row.status) }}</el-tag>
+            <el-tag :type="statusTag(row.status)" size="small" effect="dark" class="status-badge">{{ statusLabel(row.status) }}</el-tag>
           </template>
         </el-table-column>
         <el-table-column prop="inspector" label="检验员" min-width="120" show-overflow-tooltip />
@@ -252,13 +249,13 @@ onMounted(async () => {
       :title="editingId ? '编辑巡检计划' : '新建巡检计划'"
       width="560px"
       :close-on-click-modal="false"
-      top="8vh"
+      destroy-on-close
     >
       <div v-if="dialogVisible">
         <div class="dialog-section">
-          <div class="dialog-section__title">
-            <el-icon><Setting /></el-icon>
-            <span>基础配置</span>
+          <div class="dialog-section-header">
+            <el-icon class="dialog-section-icon"><Setting /></el-icon>
+            基础配置
           </div>
           <el-form :model="form" label-width="110px" label-position="left">
             <el-form-item label="工序" required>
@@ -275,9 +272,9 @@ onMounted(async () => {
         </div>
 
         <div class="dialog-section">
-          <div class="dialog-section__title">
-            <el-icon><Clock /></el-icon>
-            <span>巡检参数</span>
+          <div class="dialog-section-header">
+            <el-icon class="dialog-section-icon"><Clock /></el-icon>
+            巡检参数
           </div>
           <el-form :model="form" label-width="110px" label-position="left">
             <el-form-item label="巡检间隔(分钟)" required>
@@ -290,9 +287,9 @@ onMounted(async () => {
         </div>
 
         <div class="dialog-section">
-          <div class="dialog-section__title">
-            <el-icon><User /></el-icon>
-            <span>人员信息</span>
+          <div class="dialog-section-header">
+            <el-icon class="dialog-section-icon"><User /></el-icon>
+            人员信息
           </div>
           <el-form :model="form" label-width="110px" label-position="left">
             <el-form-item label="检验员">
@@ -304,7 +301,7 @@ onMounted(async () => {
 
       <template #footer>
         <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="handleSave">
+        <el-button type="primary" @click="handleSave" :loading="saving">
           <el-icon><Check /></el-icon>
           保存
         </el-button>
@@ -315,120 +312,6 @@ onMounted(async () => {
 
 
 
+
 <style scoped>
-.page-container {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  gap: 16px;
-}
-
-/* ─── Page Header ──────────────────── */
-.page-header {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 0 4px;
-}
-
-.page-header__icon-wrapper {
-  width: 44px;
-  height: 44px;
-  border-radius: 10px;
-  background: var(--el-color-primary-light-9, #ecf5ff);
-  color: var(--el-color-primary, #409eff);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.page-header__info {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.page-header__title {
-  margin: 0;
-  font-size: 20px;
-  font-weight: 600;
-  color: var(--text-primary, #303133);
-  line-height: 1.3;
-}
-
-.page-header__subtitle {
-  margin: 0;
-  font-size: 13px;
-  color: var(--text-secondary, #909399);
-  line-height: 1.4;
-}
-
-/* ─── Action Bar ───────────────────── */
-.action-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-
-.action-bar__left {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.action-bar__right {
-  display: flex;
-  gap: 8px;
-}
-
-/* ─── Data Card ────────────────────── */
-.data-card {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  background: var(--bg-card, #fff);
-  border-radius: 8px;
-  box-shadow: var(--shadow-sm, 0 1px 2px rgba(0,0,0,0.06));
-  overflow: hidden;
-}
-
-.data-card__row {
-  transition: background-color 0.2s;
-}
-
-.data-card__row:hover {
-  background-color: var(--el-fill-color-light, #f5f7fa) !important;
-}
-
-.data-card__footer {
-  display: flex;
-  justify-content: flex-end;
-  padding: 12px 16px;
-  border-top: 1px solid var(--el-border-color-lighter, #ebeef5);
-}
-
-/* ─── Dialog Sections ──────────────── */
-.dialog-section {
-  margin-bottom: 20px;
-}
-
-.dialog-section__title {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-primary, #303133);
-  margin-bottom: 12px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid var(--el-border-color-lighter, #ebeef5);
-}
-
-.dialog-section__title .el-icon {
-  color: var(--el-color-primary, #409eff);
-}
 </style>

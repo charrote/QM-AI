@@ -53,9 +53,9 @@ public class DynamicParam
     [Column("lsl")]
     public decimal? Lsl { get; set; }
 
-    /// <summary>精度/小数位数</summary>
+    /// <summary>精度/小数位数（0-6 位）</summary>
     [Column("precision")]
-    public decimal Precision { get; set; } = 1.0m;
+    public int Precision { get; set; } = 2;
 
     /// <summary>AI 策略预置配置（JSON）</summary>
     [Column("ai_strategy")]

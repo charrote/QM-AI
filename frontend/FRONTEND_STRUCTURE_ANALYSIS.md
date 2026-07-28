@@ -69,7 +69,7 @@ frontend/src/
 │   │   ├── IqcInspectionsPage.vue
 │   │   ├── IqcAnomaliesPage.vue
 │   │   ├── IqcSuppliersPage.vue
-│   │   ├── IqcTracePage.vue
+│   │   ├── IqcTracePage.vue  (已迁移至 /trace/TracePage.vue)
 │   │   └── PdaIqcScan.vue
 │   │
 │   ├── ipqc/               #   IPQC 子模块（已完成）

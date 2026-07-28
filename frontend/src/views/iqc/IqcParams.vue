@@ -114,7 +114,7 @@ const paramForm = reactive<CreateDynamicParam>({
   targetValue: undefined,
   usl: undefined,
   lsl: undefined,
-  precision: 1.0,
+  precision: 2,
   aiStrategy: '',
   sortOrder: 0,
   isActive: true,
@@ -165,7 +165,7 @@ function openCreateParam() {
   paramForm.targetValue = undefined
   paramForm.usl = undefined
   paramForm.lsl = undefined
-  paramForm.precision = 1.0
+  paramForm.precision = 2
   paramForm.aiStrategy = ''
   paramForm.sortOrder = 0
   paramDialogVisible.value = true
@@ -263,11 +263,30 @@ function selectParam(param: DynamicParam) {
 
 // 数值型规格限校验
 const specLimitError = computed(() => {
-  if (paramForm.dataType === 'numeric' && paramForm.usl !== undefined && paramForm.lsl !== undefined) {
-    return paramForm.usl < paramForm.lsl ? 'USL 必须大于 LSL' : ''
+  if (paramForm.dataType !== 'numeric') return ''
+  
+  // 检查 USL > LSL
+  if (paramForm.usl !== undefined && paramForm.lsl !== undefined && paramForm.usl < paramForm.lsl) {
+    return 'USL 必须大于 LSL'
   }
+  
   return ''
 })
+
+// 根据精度计算步长（0 位小数步长为 1，1 位为 0.1，2 位为 0.01，以此类推）
+function getStepSize(precision: number): number {
+  if (precision <= 0) return 1
+  return Math.pow(10, -precision)
+}
+
+// 获取数值的小数位数
+function getDecimalPlaces(value: number): number {
+  if (value === undefined || value === null) return 0
+  const str = value.toString()
+  const decimalIndex = str.indexOf('.')
+  if (decimalIndex === -1) return 0
+  return str.length - decimalIndex - 1
+}
 
 // ============================================================================
 // Section 3: 动态仪表盘预览 (DynamicDashboard)
@@ -458,14 +477,14 @@ onMounted(async () => {
 <template>
   <div class="iqc-container">
     <!-- Page Header -->
-    <div class="page-header">
-      <div class="page-header-main">
-        <div class="page-header-icon">
+    <div class="page-header-banner page-header-banner--primary">
+      <div class="page-header-banner-main">
+        <div class="page-header-banner-icon">
           <el-icon :size="28"><Document /></el-icon>
         </div>
-        <div class="page-header-text">
-          <h2 class="page-header-title">动态参数配置</h2>
-          <span class="page-header-subtitle">管理系统参数组、动态参数定义及关单策略规则</span>
+        <div class="page-header-banner-text">
+          <h2 class="page-header-banner-title">动态参数配置</h2>
+          <span class="page-header-banner-subtitle">管理系统参数组、动态参数定义及关单策略规则</span>
         </div>
       </div>
     </div>
@@ -631,21 +650,16 @@ onMounted(async () => {
       </div>
 
       <!-- Bottom Row: 关单策略模板 (ClosureRuleBuilder + ClosureRuleList) -->
-      <div class="rules-section">
-        <div class="panel-header">
-          <div class="panel-header-left">
-            <el-icon class="panel-icon"><Setting /></el-icon>
-            <span>关单策略模板配置</span>
+      <div class="data-card">
+          <div class="data-card__header">
+            <span class="data-card__title">关单规则模板配置</span>
+            <div class="data-card__toolbar">
+              <el-button type="primary" size="small" @click="openCreateRule">
+                + 新建规则
+              </el-button>
+            </div>
           </div>
-          <el-button type="primary" size="small" @click="openCreateRule">
-            + 新建规则
-          </el-button>
-        </div>
-
-        <div class="data-card">
-          <div class="rules-content">
-            <div class="rules-table">
-            <el-table :data="rules" stripe style="width: 100%" >
+          <el-table class="data-card__table" :data="rules" stripe border size="small" empty-text="暂无关单规则，点击「新建规则」创建" >
               <el-table-column prop="name" label="规则名称" min-width="160" />
               <el-table-column prop="code" label="编码" width="120" />
               <el-table-column prop="logic" label="逻辑" width="80">
@@ -680,22 +694,20 @@ onMounted(async () => {
             <div v-if="rules.length === 0" class="empty-hint">
               暂无关单规则，点击「新建规则」创建
             </div>
-          </div>
 
           <!-- Evaluation Result -->
           <div v-if="evaluationResult" class="evaluation-result">
             <el-alert
-              :title="`评估结果: ${evaluationResult.ruleName}`"
+              :title="`评估结果：${evaluationResult.ruleName}`"
               :type="evaluationResult.isSatisfied ? 'success' : 'warning'"
               :description="evaluationResult.isSatisfied
                 ? '所有条件满足，允许关单'
-                : `未满足条件:\n${evaluationResult.failedConditions?.join('\n') || '无'}`
+                : `未满足条件：\n${evaluationResult.failedConditions?.join('\n') || '无'}`
               "
               show-icon
               :closable="true"
               @close="evaluationResult = null"
             />
-          </div>
           </div>
         </div>
       </div>
@@ -704,12 +716,15 @@ onMounted(async () => {
     <!-- ================================================================== -->
     <!-- Dialogs -->
     <!-- ================================================================== -->
+    <!-- Dialogs -->
+    <!-- ================================================================== -->
 
-    <!-- 参数组 Dialog -->
-    <el-dialog
+    <!-- 参数组 Drawer -->
+    <el-drawer
       v-model="groupDialogVisible"
       :title="isEditingGroup ? '编辑参数组' : '新建参数组'"
-      width="520px"
+      size="520px"
+      direction="rtl"
       :close-on-click-modal="false"
     >
       <div class="dialog-section">
@@ -737,16 +752,19 @@ onMounted(async () => {
         </el-form>
       </div>
       <template #footer>
-        <el-button size="small" @click="groupDialogVisible = false">取消</el-button>
-        <el-button size="small" type="primary" @click="saveGroup">保存</el-button>
+        <div style="display: flex; gap: 8px; justify-content: flex-end;">
+          <el-button size="small" @click="groupDialogVisible = false">取消</el-button>
+          <el-button size="small" type="primary" @click="saveGroup">保存</el-button>
+        </div>
       </template>
-    </el-dialog>
+    </el-drawer>
 
-    <!-- 参数 Dialog -->
-    <el-dialog
+    <!-- 参数 Drawer -->
+    <el-drawer
       v-model="paramDialogVisible"
       :title="isEditingParam ? '编辑参数' : '新建参数'"
-      width="620px"
+      size="620px"
+      direction="rtl"
       :close-on-click-modal="false"
     >
       <div class="dialog-section">
@@ -786,21 +804,51 @@ onMounted(async () => {
           <el-icon class="dialog-section-icon"><DataAnalysis /></el-icon>
           <span class="dialog-section-title">规格限设置</span>
         </div>
-        <el-form :model="paramForm" label-width="150px">
-          <el-form-item label="目标值">
-            <el-input-number v-model="paramForm.targetValue!" :precision="4" :step="0.1" style="width: 100%" />
-          </el-form-item>
-          <el-form-item label="下规格限 (LSL)">
-            <el-input-number v-model="paramForm.lsl!" :precision="4" :step="0.1" style="width: 100%" />
-          </el-form-item>
-          <el-form-item label="上规格限 (USL)">
-            <el-input-number v-model="paramForm.usl!" :precision="4" :step="0.1" style="width: 100%" />
-          </el-form-item>
-          <el-form-item v-if="specLimitError" label=" " label-width="150px">
+        <el-form :model="paramForm" label-width="100px">
+          <el-row :gutter="16">
+            <el-col :span="12">
+              <el-form-item label="目标值">
+                <el-input-number 
+                  v-model="paramForm.targetValue!" 
+                  :precision="paramForm.precision || 0" 
+                  :step="getStepSize(paramForm.precision || 0)"
+                  controls-position="right" 
+                  style="width: 100%" 
+                />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="精度（小数位）">
+                <el-input-number v-model="paramForm.precision!" :min="0" :max="6" :step="1" controls-position="right" style="width: 100%" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row :gutter="16">
+            <el-col :span="12">
+              <el-form-item label="上规格限 (USL)">
+                <el-input-number 
+                  v-model="paramForm.usl!" 
+                  :precision="paramForm.precision || 0" 
+                  :step="getStepSize(paramForm.precision || 0)"
+                  controls-position="right" 
+                  style="width: 100%" 
+                />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="下规格限 (LSL)">
+                <el-input-number 
+                  v-model="paramForm.lsl!" 
+                  :precision="paramForm.precision || 0" 
+                  :step="getStepSize(paramForm.precision || 0)"
+                  controls-position="right" 
+                  style="width: 100%" 
+                />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-form-item v-if="specLimitError" label=" " label-width="100px">
             <span style="color: var(--el-color-danger)">{{ specLimitError }}</span>
-          </el-form-item>
-          <el-form-item label="精度">
-            <el-input-number v-model="paramForm.precision!" :min="0.01" :max="100" :step="0.01" style="width: 100%" />
           </el-form-item>
         </el-form>
       </div>
@@ -827,20 +875,26 @@ onMounted(async () => {
           <el-form-item label="排序号">
             <el-input-number v-model="paramForm.sortOrder!" :min="0" :step="1" style="width: 100%" />
           </el-form-item>
+          <el-form-item label="启用状态">
+            <el-switch v-model="paramForm.isActive" />
+          </el-form-item>
         </el-form>
       </div>
 
       <template #footer>
-        <el-button size="small" @click="paramDialogVisible = false">取消</el-button>
-        <el-button size="small" type="primary" @click="saveParam">保存</el-button>
+        <div style="display: flex; gap: 8px; justify-content: flex-end;">
+          <el-button size="small" @click="paramDialogVisible = false">取消</el-button>
+          <el-button size="small" type="primary" @click="saveParam">保存</el-button>
+        </div>
       </template>
-    </el-dialog>
+    </el-drawer>
 
-    <!-- 关单规则 Dialog -->
-    <el-dialog
+    <!-- 关单规则 Drawer -->
+    <el-drawer
       v-model="ruleDialogVisible"
       :title="isEditingRule ? '编辑关单规则' : '新建关单规则'"
-      width="680px"
+      size="680px"
+      direction="rtl"
       :close-on-click-modal="false"
     >
       <div class="dialog-section">
@@ -938,13 +992,14 @@ onMounted(async () => {
       </div>
 
       <template #footer>
-        <el-button size="small" @click="ruleDialogVisible = false">取消</el-button>
-        <el-button size="small" type="primary" @click="saveRule">
-          {{ isEditingRule ? '更新规则' : '保存规则' }}
-        </el-button>
+        <div style="display: flex; gap: 8px; justify-content: flex-end;">
+          <el-button size="small" @click="ruleDialogVisible = false">取消</el-button>
+          <el-button size="small" type="primary" @click="saveRule">
+            {{ isEditingRule ? '更新规则' : '保存规则' }}
+          </el-button>
+        </div>
       </template>
-    </el-dialog>
-  </div>
+    </el-drawer>
 </template>
 
 <style scoped>
@@ -953,50 +1008,6 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-}
-
-/* Page Header */
-.page-header {
-  padding: 12px 16px;
-  background: linear-gradient(135deg, var(--el-color-primary), var(--el-color-primary-light-3));
-  border-radius: 8px;
-  margin: 8px;
-}
-
-.page-header-main {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-}
-
-.page-header-icon {
-  width: 48px;
-  height: 48px;
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.2);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
-  flex-shrink: 0;
-}
-
-.page-header-text {
-  display: flex;
-  flex-direction: column;
-}
-
-.page-header-title {
-  margin: 0;
-  font-size: 20px;
-  font-weight: 700;
-  color: white;
-  line-height: 1.3;
-}
-
-.page-header-subtitle {
-  font-size: 13px;
-  color: rgba(255, 255, 255, 0.85);
 }
 
 /* Data Card */
@@ -1254,13 +1265,17 @@ onMounted(async () => {
 .param-item-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 8px;
+  position: relative;
 }
 
 .param-name {
   font-size: 13px;
   font-weight: 500;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .param-item-meta {
@@ -1282,29 +1297,13 @@ onMounted(async () => {
 .param-item-actions {
   position: absolute;
   right: 8px;
-  top: 8px;
+  top: 50%;
+  transform: translateY(-50%);
   display: none;
 }
 
 .param-item:hover .param-item-actions {
   display: flex;
-}
-
-/* Rules Section */
-.rules-section {
-  background: var(--el-bg-color);
-  border: 1px solid var(--el-border-color-light);
-  border-radius: 6px;
-}
-
-.rules-content {
-  padding: 12px;
-}
-
-.evaluation-result {
-  margin-top: 12px;
-  padding-top: 12px;
-  border-top: 1px solid var(--el-border-color-light);
 }
 
 /* Conditions Builder */
@@ -1361,11 +1360,5 @@ onMounted(async () => {
   color: var(--el-text-color-disabled);
   font-size: 12px;
   padding: 20px;
-}
-
-.strategy-desc {
-  font-size: 11px;
-  color: var(--el-text-color-secondary);
-  margin-left: 8px;
 }
 </style>

@@ -93,6 +93,9 @@ public class ComplaintService
         return $"Complaint Report: {c.ComplaintCode}\nSubject: {c.Subject}\nSeverity: {c.Severity}\nStatus: {c.Status}\nDescription: {c.Description}";
     }
 
-    private async Task LogEventAsync(long complaintId, string eventType, string? eventData) =>
+    private async Task LogEventAsync(long complaintId, string eventType, string? eventData)
+    {
         _db.ComplaintEvents.Add(new ComplaintEvent { ComplaintId = complaintId, EventType = eventType, EventData = eventData });
+        await _db.SaveChangesAsync();
+    }
 }

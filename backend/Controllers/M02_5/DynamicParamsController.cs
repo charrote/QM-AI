@@ -127,7 +127,7 @@ public class DynamicParamsController : ControllerBase
             TargetValue = dto.TargetValue,
             Usl = dto.Usl,
             Lsl = dto.Lsl,
-            Precision = dto.Precision,
+            Precision = (int)dto.Precision,
             AiStrategy = dto.AiStrategy,
             SortOrder = dto.SortOrder,
             CreatedBy = 1, // TODO: 从 JWT 获取
@@ -156,7 +156,7 @@ public class DynamicParamsController : ControllerBase
         entity.TargetValue = dto.TargetValue;
         entity.Usl = dto.Usl;
         entity.Lsl = dto.Lsl;
-        entity.Precision = dto.Precision;
+        entity.Precision = (int)dto.Precision;
         entity.AiStrategy = dto.AiStrategy;
         entity.SortOrder = dto.SortOrder;
         entity.IsActive = dto.IsActive;

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch, nextTick } from 'vue'
 import { ElMessage } from 'element-plus'
 import {
   DataAnalysis,
@@ -10,12 +10,32 @@ import {
   Setting,
   Refresh,
   Document,
+  ArrowUp,
+  ArrowDown,
+  Remove,
 } from '@element-plus/icons-vue'
 import { riskScoreApi } from '@/api/ipqc'
 import { equipmentApi, processApi } from '@/api/basicData'
 import type { IpqcAiRiskScore, RiskFactor } from '@/types/ipqc'
 import { IPQC_RISK_LEVEL_OPTIONS, IPQC_TREND_OPTIONS } from '@/types/ipqc'
 import type { Equipment, Process } from '@/types/basicData'
+import VChart from 'vue-echarts'
+import { use } from 'echarts/core'
+import { CanvasRenderer } from 'echarts/renderers'
+import { LineChart } from 'echarts/charts'
+import {
+  GridComponent,
+  TooltipComponent,
+  LegendComponent,
+} from 'echarts/components'
+
+use([
+  CanvasRenderer,
+  LineChart,
+  GridComponent,
+  TooltipComponent,
+  LegendComponent,
+])
 
 defineOptions({ name: 'IpqcRiskDashboard' })
 
@@ -29,6 +49,7 @@ const riskScore = ref<IpqcAiRiskScore | null>(null)
 const scoreHistory = ref<IpqcAiRiskScore[]>([])
 const loading = ref(false)
 const historyLoading = ref(false)
+const chartReady = ref(false)
 
 // ─── Load Data ─────────────────────────────────
 async function loadEquipment() {
@@ -56,6 +77,8 @@ async function analyzeRisk() {
   try {
     const result = await riskScoreApi.analyze(selectedEquipmentId.value, selectedProcessId.value)
     riskScore.value = result
+    await nextTick()
+    chartReady.value = true
   } catch (e: any) {
     ElMessage.error(e?.response?.data?.message || '分析失败')
   } finally {
@@ -69,6 +92,8 @@ async function loadHistory() {
   try {
     const history = await riskScoreApi.history(selectedEquipmentId.value, selectedProcessId.value, 24)
     scoreHistory.value = history
+    await nextTick()
+    chartReady.value = true
   } catch {
     // silent
   } finally {
@@ -96,124 +121,194 @@ function levelLabel(level: string) {
   return opt?.label || level
 }
 
-function trendIcon(trend?: string) {
-  if (trend === 'rising') return '🔼'
-  if (trend === 'falling') return '🔽'
-  return '➡️'
-}
+// ─── ECharts Trend Chart ───────────────────────
+const trendChartOption = ref<any>(null)
 
-function trendColor(trend?: string) {
-  if (trend === 'rising') return '#f56c6c'
-  if (trend === 'falling') return '#67c23a'
-  return '#909399'
-}
+watch(() => scoreHistory.value, () => {
+  if (!scoreHistory.value.length) {
+    trendChartOption.value = null
+    return
+  }
+  const sorted = [...scoreHistory.value].sort((a, b) =>
+    new Date(a.lastUpdated!).getTime() - new Date(b.lastUpdated!).getTime()
+  )
+  const xData = sorted.map(s => {
+    const d = new Date(s.lastUpdated!)
+    return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+  })
+  const yData = sorted.map(s => s.score)
+
+  const lineColor = sorted[sorted.length - 1].score >= sorted[0].score ? '#ff4d4f' : '#52c41a'
+
+  trendChartOption.value = {
+    tooltip: {
+      trigger: 'axis',
+      formatter: (params: any) => {
+        const p = params[0]
+        return `<strong>${p.name}</strong><br/>风险评分: <strong>${p.value}</strong>`
+      },
+    },
+    grid: {
+      left: 40,
+      right: 16,
+      top: 16,
+      bottom: 24,
+    },
+    xAxis: {
+      type: 'category',
+      data: xData,
+      axisLabel: { fontSize: 10, color: '#8c8c8c' },
+      axisLine: { lineStyle: { color: '#e8e8e8' } },
+      axisTick: { show: false },
+    },
+    yAxis: {
+      type: 'value',
+      min: 0,
+      max: 100,
+      axisLabel: { fontSize: 10, color: '#8c8c8c' },
+      splitLine: { lineStyle: { color: '#f0f0f0', type: 'dashed' } },
+      axisLine: { show: false },
+      axisTick: { show: false },
+    },
+    series: [{
+      data: yData,
+      type: 'line',
+      smooth: true,
+      symbol: 'circle',
+      symbolSize: 6,
+      lineStyle: { width: 2, color: lineColor },
+      itemStyle: { color: lineColor },
+      areaStyle: {
+        color: {
+          type: 'linear',
+          x: 0, y: 0, x2: 0, y2: 1,
+          colorStops: [
+            { offset: 0, color: lineColor + '30' },
+            { offset: 1, color: lineColor + '05' },
+          ],
+        },
+      },
+    }],
+  }
+}, { deep: true })
 
 onMounted(async () => {
   await Promise.all([loadEquipment(), loadProcesses()])
+  await loadHistory()
 })
 </script>
 
 <template>
-  <div class="page-container">
-    <!-- Page Header -->
-    <div class="page-header">
-      <div class="page-header__icon-wrapper">
-        <el-icon :size="28"><DataAnalysis /></el-icon>
-      </div>
-      <div class="page-header__info">
-        <h1 class="page-header__title">AI 风险驾驶舱</h1>
-        <p class="page-header__subtitle">基于实时数据智能评估生产质量风险等级</p>
+  <div class="page-content">
+    <!-- Page Header Banner -->
+    <div class="page-header-banner page-header-banner--danger">
+      <div class="page-header-banner-main">
+        <div class="page-header-banner-icon">
+          <el-icon :size="24"><DataAnalysis /></el-icon>
+        </div>
+        <div class="page-header-banner-text">
+          <h1 class="page-header-banner-title">AI 风险驾驶舱</h1>
+          <p class="page-header-banner-subtitle">基于实时数据智能评估生产质量风险等级</p>
+        </div>
       </div>
     </div>
 
-    <!-- Filters -->
+    <!-- Filter Bar -->
     <div class="action-bar">
-      <div class="action-bar__left">
-        <el-select
-          v-model="selectedEquipmentId"
-          filterable
-          placeholder="选择设备"
-          :prefix-icon="Monitor"
-          style="width: 220px"
-        >
-          <el-option v-for="e in equipmentList" :key="e.id" :label="e.name" :value="e.id" />
-        </el-select>
-        <el-select
-          v-model="selectedProcessId"
-          filterable
-          placeholder="选择工序"
-          :prefix-icon="Setting"
-          style="width: 220px"
-        >
-          <el-option v-for="p in processList" :key="p.id" :label="p.name" :value="p.id" />
-        </el-select>
-        <el-button type="primary" @click="analyzeRisk" :loading="loading" size="default">
-          <el-icon><DataAnalysis /></el-icon>
-          分析风险
-        </el-button>
-        <el-button @click="loadLatest" size="default">
-          <el-icon><Refresh /></el-icon>
-          最新评分
-        </el-button>
-      </div>
+      <el-select
+        v-model="selectedEquipmentId"
+        filterable
+        placeholder="选择设备"
+        :prefix-icon="Monitor"
+        style="width: 220px"
+      >
+        <el-option v-for="e in equipmentList" :key="e.id" :label="e.name" :value="e.id" />
+      </el-select>
+      <el-select
+        v-model="selectedProcessId"
+        filterable
+        placeholder="选择工序"
+        :prefix-icon="Setting"
+        style="width: 220px"
+      >
+        <el-option v-for="p in processList" :key="p.id" :label="p.name" :value="p.id" />
+      </el-select>
+      <el-button type="primary" @click="analyzeRisk" :loading="loading">
+        <el-icon><DataAnalysis /></el-icon>
+        分析风险
+      </el-button>
+      <el-button @click="loadLatest">
+        <el-icon><Refresh /></el-icon>
+        最新评分
+      </el-button>
     </div>
 
     <!-- Risk Score Card -->
-    <div v-if="riskScore" class="risk-card">
-      <!-- Stat Cards Row -->
-      <div class="stat-row">
-        <div class="stat-card stat-card--score">
-          <div class="stat-card__icon" :style="{ background: riskScore.score >= 70 ? 'var(--el-color-danger-light-9)' : riskScore.score >= 40 ? 'var(--el-color-warning-light-9)' : 'var(--el-color-success-light-9)' }">
-            <el-icon :size="22" :style="{ color: riskScore.score >= 70 ? 'var(--el-color-danger)' : riskScore.score >= 40 ? 'var(--el-color-warning)' : 'var(--el-color-success)' }">
+    <div v-if="riskScore" class="data-card" style="padding: 20px;">
+      <!-- Stat Grid -->
+      <div class="stat-grid" style="margin-bottom: 20px;">
+        <div class="stat-grid__item" :class="'stat-grid__item--' + (riskScore.score >= 70 ? 'danger' : riskScore.score >= 40 ? 'warning' : 'success')">
+          <div class="stat-grid__icon" :class="'stat-grid__icon--' + (riskScore.score >= 70 ? 'danger' : riskScore.score >= 40 ? 'warning' : 'success')">
+            <el-icon :size="20">
               <WarningFilled v-if="riskScore.score >= 70" />
               <WarningFilled v-else-if="riskScore.score >= 40" />
               <CircleCheckFilled v-else />
             </el-icon>
           </div>
-          <div class="stat-card__content">
-            <div class="stat-card__number">{{ riskScore.score }}</div>
-            <div class="stat-card__label">风险评分</div>
+          <div class="stat-grid__text">
+            <div class="stat-grid__label">风险评分</div>
+            <div class="stat-grid__value">{{ riskScore.score }}</div>
           </div>
         </div>
 
-        <div class="stat-card">
-          <div class="stat-card__content">
-            <div class="stat-card__number">
+        <div class="stat-grid__item">
+          <div class="stat-grid__text">
+            <div class="stat-grid__label">风险等级</div>
+            <div class="stat-grid__value">
               <el-tag :type="levelTag(riskScore.level)" size="large" effect="dark">{{ levelLabel(riskScore.level) }}</el-tag>
             </div>
-            <div class="stat-card__label">风险等级</div>
           </div>
         </div>
 
-        <div class="stat-card">
-          <div class="stat-card__content">
-            <div class="stat-card__trend" :style="{ color: trendColor(riskScore.trend) }">
-              <el-icon :size="20">
-                <TrendCharts v-if="riskScore.trend === 'falling'" />
-                <WarningFilled v-else-if="riskScore.trend === 'rising'" />
-                <Setting v-else />
+        <div class="stat-grid__item">
+          <div class="stat-grid__text">
+            <div class="stat-grid__label">趋势走向</div>
+            <div class="stat-grid__value" style="font-size: 16px;">
+              <el-icon :size="16" :style="{ color: riskScore.trend === 'rising' ? '#ff4d4f' : riskScore.trend === 'falling' ? '#52c41a' : '#8c8c8c' }">
+                <ArrowUp v-if="riskScore.trend === 'rising'" />
+                <ArrowDown v-else-if="riskScore.trend === 'falling'" />
+                <Remove v-else />
               </el-icon>
               {{ riskScore.trend === 'rising' ? '上升' : riskScore.trend === 'falling' ? '下降' : '稳定' }}
             </div>
-            <div class="stat-card__label">趋势走向</div>
           </div>
         </div>
 
-        <div class="stat-card">
-          <div class="stat-card__content">
-            <div class="stat-card__number stat-card__time" v-if="riskScore.lastUpdated">
+        <div class="stat-grid__item">
+          <div class="stat-grid__text">
+            <div class="stat-grid__label">最后更新</div>
+            <div v-if="riskScore.lastUpdated" style="font-size: 13px; font-weight: 400; color: var(--el-text-color-regular);">
               {{ new Date(riskScore.lastUpdated).toLocaleString('zh-CN') }}
             </div>
-            <div class="stat-card__label">最后更新</div>
+            <div v-else style="font-size: 13px; color: var(--el-text-color-placeholder);">暂无数据</div>
           </div>
         </div>
       </div>
 
-      <!-- Recommendations -->
-      <div class="section" v-if="riskScore.recommendations && riskScore.recommendations.length > 0">
+      <!-- ECharts Trend Chart -->
+      <div v-if="scoreHistory.length > 0" class="section" style="margin-bottom: 20px;">
         <div class="section__title">
-          <el-icon color="var(--el-color-primary)"><Document /></el-icon>
-          <span>建议措施</span>
+          <el-icon><TrendCharts /></el-icon>
+          风险评分趋势（近 24 小时）
+        </div>
+        <v-chart :option="trendChartOption" autoresize style="height: 280px;" />
+      </div>
+
+      <!-- Recommendations -->
+      <div class="section" v-if="riskScore.recommendations && riskScore.recommendations.length > 0" style="margin-bottom: 20px;">
+        <div class="section__title">
+          <el-icon><Document /></el-icon>
+          建议措施
         </div>
         <el-timeline>
           <el-timeline-item
@@ -231,8 +326,8 @@ onMounted(async () => {
       <!-- Risk Factors -->
       <div class="section" v-if="riskScore.factors && riskScore.factors.length > 0">
         <div class="section__title">
-          <el-icon color="var(--el-color-warning)"><WarningFilled /></el-icon>
-          <span>风险因素</span>
+          <el-icon><WarningFilled /></el-icon>
+          风险因素
         </div>
         <el-table :data="riskScore.factors" stripe>
           <el-table-column prop="name" label="因素" min-width="140" show-overflow-tooltip />
@@ -262,212 +357,12 @@ onMounted(async () => {
 
     <!-- Empty State -->
     <div v-else class="empty-state">
-      <el-icon :size="64" color="#c0c4cc"><DataAnalysis /></el-icon>
-      <p class="empty-state__text">请选择设备和工序后点击"分析风险"</p>
-    </div>
-
-    <!-- Score History -->
-    <div v-if="scoreHistory.length > 0" class="section" style="margin-top:16px">
-      <div class="section__title">
-        <el-icon color="var(--el-color-info)"><TrendCharts /></el-icon>
-        <span>评分历史（近 24 小时）</span>
-      </div>
-      <el-table :data="scoreHistory" stripe v-loading="historyLoading" max-height="300">
-        <el-table-column label="评分" width="80" align="center">
-          <template #default="{ row }">
-            <el-tag :type="levelTag(row.level)" size="small" effect="dark">{{ row.score }}</el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column label="等级" width="80" align="center">
-          <template #default="{ row }">
-            <el-tag :type="levelTag(row.level)" size="small" effect="dark">{{ levelLabel(row.level) }}</el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column label="趋势" width="80" align="center">
-          <template #default="{ row }">
-            <span :style="{ color: trendColor(row.trend) }">{{ trendIcon(row.trend) }}</span>
-          </template>
-        </el-table-column>
-        <el-table-column label="时间" width="170">
-          <template #default="{ row }">{{ new Date(row.lastUpdated!).toLocaleString('zh-CN') }}</template>
-        </el-table-column>
-      </el-table>
+      <el-icon class="empty-state__icon" :size="64"><DataAnalysis /></el-icon>
+      <p class="empty-state__title">请选择设备和工序</p>
+      <p class="empty-state__desc">选择后点击"分析风险"开始智能评估</p>
     </div>
   </div>
 </template>
 
-
-
 <style scoped>
-.page-container {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-/* ─── Page Header ──────────────────── */
-.page-header {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 0 4px;
-}
-
-.page-header__icon-wrapper {
-  width: 44px;
-  height: 44px;
-  border-radius: 10px;
-  background: var(--el-color-warning-light-9, #fdf6ec);
-  color: var(--el-color-warning, #e6a23c);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.page-header__info {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.page-header__title {
-  margin: 0;
-  font-size: 20px;
-  font-weight: 600;
-  color: var(--text-primary, #303133);
-  line-height: 1.3;
-}
-
-.page-header__subtitle {
-  margin: 0;
-  font-size: 13px;
-  color: var(--text-secondary, #909399);
-  line-height: 1.4;
-}
-
-/* ─── Action Bar ───────────────────── */
-.action-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-
-.action-bar__left {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-/* ─── Risk Card ────────────────────── */
-.risk-card {
-  background: var(--bg-card, #fff);
-  border-radius: 8px;
-  padding: 24px;
-  box-shadow: var(--shadow-sm, 0 1px 2px rgba(0,0,0,0.06));
-}
-
-/* ─── Stat Cards ───────────────────── */
-.stat-row {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 16px;
-  margin-bottom: 24px;
-}
-
-.stat-card {
-  background: var(--el-fill-color-blank, #fff);
-  border: 1px solid var(--el-border-color-lighter, #ebeef5);
-  border-radius: 8px;
-  padding: 20px;
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  transition: box-shadow 0.2s;
-}
-
-.stat-card:hover {
-  box-shadow: var(--shadow-sm, 0 1px 2px rgba(0,0,0,0.06));
-}
-
-.stat-card--score {
-  border-color: var(--el-border-color-light, #dcdfe6);
-}
-
-.stat-card__icon {
-  width: 44px;
-  height: 44px;
-  border-radius: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.stat-card__content {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.stat-card__number {
-  font-size: 22px;
-  font-weight: 700;
-  color: var(--text-primary, #303133);
-  line-height: 1.2;
-}
-
-.stat-card__label {
-  font-size: 12px;
-  color: var(--el-text-secondary, #909399);
-}
-
-.stat-card__time {
-  font-size: 12px;
-  font-weight: 500;
-}
-
-.stat-card__trend {
-  font-size: 15px;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-/* ─── Sections ─────────────────────── */
-.section {
-  margin-top: 8px;
-}
-
-.section__title {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--text-primary, #303133);
-  margin-bottom: 12px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid var(--el-border-color-lighter, #ebeef5);
-}
-
-/* ─── Empty State ──────────────────── */
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 80px 0;
-  gap: 12px;
-}
-
-.empty-state__text {
-  margin: 0;
-  color: var(--el-text-secondary, #909399);
-  font-size: 14px;
-}
 </style>

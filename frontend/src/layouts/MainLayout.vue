@@ -60,7 +60,6 @@ const componentNameMap: Record<string, string> = {
   'iqc-inspections': 'IqcInspectionsPage',
   'iqc-anomalies': 'IqcAnomaliesPage',
   'iqc-suppliers': 'IqcSuppliersPage',
-  'iqc-trace': 'IqcTracePage',
   'ipqc-first-pieces': 'IpqcFirstPiecesPage',
   'ipqc-patrols': 'IpqcPatrolsPage',
   'ipqc-plans': 'IpqcPlansPage',

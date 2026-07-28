@@ -123,7 +123,7 @@ public class IqcInspectionItemDto
     public string? Remark { get; set; }
 }
 
-// ─── IqcAnomaly ──────────────────────────────────────────────────
+// ─── IqcAnomaly (增强版) ──────────────────────────────────────────
 public class IqcAnomalyListDto
 {
     public long Id { get; set; }
@@ -131,13 +131,28 @@ public class IqcAnomalyListDto
     public long ReceiptId { get; set; }
     public string? ReceiptNo { get; set; }
     public long? InspectionId { get; set; }
+    public string? FailedItemIds { get; set; }
+    public int DefectQty { get; set; }
     public string AnomalyType { get; set; } = "quality";
     public string Severity { get; set; } = "major";
     public string? Description { get; set; }
+    public decimal IsolatedInventory { get; set; } = 0;
+    public string Disposition { get; set; } = "none";
+    public string? DispositionBy { get; set; }
+    public DateTime? DispositionDate { get; set; }
+    public string? HandlerDept { get; set; }
     public string Status { get; set; } = "open";
     public string? Handler { get; set; }
+    public bool MrbReviewed { get; set; }
+    public string? MrbReviewer { get; set; }
+    public DateTime? MrbReviewedAt { get; set; }
+    public long? CapaId { get; set; }
+    public DateTime? FirstResponseAt { get; set; }
+    public bool SupplierNotified { get; set; }
+    public DateTime? SupplierResponseAt { get; set; }
     public DateTime? ResolvedAt { get; set; }
     public DateTime CreatedAt { get; set; }
+    public DateTime UpdatedAt { get; set; }
 }
 
 public class CreateIqcAnomalyDto
@@ -145,23 +160,66 @@ public class CreateIqcAnomalyDto
     public string? AnomalyNo { get; set; }
     public long ReceiptId { get; set; }
     public long? InspectionId { get; set; }
+    public string? FailedItemIds { get; set; }
+    public int DefectQty { get; set; }
     public string AnomalyType { get; set; } = "quality";
     public string Severity { get; set; } = "major";
     public string? Description { get; set; }
+    public decimal IsolatedInventory { get; set; }
+    public string? HandlerDept { get; set; }
     public string? Handler { get; set; }
+    public long? CreatedBy { get; set; }
 }
 
 public class UpdateIqcAnomalyDto
 {
     public string? Status { get; set; }
     public string? Handler { get; set; }
+    public string? HandlerDept { get; set; }
     public string? Description { get; set; }
+    public decimal? IsolatedInventory { get; set; }
+    public string? Disposition { get; set; }
+    public string? DispositionBy { get; set; }
+    public DateTime? DispositionDate { get; set; }
+    public bool? MrbReviewed { get; set; }
+    public string? MrbReviewer { get; set; }
+    public DateTime? MrbReviewedAt { get; set; }
+    public long? CapaId { get; set; }
+    public DateTime? FirstResponseAt { get; set; }
+    public bool? SupplierNotified { get; set; }
+    public DateTime? SupplierResponseAt { get; set; }
+    public long? UpdatedBy { get; set; }
 }
 
 public class ResolveIqcAnomalyDto
 {
     public string Resolution { get; set; } = string.Empty;
     public string? Handler { get; set; }
+    public long? UpdatedBy { get; set; }
+}
+
+/// <summary>MRB 评审动作</summary>
+public class MrbReviewDto
+{
+    public bool Approved { get; set; }
+    public string? Reviewer { get; set; }
+    public string? ReviewComments { get; set; }
+    public long? UpdatedBy { get; set; }
+}
+
+/// <summary>处置决定动作</summary>
+public class DispositionDto
+{
+    public string Disposition { get; set; } = "none"; // return/concession/rework/special_purchase
+    public string? DispositionBy { get; set; }
+    public long? UpdatedBy { get; set; }
+}
+
+/// <summary>通知供应商动作</summary>
+public class NotifySupplierDto
+{
+    public string? Message { get; set; }
+    public long? UpdatedBy { get; set; }
 }
 
 // ─── SupplierScore ───────────────────────────────────────────────

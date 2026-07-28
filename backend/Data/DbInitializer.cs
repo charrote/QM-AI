@@ -1281,15 +1281,15 @@ public static class DbInitializer
 
         var dynamicParams = new List<Models.M02_5.DynamicParam>
         {
-            new() { GroupId = paramGroups[0].Id, Name = "温度-精加工", Code = "temp_finishing", DataType = "numeric", Unit = "℃", TargetValue = 450m, Usl = 455m, Lsl = 445m, Precision = 0.1m, AiStrategy = "{\"id\":\"normal_distribution\"}", SortOrder = 1, CreatedBy = 1 },
-            new() { GroupId = paramGroups[0].Id, Name = "温度-热处理", Code = "temp_heat_treat", DataType = "numeric", Unit = "℃", TargetValue = 850m, Usl = 860m, Lsl = 840m, Precision = 1m, AiStrategy = "{\"id\":\"trend_analysis\"}", SortOrder = 2, CreatedBy = 1 },
-            new() { GroupId = paramGroups[1].Id, Name = "切削压力", Code = "cutting_pressure", DataType = "numeric", Unit = "MPa", TargetValue = 12.5m, Usl = 13.5m, Lsl = 11.5m, Precision = 0.1m, AiStrategy = "{\"id\":\"outlier_detection\"}", SortOrder = 1, CreatedBy = 1 },
-            new() { GroupId = paramGroups[1].Id, Name = "主轴扭矩", Code = "spindle_torque", DataType = "numeric", Unit = "N·m", TargetValue = 25m, Usl = 28m, Lsl = 22m, Precision = 0.5m, SortOrder = 2, CreatedBy = 1 },
-            new() { GroupId = paramGroups[2].Id, Name = "外径公差", Code = "od_tolerance", DataType = "numeric", Unit = "mm", TargetValue = 50m, Usl = 50.05m, Lsl = 49.95m, Precision = 0.01m, AiStrategy = "{\"id\":\"cpk_monitoring\"}", SortOrder = 1, CreatedBy = 1 },
-            new() { GroupId = paramGroups[2].Id, Name = "内径公差", Code = "id_tolerance", DataType = "numeric", Unit = "mm", TargetValue = 25m, Usl = 25.03m, Lsl = 24.97m, Precision = 0.01m, SortOrder = 2, CreatedBy = 1 },
-            new() { GroupId = paramGroups[3].Id, Name = "表面粗糙度", Code = "surface_roughness", DataType = "numeric", Unit = "μm", TargetValue = 0.8m, Usl = 1.6m, Lsl = 0m, Precision = 0.1m, AiStrategy = "{\"id\":\"normal_distribution\"}", SortOrder = 1, CreatedBy = 1 },
-            new() { GroupId = paramGroups[3].Id, Name = "表面缺陷", Code = "surface_defect", DataType = "categorical", Unit = "", Precision = 1m, AiStrategy = "{\"id\":\"pareto_analysis\"}", SortOrder = 2, CreatedBy = 1 },
-            new() { GroupId = paramGroups[3].Id, Name = "防锈处理", Code = "rust_prevention", DataType = "boolean", Precision = 1m, SortOrder = 3, CreatedBy = 1 },
+            new() { GroupId = paramGroups[0].Id, Name = "温度-精加工", Code = "temp_finishing", DataType = "numeric", Unit = "℃", TargetValue = 450m, Usl = 455m, Lsl = 445m, Precision = 1, AiStrategy = "{\"id\":\"normal_distribution\"}", SortOrder = 1, CreatedBy = 1 },
+            new() { GroupId = paramGroups[0].Id, Name = "温度-热处理", Code = "temp_heat_treat", DataType = "numeric", Unit = "℃", TargetValue = 850m, Usl = 860m, Lsl = 840m, Precision = 1, AiStrategy = "{\"id\":\"trend_analysis\"}", SortOrder = 2, CreatedBy = 1 },
+            new() { GroupId = paramGroups[1].Id, Name = "切削压力", Code = "cutting_pressure", DataType = "numeric", Unit = "MPa", TargetValue = 12.5m, Usl = 13.5m, Lsl = 11.5m, Precision = 1, AiStrategy = "{\"id\":\"outlier_detection\"}", SortOrder = 1, CreatedBy = 1 },
+            new() { GroupId = paramGroups[1].Id, Name = "主轴扭矩", Code = "spindle_torque", DataType = "numeric", Unit = "N·m", TargetValue = 25m, Usl = 28m, Lsl = 22m, Precision = 1, SortOrder = 2, CreatedBy = 1 },
+            new() { GroupId = paramGroups[2].Id, Name = "外径公差", Code = "od_tolerance", DataType = "numeric", Unit = "mm", TargetValue = 50m, Usl = 50.05m, Lsl = 49.95m, Precision = 2, AiStrategy = "{\"id\":\"cpk_monitoring\"}", SortOrder = 1, CreatedBy = 1 },
+            new() { GroupId = paramGroups[2].Id, Name = "内径公差", Code = "id_tolerance", DataType = "numeric", Unit = "mm", TargetValue = 25m, Usl = 25.03m, Lsl = 24.97m, Precision = 2, SortOrder = 2, CreatedBy = 1 },
+            new() { GroupId = paramGroups[3].Id, Name = "表面粗糙度", Code = "surface_roughness", DataType = "numeric", Unit = "μm", TargetValue = 0.8m, Usl = 1.6m, Lsl = 0m, Precision = 1, AiStrategy = "{\"id\":\"normal_distribution\"}", SortOrder = 1, CreatedBy = 1 },
+            new() { GroupId = paramGroups[3].Id, Name = "表面缺陷", Code = "surface_defect", DataType = "categorical", Unit = "", Precision = 1, AiStrategy = "{\"id\":\"pareto_analysis\"}", SortOrder = 2, CreatedBy = 1 },
+            new() { GroupId = paramGroups[3].Id, Name = "防锈处理", Code = "rust_prevention", DataType = "boolean", Precision = 1, SortOrder = 3, CreatedBy = 1 },
         };
         context.Set<Models.M02_5.DynamicParam>().AddRange(dynamicParams);
         await context.SaveChangesAsync();

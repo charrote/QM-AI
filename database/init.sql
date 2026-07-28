@@ -362,7 +362,8 @@ CREATE TABLE iqc_receipts (
     receipt_date DATETIME,
     inspector VARCHAR(100),
     status ENUM('pending','inspecting','completed','anomaly') DEFAULT 'pending',
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     FOREIGN KEY (supplier_id) REFERENCES suppliers(id),
     FOREIGN KEY (product_id) REFERENCES products(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -379,7 +380,8 @@ CREATE TABLE iqc_inspections (
     result ENUM('pending','pass','fail','scrap') DEFAULT 'pending',
     inspector VARCHAR(100),
     inspected_at DATETIME,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     FOREIGN KEY (receipt_id) REFERENCES iqc_receipts(id),
     FOREIGN KEY (standard_id) REFERENCES inspection_standards(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -387,7 +389,7 @@ CREATE TABLE iqc_inspections (
 CREATE TABLE iqc_inspection_items (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     inspection_id BIGINT,
-    param_id BIGINT COMMENT '关联dynamic_params.id',
+    param_id BIGINT COMMENT '关联 dynamic_params.id',
     inspection_item_id BIGINT COMMENT '关联检验项目主数据',
     item_name VARCHAR(200) COMMENT '检验项目名称（冗余）',
     measured_value DECIMAL(12,4),
@@ -396,6 +398,8 @@ CREATE TABLE iqc_inspection_items (
     result ENUM('pass','fail'),
     defect_code_id BIGINT,
     remark TEXT,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     FOREIGN KEY (inspection_id) REFERENCES iqc_inspections(id),
     FOREIGN KEY (param_id) REFERENCES dynamic_params(id),
     FOREIGN KEY (inspection_item_id) REFERENCES inspection_items(id) ON DELETE SET NULL,
@@ -408,14 +412,35 @@ CREATE TABLE iqc_anomalies (
     anomaly_no VARCHAR(50) UNIQUE NOT NULL,
     receipt_id BIGINT,
     inspection_id BIGINT,
-    anomaly_type ENUM('quality','quantity','document','other'),
-    severity ENUM('critical','major','minor'),
+    failed_item_ids JSON COMMENT '不合格检验项目 ID 列表',
+    defect_qty INT DEFAULT 0 COMMENT '不合格品数量',
+    anomaly_type ENUM('quality','quantity','document','packaging','environment','other') DEFAULT 'quality' COMMENT '异常类型',
+    severity ENUM('critical','major','minor') NOT NULL,
     description TEXT,
-    status ENUM('open','processing','resolved','closed') DEFAULT 'open',
+    isolated_inventory DECIMAL(15,2) DEFAULT 0 COMMENT '隔离库存量',
+    disposition ENUM('none','return','concession','rework','special_purchase') DEFAULT 'none' COMMENT '处置方式',
+    disposition_by VARCHAR(100) COMMENT '处置决定人',
+    disposition_date DATETIME COMMENT '处置决定时间',
+    handler_dept ENUM('quality','purchasing','engineering','production','other') COMMENT '处理人部门',
+    status ENUM('open','quarantined','investigating','mrb_reviewing','mrb_approved','disposed','processing','resolved','closed') DEFAULT 'open' COMMENT '状态',
     handler VARCHAR(100),
+    mrb_reviewed TINYINT(1) DEFAULT 0 COMMENT 'MRB 评审是否完成',
+    mrb_reviewer VARCHAR(100) COMMENT 'MRB 评审人',
+    mrb_reviewed_at DATETIME COMMENT 'MRB 评审完成时间',
+    capa_id BIGINT COMMENT '关联 CAPA 单 ID',
+    first_response_at DATETIME COMMENT '首次响应时间',
+    supplier_notified TINYINT(1) DEFAULT 0 COMMENT '是否已通知供应商',
+    supplier_response_at DATETIME COMMENT '供应商回复时间',
     resolved_at DATETIME,
+    created_by BIGINT COMMENT '创建人 ID',
+    updated_by BIGINT COMMENT '最后更新人 ID',
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     FOREIGN KEY (receipt_id) REFERENCES iqc_receipts(id),
-    FOREIGN KEY (inspection_id) REFERENCES iqc_inspections(id)
+    FOREIGN KEY (inspection_id) REFERENCES iqc_inspections(id),
+    INDEX idx_anomalies_capa (capa_id),
+    INDEX idx_anomalies_mrb (mrb_reviewed),
+    INDEX idx_anomalies_disposition (disposition)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE supplier_scores (

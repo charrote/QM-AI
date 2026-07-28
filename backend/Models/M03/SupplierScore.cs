@@ -26,18 +26,17 @@ public class SupplierScore
     [Column("score")]
     public decimal? Score { get; set; }
 
-    /// <summary>维度评分 JSON</summary>
-    [NotMapped]
-    public string? DimensionScores { get; set; }
-
     /// <summary>评级：A/B/C/D</summary>
-    [NotMapped]
-    [MaxLength(10)]
+    [Column("grade")]
     public string? Grade { get; set; }
 
     /// <summary>评估意见</summary>
-    [NotMapped]
+    [Column("evaluation")]
     public string? Evaluation { get; set; }
+
+    /// <summary>维度评分 JSON</summary>
+    [Column("dimension_scores")]
+    public string? DimensionScores { get; set; }
 
     // Navigation
     [ForeignKey(nameof(SupplierId))]

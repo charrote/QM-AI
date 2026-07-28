@@ -61,7 +61,7 @@ export interface DynamicParam {
   targetValue?: number
   usl?: number
   lsl?: number
-  precision: number
+  precision: number // 小数位数（0-6）
   aiStrategy?: string
   sortOrder: number
   isActive: boolean

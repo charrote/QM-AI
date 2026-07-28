@@ -1,8 +1,12 @@
 <script setup lang="ts">
-import { ref, onMounted, reactive } from 'vue'
-import { ElMessage } from 'element-plus'
-import { Search, Refresh, Document, EditPen, Check, Upload } from '@element-plus/icons-vue'
+import { ref, onMounted, reactive, computed } from 'vue'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import {
+  Search, Refresh, Document, EditPen, Check, Plus, Setting, Upload,
+  Clock, CircleCheck, Promotion, Close, User, Picture, Calendar, Right,
+} from '@element-plus/icons-vue'
 import { releaseApi } from '@/api/fqc'
+import { batchApi } from '@/api/fqc'
 import type { OqcRelease, CreateOqcRelease, SignOqcRelease } from '@/types/fqc'
 import type { PagedRequest } from '@/types/basicData'
 import { RELEASE_STATUS_OPTIONS, RELEASE_STATUS_MAP } from '@/types/fqc'
@@ -16,20 +20,115 @@ const loading = ref(false)
 const list = ref<OqcRelease[]>([])
 const total = ref(0)
 const query = reactive<PagedRequest>({ page: 1, pageSize: 20, keyword: '', status: '' })
+
 const createVisible = ref(false)
 const signVisible = ref(false)
+const confirmLoading = ref(false)
 const signId = ref(0)
+const activeBatch = ref<OqcRelease | null>(null)
+
+// Create form
 const createForm = reactive<CreateOqcRelease>({
   batchId: 0,
   customerId: 0,
   releaseDate: new Date().toISOString().slice(0, 10),
   quantity: 0,
 })
+
+// Batch / customer selects
+const batchOptions = ref<{ id: number; batchCode: string; quantity: number }[]>([])
+const batchSearch = ref('')
+const customerOptions = ref<{ id: number; customerName: string }[]>([])
+const customerSearch = ref('')
+
+// Sign form
 const signForm = reactive<SignOqcRelease>({
-  authorizedBy: 1,
+  authorizedBy: 0,
   eSignatureUrl: '',
 })
+const signFileRef = ref<HTMLInputElement | null>(null)
 
+// ─── Computed metrics ──────────────────────────────
+const metrics = computed(() => {
+  const items = list.value
+  return {
+    total: items.length,
+    pending: items.filter(i => i.status === 'pending').length,
+    signed: items.filter(i => i.status === 'signed').length,
+    released: items.filter(i => i.status === 'released').length,
+  }
+})
+
+// ─── Batch / customer data loading ─────────────────
+async function loadBatches() {
+  try {
+    const res = await batchApi.list({ page: 1, pageSize: 500, keyword: batchSearch.value, status: '' })
+    batchOptions.value = (res.items ?? []).map(b => ({ id: b.id, batchCode: b.batchCode, quantity: b.quantity }))
+  } catch { /* */ }
+}
+
+async function loadCustomers() {
+  // Placeholder: load from available customers
+  // In a real integration this would call a customer API
+  try {
+    const res = await batchApi.list({ page: 1, pageSize: 500, keyword: customerSearch.value, status: '' })
+    const seen = new Set<number>()
+    customerOptions.value = []
+    for (const b of res.items ?? []) {
+      if (b.productName && !seen.has(b.productId)) {
+        seen.add(b.productId)
+        customerOptions.value.push({ id: b.productId, customerName: b.productName })
+      }
+    }
+  } catch { /* */ }
+}
+
+function onBatchSelect(val: number) {
+  const batch = batchOptions.value.find(b => b.id === val)
+  if (batch) {
+    createForm.batchId = batch.id
+    createForm.quantity = batch.quantity
+  }
+}
+
+function onCustomerSelect(val: number) {
+  createForm.customerId = val
+}
+
+// ─── Flow banner ───────────────────────────────────
+const flowSteps = [
+  { label: 'FQC 检验合格', icon: Check, status: 'done' },
+  { label: 'OQC 出货放行', icon: Document, status: 'process' },
+  { label: '包装确认', icon: Setting, status: 'wait' },
+  { label: '发货', icon: Promotion, status: 'wait' },
+]
+
+function getRowFlowStatus(row: OqcRelease): string {
+  if (row.status === 'cancelled') return 'error'
+  if (row.status === 'released') return 'done'
+  if (row.status === 'signed') return 'process'
+  return 'wait'
+}
+
+// ─── Status helpers ────────────────────────────────
+function statusTagType(status: string): string {
+  const map: Record<string, string> = {
+    pending: 'info', signed: 'warning', released: 'success', cancelled: 'danger',
+  }
+  return map[status] || 'info'
+}
+
+function statusFlowIcon(status: string) {
+  switch (status) {
+    case 'pending': return { icon: Clock, color: 'var(--el-color-info)' }
+    case 'signed': return { icon: CircleCheck, color: 'var(--el-color-warning)' }
+    case 'released': return { icon: Promotion, color: 'var(--el-color-success)' }
+    case 'cancelled': return { icon: Close, color: 'var(--el-color-danger)' }
+    default: return { icon: Clock, color: 'var(--el-color-info)' }
+  }
+}
+
+// ─── Fetch ─────────────────────────────────────────
 async function fetchList() {
   loading.value = true
   try {
@@ -40,24 +139,44 @@ async function fetchList() {
   finally { loading.value = false }
 }
 
+// ─── Create ────────────────────────────────────────
 async function handleCreate() {
   if (!createForm.batchId || !createForm.customerId) {
-    ElMessage.warning('请填写完整信息')
+    ElMessage.warning('请选择批次和客户')
     return
   }
   try {
     await releaseApi.create(createForm)
     ElMessage.success('放行单创建成功')
     createVisible.value = false
+    Object.assign(createForm, { batchId: 0, customerId: 0, releaseDate: new Date().toISOString().slice(0, 10), quantity: 0 })
     await fetchList()
   } catch { /* */ }
 }
 
-function openSign(id: number) {
-  signId.value = id
+// ─── Sign ──────────────────────────────────────────
+function openSign(row: OqcRelease) {
+  signId.value = row.id
+  activeBatch.value = row
   signForm.authorizedBy = authStore.user?.id || 0
-  signForm.eSignatureUrl = ''
+  signForm.eSignatureUrl = row.eSignatureUrl || ''
   signVisible.value = true
+}
+
+function triggerFileInput() {
+  signFileRef.value?.click()
+}
+
+function handleFileChange(e: Event) {
+  const file = (e.target as HTMLInputElement).files?.[0]
+  if (!file) return
+  if (!file.type.startsWith('image/')) {
+    ElMessage.warning('请上传图片文件')
+    return
+  }
+  // Simulate upload URL (in real app, upload to MinIO/object store)
+  signForm.eSignatureUrl = URL.createObjectURL(file)
+  ElMessage.success('签名图片已选择')
 }
 
 async function handleSign() {
@@ -73,21 +192,32 @@ async function handleSign() {
   } catch { /* */ }
 }
 
-async function handleConfirm(id: number) {
+// ─── Confirm ───────────────────────────────────────
+async function handleConfirm(row: OqcRelease) {
   try {
-    await releaseApi.confirm(id)
-    ElMessage.success('放行确认成功')
-    await fetchList()
-  } catch { /* */ }
+    await ElMessageBox.confirm(
+      `确认放行批次 <strong>${row.batchCode || '—'}</strong> 给客户 <strong>${row.customerName || '—'}</strong>？数量：${row.quantity}`
+        + `<br/><small style="color:#909399">放行单号：${row.releaseNumber}</small>`,
+      '确认出货放行',
+      {
+        confirmButtonText: '确认放行',
+        cancelButtonText: '取消',
+        type: 'warning',
+        dangerouslyUseHTMLString: true,
+      }
+    )
+    confirmLoading.value = true
+    try {
+      await releaseApi.confirm(row.id)
+      ElMessage.success('放行确认成功')
+      await fetchList()
+    } finally {
+      confirmLoading.value = false
+    }
+  } catch { /* cancelled */ }
 }
 
-function statusTag(status: string): string {
-  const map: Record<string, string> = {
-    pending: 'info', signed: 'warning', released: 'success', cancelled: 'danger',
-  }
-  return map[status] || 'info'
-}
-
+// ─── Mount ─────────────────────────────────────────
 onMounted(fetchList)
 </script>
 
@@ -99,17 +229,53 @@ onMounted(fetchList)
         <el-icon :size="28"><Document /></el-icon>
       </div>
       <div class="page-header__info">
-        <h1 class="page-header__title">OQC 出货放行</h1>
-        <p class="page-header__subtitle">管理出货放行单，执行电子签名与确认流程</p>
+        <h1 class="page-header__title">FQC/OQC 放行管理</h1>
+        <p class="page-header__subtitle">管理成品放行流程，从检验合格到出货确认的完整链路</p>
       </div>
     </div>
 
-    <!-- Toolbar -->
+    <!-- Flow Info Banner -->
+    <div class="flow-banner">
+      <template v-for="(step, idx) in flowSteps" :key="idx">
+        <span
+          class="flow-banner__step"
+          :class="{ 'flow-banner__step--active': step.status === 'process' }"
+        >
+          <el-icon :size="14"><component :is="step.icon" /></el-icon>
+          {{ step.label }}
+        </span>
+        <span v-if="idx < flowSteps.length - 1" class="flow-banner__arrow">
+          <el-icon :size="14"><Right /></el-icon>
+        </span>
+      </template>
+    </div>
+
+    <!-- Summary Metrics -->
+    <div class="metrics-row">
+      <div class="metrics-row__item">
+        <div class="metrics-row__number">{{ metrics.total }}</div>
+        <div class="metrics-row__label">总放行单</div>
+      </div>
+      <div class="metrics-row__item metrics-row__item--pending">
+        <div class="metrics-row__number">{{ metrics.pending }}</div>
+        <div class="metrics-row__label">待签名</div>
+      </div>
+      <div class="metrics-row__item metrics-row__item--signed">
+        <div class="metrics-row__number">{{ metrics.signed }}</div>
+        <div class="metrics-row__label">已签名</div>
+      </div>
+      <div class="metrics-row__item metrics-row__item--released">
+        <div class="metrics-row__number">{{ metrics.released }}</div>
+        <div class="metrics-row__label">已放行</div>
+      </div>
+    </div>
+
+    <!-- Action Bar -->
     <div class="action-bar">
       <div class="action-bar__left">
         <el-input
           v-model="query.keyword"
-          placeholder="搜索放行单号/批次"
+          placeholder="搜索放行单号/批次/客户"
           :prefix-icon="Search"
           clearable
           style="width: 260px"
@@ -138,31 +304,80 @@ onMounted(fetchList)
       </div>
     </div>
 
-    <!-- Table Card -->
+    <!-- Data Card -->
     <div class="data-card">
       <el-table
         :data="list"
         v-loading="loading"
-        :row-class-name="() => 'data-card__row'"
         style="width: 100%"
+        row-class-name="data-card__row"
       >
-        <el-table-column prop="releaseNumber" label="放行单号" min-width="160" show-overflow-tooltip />
-        <el-table-column prop="batchCode" label="批次号" min-width="130" show-overflow-tooltip />
-        <el-table-column prop="customerName" label="客户" min-width="130" show-overflow-tooltip />
-        <el-table-column prop="quantity" label="数量" width="80" align="center" />
-        <el-table-column label="状态" width="100" align="center">
+        <el-table-column label="状态流程" width="150" align="center" fixed>
           <template #default="{ row }">
-            <el-tag :type="statusTag(row.status)" size="small" effect="dark">{{ RELEASE_STATUS_MAP[row.status] || row.status }}</el-tag>
+            <div class="status-flow">
+              <el-icon :size="14" :color="statusFlowIcon(row.status).color">
+                <component :is="statusFlowIcon(row.status).icon" />
+              </el-icon>
+              <span class="status-flow__text">{{ RELEASE_STATUS_MAP[row.status] || row.status }}</span>
+            </div>
           </template>
         </el-table-column>
-        <el-table-column prop="releaseDate" label="放行日期" width="110" align="center" />
+        <el-table-column prop="releaseNumber" label="放行单号" min-width="150" show-overflow-tooltip />
+        <el-table-column prop="batchCode" label="批次号" min-width="130" show-overflow-tooltip>
+          <template #default="{ row }">
+            <span class="info-primary">{{ row.batchCode || '—' }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column prop="customerName" label="客户" min-width="130" show-overflow-tooltip>
+          <template #default="{ row }">
+            <span class="info-primary">{{ row.customerName || '—' }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column prop="quantity" label="数量" width="90" align="center" />
+        <el-table-column label="签名状态" width="90" align="center">
+          <template #default="{ row }">
+            <el-tag
+              v-if="row.status === 'signed' && row.signatureTime"
+              type="success"
+              size="small"
+              effect="dark"
+            >
+              <el-icon style="margin-right: 2px"><Check /></el-icon>
+              已签
+            </el-tag>
+            <el-tag
+              v-else-if="row.status === 'pending'"
+              type="info"
+              size="small"
+              effect="dark"
+            >
+              <el-icon style="margin-right: 2px"><Clock /></el-icon>
+              待签
+            </el-tag>
+            <span v-else class="info-muted">—</span>
+          </template>
+        </el-table-column>
+        <el-table-column prop="releaseDate" label="放行日期" width="120" align="center" />
         <el-table-column label="操作" width="220" fixed="right" align="center">
           <template #default="{ row }">
-            <el-button v-if="row.status === 'pending'" link size="small" type="warning" @click.stop="openSign(row.id)">
+            <el-button
+              v-if="row.status === 'pending'"
+              link
+              size="small"
+              type="warning"
+              @click.stop="openSign(row)"
+            >
               <el-icon><EditPen /></el-icon>
               签名
             </el-button>
-            <el-button v-if="row.status === 'signed'" link size="small" type="success" @click.stop="handleConfirm(row.id)">
+            <el-button
+              v-if="row.status === 'signed'"
+              link
+              size="small"
+              type="success"
+              :loading="confirmLoading"
+              @click.stop="handleConfirm(row)"
+            >
               <el-icon><Check /></el-icon>
               确认放行
             </el-button>
@@ -170,7 +385,6 @@ onMounted(fetchList)
         </el-table-column>
       </el-table>
 
-      <!-- Pagination -->
       <div class="data-card__footer">
         <el-pagination
           v-model:current-page="query.page"
@@ -186,38 +400,89 @@ onMounted(fetchList)
       </div>
     </div>
 
-    <!-- 新建放行单对话框 -->
-    <el-dialog v-model="createVisible" title="新建出货放行单" width="540px" :close-on-click-modal="false" top="6vh">
-      <div v-if="createVisible">
-        <div class="dialog-section">
-          <div class="dialog-section__title">
-            <el-icon><Document /></el-icon>
-            <span>放行信息</span>
-          </div>
-          <el-form :model="createForm" label-width="90px" label-position="left">
-            <el-form-item label="批次 ID" required>
-              <el-input-number v-model="createForm.batchId" :min="1" style="width:100%" />
-            </el-form-item>
-            <el-form-item label="客户 ID" required>
-              <el-input-number v-model="createForm.customerId" :min="1" style="width:100%" />
-            </el-form-item>
-          </el-form>
+    <!-- Create Dialog -->
+    <el-dialog
+      v-model="createVisible"
+      title="新建出货放行单"
+      width="560px"
+      :close-on-click-modal="false"
+      top="6vh"
+    >
+      <!-- 放行信息 -->
+      <div class="dialog-section">
+        <div class="dialog-section__title">
+          <el-icon><Document /></el-icon>
+          <span>放行信息</span>
         </div>
+        <el-form :model="createForm" label-width="90px" label-position="left">
+          <el-form-item label="批次" required>
+            <el-select
+              v-model="createForm.batchId"
+              filterable
+              clearable
+              placeholder="搜索或选择批次"
+              style="width: 100%"
+              @change="onBatchSelect"
+              @visible-change="loadBatches"
+              @clear="createForm.batchId = 0"
+            >
+              <el-option
+                v-for="b in batchOptions"
+                :key="b.id"
+                :label="`${b.batchCode}`"
+                :value="b.id"
+              >
+                <span>{{ b.batchCode }}</span>
+                <span style="float:right;color:#909399;font-size:12px">数量: {{ b.quantity }}</span>
+              </el-option>
+            </el-select>
+          </el-form-item>
+          <el-form-item label="客户" required>
+            <el-select
+              v-model="createForm.customerId"
+              filterable
+              clearable
+              placeholder="搜索或选择客户"
+              style="width: 100%"
+              @change="onCustomerSelect"
+              @visible-change="loadCustomers"
+              @clear="createForm.customerId = 0"
+            >
+              <el-option
+                v-for="c in customerOptions"
+                :key="c.id"
+                :label="c.customerName"
+                :value="c.id"
+              />
+            </el-select>
+          </el-form-item>
+        </el-form>
+      </div>
 
-        <div class="dialog-section">
-          <div class="dialog-section__title">
-            <el-icon><Setting /></el-icon>
-            <span>放行参数</span>
-          </div>
-          <el-form :model="createForm" label-width="90px" label-position="left">
-            <el-form-item label="放行数量">
-              <el-input-number v-model="createForm.quantity" :min="1" style="width:100%" />
-            </el-form-item>
-            <el-form-item label="放行日期">
-              <el-date-picker v-model="createForm.releaseDate" type="date" value-format="YYYY-MM-DD" style="width:100%" />
-            </el-form-item>
-          </el-form>
+      <!-- 放行参数 -->
+      <div class="dialog-section">
+        <div class="dialog-section__title">
+          <el-icon><Setting /></el-icon>
+          <span>放行参数</span>
         </div>
+        <el-form :model="createForm" label-width="90px" label-position="left">
+          <el-form-item label="放行数量">
+            <el-input-number
+              v-model="createForm.quantity"
+              :min="1"
+              style="width: 100%"
+              controls-position="right"
+            />
+          </el-form-item>
+          <el-form-item label="放行日期">
+            <el-date-picker
+              v-model="createForm.releaseDate"
+              type="date"
+              value-format="YYYY-MM-DD"
+              style="width: 100%"
+            />
+          </el-form-item>
+        </el-form>
       </div>
 
       <template #footer>
@@ -229,25 +494,73 @@ onMounted(fetchList)
       </template>
     </el-dialog>
 
-    <!-- 电子签名对话框 -->
-    <el-dialog v-model="signVisible" title="电子签名" width="500px" :close-on-click-modal="false" top="8vh">
-      <div v-if="signVisible">
-        <div class="dialog-section">
-          <div class="dialog-section__title">
-            <el-icon><EditPen /></el-icon>
-            <span>签名信息</span>
-          </div>
-          <el-form :model="signForm" label-width="110px" label-position="left">
-            <el-form-item label="签名图片 URL" required>
-              <el-input v-model="signForm.eSignatureUrl" placeholder="输入 MinIO 签名图片地址" clearable />
-            </el-form-item>
-            <el-form-item label="签名预览" v-if="signForm.eSignatureUrl">
-              <div class="sig-preview">
-                <img :src="signForm.eSignatureUrl" alt="签名预览" />
-              </div>
-            </el-form-item>
-          </el-form>
+    <!-- Sign Dialog -->
+    <el-dialog
+      v-model="signVisible"
+      title="电子签名确认"
+      width="540px"
+      :close-on-click-modal="false"
+      top="6vh"
+    >
+      <!-- 放行信息摘要 -->
+      <div class="dialog-section">
+        <div class="dialog-section__title">
+          <el-icon><Document /></el-icon>
+          <span>放行信息</span>
         </div>
+        <div v-if="activeBatch" class="release-summary">
+          <div class="release-summary__row">
+            <span class="release-summary__label">放行单号</span>
+            <span class="release-summary__value">{{ activeBatch.releaseNumber }}</span>
+          </div>
+          <div class="release-summary__row">
+            <span class="release-summary__label">批次号</span>
+            <span class="release-summary__value">{{ activeBatch.batchCode || '—' }}</span>
+          </div>
+          <div class="release-summary__row">
+            <span class="release-summary__label">客户</span>
+            <span class="release-summary__value">{{ activeBatch.customerName || '—' }}</span>
+          </div>
+          <div class="release-summary__row">
+            <span class="release-summary__label">数量</span>
+            <span class="release-summary__value">{{ activeBatch.quantity }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 签名区域 -->
+      <div class="dialog-section">
+        <div class="dialog-section__title">
+          <el-icon><EditPen /></el-icon>
+          <span>电子签名</span>
+        </div>
+        <el-form :model="signForm" label-width="90px" label-position="left">
+          <el-form-item label="签名者">
+            <span class="info-primary">
+              <el-icon style="margin-right: 4px"><User /></el-icon>
+              {{ authStore.user?.name || authStore.user?.username || '当前用户' }}
+            </span>
+          </el-form-item>
+          <el-form-item label="签名图片" required>
+            <div class="sig-upload" @click="triggerFileInput">
+              <el-icon :size="32" color="var(--el-color-info)"><Upload /></el-icon>
+              <div class="sig-upload__text">点击或拖拽上传签名图片</div>
+              <div class="sig-upload__hint">支持 JPG、PNG 格式</div>
+              <input
+                ref="signFileRef"
+                type="file"
+                accept="image/jpeg,image/png,image/gif,image/webp"
+                style="display:none"
+                @change="handleFileChange"
+              />
+            </div>
+          </el-form-item>
+          <el-form-item label="签名预览" v-if="signForm.eSignatureUrl">
+            <div class="sig-preview">
+              <img :src="signForm.eSignatureUrl" alt="签名预览" />
+            </div>
+          </el-form-item>
+        </el-form>
       </div>
 
       <template #footer>
@@ -260,10 +573,6 @@ onMounted(fetchList)
     </el-dialog>
   </div>
 </template>
-
-<script lang="ts">
-import { Plus, Setting } from '@element-plus/icons-vue'
-</script>
 
 <style scoped>
 .page-container {
@@ -314,6 +623,70 @@ import { Plus, Setting } from '@element-plus/icons-vue'
   line-height: 1.4;
 }
 
+/* ─── Flow Banner ──────────────────── */
+.flow-banner {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 16px;
+  background: var(--el-color-warning-light-9, #fdf6ec);
+  border-radius: 8px;
+  font-size: 13px;
+}
+
+.flow-banner__step {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--el-text-regular, #606266);
+}
+
+.flow-banner__step--active {
+  color: var(--el-color-warning, #e6a23c);
+  font-weight: 600;
+}
+
+.flow-banner__arrow {
+  color: var(--el-color-info, #909399);
+}
+
+/* ─── Metrics Row ──────────────────── */
+.metrics-row {
+  display: flex;
+  gap: 12px;
+  padding: 0 4px;
+}
+
+.metrics-row__item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 14px 12px;
+  background: var(--bg-card, #fff);
+  border-radius: 8px;
+  box-shadow: var(--shadow-sm, 0 1px 2px rgba(0,0,0,0.06));
+  border: 1px solid var(--el-border-color-lighter, #ebeef5);
+}
+
+.metrics-row__number {
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--el-text-primary, #303133);
+}
+
+.metrics-row__item--pending .metrics-row__number { color: var(--el-color-info, #409eff); }
+.metrics-row__item--signed .metrics-row__number { color: var(--el-color-warning, #e6a23c); }
+.metrics-row__item--released .metrics-row__number { color: var(--el-color-success, #67c23a); }
+
+.metrics-row__label {
+  font-size: 12px;
+  color: var(--text-secondary, #909399);
+  margin-top: 4px;
+}
+
 /* ─── Action Bar ───────────────────── */
 .action-bar {
   display: flex;
@@ -361,6 +734,57 @@ import { Plus, Setting } from '@element-plus/icons-vue'
   border-top: 1px solid var(--el-border-color-lighter, #ebeef5);
 }
 
+/* ─── Status Flow ──────────────────── */
+.status-flow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+}
+
+.status-flow__text {
+  font-size: 12px;
+}
+
+/* ─── Info Styles ──────────────────── */
+.info-primary {
+  color: var(--el-text-primary, #303133);
+  font-weight: 500;
+}
+
+.info-muted {
+  color: var(--el-text-placeholder, #c0c4cc);
+}
+
+/* ─── Release Summary ──────────────── */
+.release-summary {
+  padding: 12px 16px;
+  background: var(--el-fill-color-lighter, #f2f6fc);
+  border-radius: 8px;
+}
+
+.release-summary__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 0;
+}
+
+.release-summary__row:not(:last-child) {
+  border-bottom: 1px dashed var(--el-border-color-light, #dcdfe6);
+}
+
+.release-summary__label {
+  font-size: 13px;
+  color: var(--el-text-secondary, #909399);
+}
+
+.release-summary__value {
+  font-size: 13px;
+  color: var(--el-text-primary, #303133);
+  font-weight: 500;
+}
+
 /* ─── Dialog Sections ──────────────── */
 .dialog-section {
   margin-bottom: 20px;
@@ -380,6 +804,36 @@ import { Plus, Setting } from '@element-plus/icons-vue'
 
 .dialog-section__title .el-icon {
   color: var(--el-color-primary, #409eff);
+}
+
+/* ─── Signature Upload ─────────────── */
+.sig-upload {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 24px 16px;
+  background: var(--el-fill-color-lighter, #f2f6fc);
+  border: 1px dashed var(--el-border-color, #dcdfe6);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.sig-upload:hover {
+  border-color: var(--el-color-primary, #409eff);
+  background: var(--el-color-primary-light-9, #ecf5ff);
+}
+
+.sig-upload__text {
+  font-size: 14px;
+  color: var(--el-text-regular, #606266);
+}
+
+.sig-upload__hint {
+  font-size: 12px;
+  color: var(--el-text-placeholder, #c0c4cc);
 }
 
 /* ─── Signature Preview ────────────── */

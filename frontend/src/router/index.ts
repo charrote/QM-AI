@@ -142,12 +142,6 @@ const routes: RouteRecordRaw[] = [
         meta: { title: '供应商评分', keepAlive: true, requiresAuth: true },
       },
       {
-        path: 'iqc/trace',
-        name: 'IqcTrace',
-        component: () => import('@/views/iqc/IqcTracePage.vue'),
-        meta: { title: '批次追溯', keepAlive: true, requiresAuth: true },
-      },
-      {
         path: 'ipqc',
         redirect: '/ipqc/first-pieces',
         meta: { title: 'IPQC过程检验', requiresAuth: true },

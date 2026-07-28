@@ -159,7 +159,18 @@ public class IqcController : ControllerBase
     public async Task<ActionResult<IqcAnomalyListDto>> CreateAnomaly([FromBody] CreateIqcAnomalyDto dto)
     {
         var result = await _iqcService.CreateAnomaly(dto);
-        return CreatedAtAction(null, result);
+        return CreatedAtAction(nameof(GetAnomaly), new { id = result.Id }, result);
+    }
+
+    /// <summary>
+    /// 获取异常单详情
+    /// </summary>
+    [HttpGet("anomalies/{id:long}")]
+    public async Task<ActionResult<IqcAnomalyListDto>> GetAnomaly(long id)
+    {
+        var anomalies = await _iqcService.ListAnomalies(new PagedRequest { Page = 1, PageSize = 1, Keyword = id.ToString() });
+        if (anomalies.Items.Count == 0) return NotFound(new { message = "异常单不存在" });
+        return Ok(anomalies.Items[0]);
     }
 
     /// <summary>
@@ -180,8 +191,68 @@ public class IqcController : ControllerBase
     public async Task<IActionResult> ResolveAnomaly(long id, [FromBody] ResolveIqcAnomalyDto dto)
     {
         var result = await _iqcService.ResolveAnomaly(id, dto);
-        if (!result) return NotFound(new { message = "异常单不存在" });
-        return Ok(new { message = "异常单已解决" });
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// 关闭异常单
+    /// </summary>
+    [HttpPost("anomalies/{id:long}/close")]
+    public async Task<IActionResult> CloseAnomaly(long id)
+    {
+        var result = await _iqcService.CloseAnomaly(id);
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// MRB 评审
+    /// </summary>
+    [HttpPost("anomalies/{id:long}/mrb-review")]
+    public async Task<ActionResult<IqcAnomalyListDto>> MrbReview(long id, [FromBody] MrbReviewDto dto)
+    {
+        try
+        {
+            var result = await _iqcService.MrbReview(id, dto);
+            return Ok(result);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// 做出处置决定
+    /// </summary>
+    [HttpPost("anomalies/{id:long}/disposition")]
+    public async Task<ActionResult<IqcAnomalyListDto>> MakeDisposition(long id, [FromBody] DispositionDto dto)
+    {
+        try
+        {
+            var result = await _iqcService.MakeDisposition(id, dto);
+            return Ok(result);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// 通知供应商
+    /// </summary>
+    [HttpPost("anomalies/{id:long}/notify-supplier")]
+    public async Task<ActionResult<IqcAnomalyListDto>> NotifySupplier(long id, [FromBody] NotifySupplierDto dto)
+    {
+        try
+        {
+            var result = await _iqcService.NotifySupplier(id, dto);
+            return Ok(result);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
     }
 
     // ═══════════════════════════════════════════════════════════════

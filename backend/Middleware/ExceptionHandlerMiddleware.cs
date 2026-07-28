@@ -66,6 +66,13 @@ public class AppExceptionHandlerMiddleware
             Microsoft.EntityFrameworkCore.DbUpdateConcurrencyException => ("Resource conflict", 409,
                 _env.IsDevelopment() ? exception.Message : null),
 
+            // MySql DateTime 转换异常：数据库中存在无效日期值，返回 500 并提示管理员检查
+            Exception ex when ex.Message.Contains("MySqlDateTime", StringComparison.OrdinalIgnoreCase)
+                || ex.Message.Contains("IsValidDateTime", StringComparison.OrdinalIgnoreCase)
+                || ex.Message.Contains("Cannot convert", StringComparison.OrdinalIgnoreCase)
+                => ("Database datetime error", 500,
+                _env.IsDevelopment() ? "数据库中存在无效的 DateTime 值，请检查 datetime 类型字段是否有异常数据" : null),
+
             // Database errors → 500
             Microsoft.EntityFrameworkCore.DbUpdateException => ("Database error", 500,
                 _env.IsDevelopment() ? exception.Message : null),

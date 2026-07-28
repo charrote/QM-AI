@@ -59,10 +59,13 @@ export const inspectionApi = {
   },
 }
 
-// ─── 异常单 ───────────────────────────────────────
+// ─── 异常单（增强版） ─────────────────────────────────────
 export const anomalyApi = {
   list(params: PagedRequest): Promise<PagedResult<IqcAnomaly>> {
     return request.get(`${BASE}/anomalies`, { params }).then(r => r.data)
+  },
+  get(id: number): Promise<IqcAnomaly> {
+    return request.get(`${BASE}/anomalies/${id}`).then(r => r.data)
   },
   create(data: CreateIqcAnomaly): Promise<IqcAnomaly> {
     return request.post(`${BASE}/anomalies`, data).then(r => r.data)
@@ -70,8 +73,20 @@ export const anomalyApi = {
   update(id: number, data: UpdateIqcAnomaly): Promise<IqcAnomaly> {
     return request.put(`${BASE}/anomalies/${id}`, data).then(r => r.data)
   },
-  resolve(id: number, data: ResolveIqcAnomaly): Promise<void> {
-    return request.post(`${BASE}/anomalies/${id}/resolve`, data)
+  resolve(id: number, data: ResolveIqcAnomaly): Promise<IqcAnomaly> {
+    return request.post(`${BASE}/anomalies/${id}/resolve`, data).then(r => r.data)
+  },
+  close(id: number): Promise<IqcAnomaly> {
+    return request.post(`${BASE}/anomalies/${id}/close`).then(r => r.data)
+  },
+  mrbReview(id: number, data: MrbReview): Promise<IqcAnomaly> {
+    return request.post(`${BASE}/anomalies/${id}/mrb-review`, data).then(r => r.data)
+  },
+  disposition(id: number, data: DispositionDecision): Promise<IqcAnomaly> {
+    return request.post(`${BASE}/anomalies/${id}/disposition`, data).then(r => r.data)
+  },
+  notifySupplier(id: number, data: NotifySupplier): Promise<IqcAnomaly> {
+    return request.post(`${BASE}/anomalies/${id}/notify-supplier`, data).then(r => r.data)
   },
 }
 

@@ -44,6 +44,7 @@ public class TraceService
             .FirstOrDefaultAsync(b => b.BatchCode!.Contains(batchSeq));
 
         // 查找来料登记（通过产品关联）
+        #pragma warning disable CS8620 // ICollection vs IEnumerable mismatch in EF Include chain (known EF Core behavior)
         var materialReceipts = await _db.IqcReceipts
             .Include(r => r.Supplier)
             .Include(r => r.Product)
@@ -53,6 +54,7 @@ public class TraceService
             .OrderByDescending(r => r.CreatedAt)
             .Take(5)
             .ToListAsync();
+        #pragma warning restore CS8620
 
         // 查找首件检验（按最新记录）
         var firstPieces = await _db.IpqcFirstPieces
@@ -101,6 +103,7 @@ public class TraceService
     /// </summary>
     public async Task<TraceResult> TraceByBatchAsync(string batchCode)
     {
+        #pragma warning disable CS8620 // ICollection vs IEnumerable mismatch in EF Include chain (known EF Core behavior)
         var batch = await _db.ProductBatches
             .Include(b => b.Product)
             .Include(b => b.Inspections)
@@ -108,6 +111,7 @@ public class TraceService
             .Include(b => b.Releases)
             .Include(b => b.PackagingConfirmations)
             .FirstOrDefaultAsync(b => b.BatchCode == batchCode);
+        #pragma warning restore CS8620
 
         if (batch == null) return new TraceResult { Batch = null };
 
@@ -155,12 +159,14 @@ public class TraceService
     public async Task<NgDiffusionResult> AnalyzeNgDiffusionAsync(string causeBatchId)
     {
         // 找到 NG 批次
+        #pragma warning disable CS8620 // ICollection vs IEnumerable mismatch in EF Include chain
         var causeBatch = await _db.ProductBatches
             .Include(b => b.Product)
             .Include(b => b.Inspections)
-                .ThenInclude(i => i.Items)
+                .ThenInclude(i => i.Items!)
             .Include(b => b.Releases)
             .FirstOrDefaultAsync(b => b.BatchCode == causeBatchId || b.Id.ToString() == causeBatchId);
+        #pragma warning restore CS8620
 
         if (causeBatch == null)
             return new NgDiffusionResult { CauseBatch = causeBatchId, Message = "批次未找到" };

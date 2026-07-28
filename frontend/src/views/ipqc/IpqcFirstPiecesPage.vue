@@ -52,6 +52,7 @@ const submitForm = reactive<SubmitIpqcFirstPiece>({
 const submitId = ref<number>(0)
 
 const loadingPlanItems = ref(false)
+const formSubmitting = ref(false)
 
 // ─── Auto-load plans ──────────────────────────
 watch([() => form.processId, () => form.equipmentId], async ([processId, equipmentId]) => {
@@ -170,6 +171,7 @@ async function handleSave() {
     ElMessage.warning('请填写完整信息')
     return
   }
+  formSubmitting.value = true
   try {
     await firstPieceApi.create(form)
     ElMessage.success('首件检验已创建')
@@ -177,6 +179,8 @@ async function handleSave() {
     await loadData()
   } catch (e: any) {
     ElMessage.error(e?.response?.data?.message || '创建失败')
+  } finally {
+    formSubmitting.value = false
   }
 }
 
@@ -207,6 +211,7 @@ async function openSubmit(id: number) {
 async function handleSubmit() {
   const id = submitId.value
   if (!id) return
+  formSubmitting.value = true
   try {
     await firstPieceApi.submit(id, {
       conclusion: submitForm.conclusion,
@@ -219,6 +224,8 @@ async function handleSubmit() {
     await loadData()
   } catch (e: any) {
     ElMessage.error(e?.response?.data?.message || '提交失败')
+  } finally {
+    formSubmitting.value = false
   }
 }
 
@@ -228,54 +235,53 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="page-container">
-    <!-- Page Header -->
-    <div class="page-header">
-      <div class="page-header-left">
-        <el-icon class="page-header-icon"><Check /></el-icon>
-        <div class="page-header-text">
-          <h2 class="page-title">首件检验</h2>
-          <p class="page-subtitle">管理产线首件检验流程与结论判定</p>
+  <div class="page-content">
+    <!-- Page Header Banner -->
+    <div class="page-header-banner page-header-banner--primary">
+      <div class="page-header-banner-main">
+        <div class="page-header-banner-icon">
+          <el-icon :size="24"><Check /></el-icon>
+        </div>
+        <div class="page-header-banner-text">
+          <h1 class="page-header-banner-title">首件检验</h1>
+          <p class="page-header-banner-subtitle">管理产线首件检验流程与结论判定</p>
+        </div>
+        <div style="margin-left:auto; display:flex; gap:8px">
+          <el-button type="primary" :icon="Plus" @click="openCreate" round>新建首件检验</el-button>
+          <el-button :icon="Refresh" @click="loadData" :loading="loading">刷新</el-button>
         </div>
       </div>
-      <div class="page-header-actions">
-        <el-button type="primary" :icon="Plus" @click="openCreate" round>新建首件检验</el-button>
-        <el-button :icon="Refresh" @click="loadData" :loading="loading">刷新</el-button>
-      </div>
     </div>
 
-    <!-- Toolbar -->
+    <!-- Filter Bar -->
     <div class="action-bar">
-      <div class="action-bar-left">
-        <el-input
-          v-model="searchKeyword"
-          placeholder="搜索首件编号..."
-          clearable
-          class="search-input"
-          :prefix-icon="Search"
-          @clear="loadData"
-          @keyup.enter="loadData"
-          style="width: 260px"
-        />
-        <el-select
-          v-model="statusFilter"
-          placeholder="筛选结论"
-          clearable
-          class="filter-select"
-          @change="loadData"
-        >
-          <el-option v-for="o in IPQC_FIRST_PIECE_CONCLUSION_OPTIONS" :key="o.value" :label="o.label" :value="o.value" />
-        </el-select>
-      </div>
+      <el-input
+        v-model="searchKeyword"
+        placeholder="搜索首件编号..."
+        clearable
+        :prefix-icon="Search"
+        style="width: 260px"
+        @clear="loadData"
+        @keyup.enter="loadData"
+      />
+      <el-select
+        v-model="statusFilter"
+        placeholder="筛选结论"
+        clearable
+        style="width: 140px"
+        @change="loadData"
+      >
+        <el-option v-for="o in IPQC_FIRST_PIECE_CONCLUSION_OPTIONS" :key="o.value" :label="o.label" :value="o.value" />
+      </el-select>
     </div>
 
-    <!-- Table -->
+    <!-- Table Card -->
     <div class="data-card">
       <el-table
         :data="items"
         stripe
         v-loading="loading"
-        class="styled-table"
+        class="data-card__table"
         @row-click="(row: IpqcFirstPiece) => {}"
       >
         <el-table-column prop="fpNo" label="首件编号" width="180" fixed />
@@ -290,7 +296,7 @@ onMounted(async () => {
               effect="dark"
               size="default"
               round
-              class="conclusion-tag"
+              class="status-badge"
             >
               {{ conclusionLabel(row.conclusion) }}
             </el-tag>
@@ -329,19 +335,19 @@ onMounted(async () => {
           </template>
         </el-table-column>
       </el-table>
-    </div>
 
-    <!-- Pagination -->
-    <div class="pagination-row">
-      <el-pagination
-        v-model:current-page="page"
-        v-model:page-size="pageSize"
-        :total="total"
-        layout="total, prev, pager, next, jumper"
-        :page-sizes="[10, 20, 50, 100]"
-        background
-        @current-change="loadData"
-      />
+      <!-- Pagination -->
+      <div class="data-card__footer">
+        <el-pagination
+          v-model:current-page="page"
+          v-model:page-size="pageSize"
+          :total="total"
+          layout="total, prev, pager, next, jumper"
+          :page-sizes="[10, 20, 50, 100]"
+          background
+          @current-change="loadData"
+        />
+      </div>
     </div>
 
     <!-- Create Dialog -->
@@ -350,12 +356,14 @@ onMounted(async () => {
       :title="dialogTitle"
       width="680px"
       :close-on-click-modal="false"
-      class="styled-dialog"
       destroy-on-close
     >
       <template v-if="!isSubmit">
         <div class="dialog-section">
-          <h3 class="section-title-text"><el-icon><DocumentAdd /></el-icon> 基本信息</h3>
+          <div class="dialog-section-header">
+            <el-icon class="dialog-section-icon"><DocumentAdd /></el-icon>
+            基本信息
+          </div>
           <el-form :model="form" label-width="96px" label-position="left" size="default">
             <el-form-item label="工单ID" required>
               <el-input-number v-model="form.workOrderId" :min="1" :controls="false" style="width:200px" />
@@ -386,33 +394,28 @@ onMounted(async () => {
               </el-select>
             </el-form-item>
           </el-form>
-          <el-divider />
         </div>
 
         <div class="dialog-section">
-          <h3 class="section-title-text"><el-icon><Plus /></el-icon> 检验项目</h3>
+          <div class="dialog-section-header">
+            <el-icon class="dialog-section-icon"><Plus /></el-icon>
+            检验项目
+          </div>
           <div v-if="loadingPlanItems" class="plan-loading">⏳ 正在根据工序加载检验计划...</div>
-          <div class="items-list">
-            <div v-for="(item, idx) in form.items" :key="idx" class="item-row">
-              <div class="item-fields">
-                <el-input v-model="item.itemName" placeholder="项目名称" :readonly="!!item.inspectionItemId" />
-                <el-select v-model="item.dataType" :disabled="!!item.inspectionItemId">
-                  <el-option v-for="o in DATA_TYPE_OPTIONS" :key="o.value" :label="o.label" :value="o.value" />
-                </el-select>
-                <el-input-number v-model="item.usl" placeholder="USL" :precision="4" :step="0.1" controls-position="right" :disabled="!!item.inspectionItemId" />
-                <el-input-number v-model="item.lsl" placeholder="LSL" :precision="4" :step="0.1" controls-position="right" :disabled="!!item.inspectionItemId" />
-                <el-tag v-if="item.inspectionItemId" size="small" type="success" round effect="dark">计划</el-tag>
-              </div>
-              <el-button
-                link
-                type="danger"
-                :icon="Delete"
-                class="remove-btn"
-                @click="removeItem(idx)"
-                :disabled="form.items.length <= 1"
-              />
+          <div class="submit-list">
+            <div v-for="(item, idx) in form.items" :key="idx" class="submit-row">
+              <div class="submit-index">{{ idx + 1 }}</div>
+              <el-input v-model="item.itemName" placeholder="项目名称" :readonly="!!item.inspectionItemId" style="width:140px" size="default" />
+              <el-select v-model="item.dataType" :disabled="!!item.inspectionItemId" style="width:90px" size="default">
+                <el-option v-for="o in DATA_TYPE_OPTIONS" :key="o.value" :label="o.label" :value="o.value" />
+              </el-select>
+              <el-input-number v-model="item.usl" placeholder="USL" :precision="4" :step="0.1" controls-position="right" style="width:100px" size="default" :disabled="!!item.inspectionItemId" />
+              <el-input-number v-model="item.lsl" placeholder="LSL" :precision="4" :step="0.1" controls-position="right" style="width:100px" size="default" :disabled="!!item.inspectionItemId" />
+              <el-tag v-if="item.inspectionItemId" size="small" type="success" round effect="dark">计划</el-tag>
+              <el-button link type="danger" :icon="Delete" size="small" @click="removeItem(idx)"
+                :disabled="form.items.length <= 1" />
             </div>
-            <el-button size="small" @click="addItem" round>
+            <el-button type="primary" link @click="addItem">
               <el-icon><Plus /></el-icon> 添加项目
             </el-button>
           </div>
@@ -420,9 +423,12 @@ onMounted(async () => {
       </template>
 
       <template v-else>
-        <el-form :model="submitForm" label-width="96px" label-position="left" size="default">
-          <div class="dialog-section">
-            <h3 class="section-title-text"><el-icon><Check /></el-icon> 结论判定</h3>
+        <div class="dialog-section">
+          <div class="dialog-section-header">
+            <el-icon class="dialog-section-icon"><Check /></el-icon>
+            结论判定
+          </div>
+          <el-form :model="submitForm" label-width="96px" label-position="left" size="default">
             <el-form-item label="检验结论" required>
               <el-select v-model="submitForm.conclusion" style="width:240px">
                 <el-option v-for="o in IPQC_FIRST_PIECE_CONCLUSION_OPTIONS" :key="o.value" :label="o.label" :value="o.value" />
@@ -434,267 +440,42 @@ onMounted(async () => {
             <el-form-item label="检验员">
               <el-input v-model="submitForm.inspector" style="width:200px" placeholder="检验员姓名" />
             </el-form-item>
+          </el-form>
+        </div>
+
+        <div class="dialog-section">
+          <div class="dialog-section-header">
+            <el-icon class="dialog-section-icon"><DocumentAdd /></el-icon>
+            检验项结果
           </div>
-          <el-divider />
-          <div class="dialog-section">
-            <h3 class="section-title-text"><el-icon><DocumentAdd /></el-icon> 检验项结果</h3>
-            <div class="items-list">
-              <div v-for="(item, idx) in submitForm.items" :key="idx" class="item-row">
-                <div class="item-fields">
-                  <span class="item-name">{{ item.itemName }}</span>
-                  <el-input-number v-model="item.actualValue" :precision="4" :step="0.1" controls-position="right" />
-                  <el-select v-model="item.result">
-                    <el-option v-for="o in INSPECTION_RESULT_OPTIONS" :key="o.value" :label="o.label" :value="o.value" />
-                  </el-select>
-                  <span v-if="item.usl != null" class="range-info">({{ item.lsl }} ~ {{ item.usl }})</span>
-                </div>
-              </div>
+          <div class="submit-list">
+            <div v-for="(item, idx) in submitForm.items" :key="idx" class="submit-row">
+              <div class="submit-index">{{ idx + 1 }}</div>
+              <span style="min-width:100px; font-weight:500; color:var(--el-text-color-regular)">{{ item.itemName }}</span>
+              <el-input-number v-model="item.actualValue" :precision="4" :step="0.1" controls-position="right" style="width:110px" size="default" />
+              <el-select v-model="item.result" style="width:90px" size="default">
+                <el-option v-for="o in INSPECTION_RESULT_OPTIONS" :key="o.value" :label="o.label" :value="o.value" />
+              </el-select>
+              <span v-if="item.usl != null" style="color:var(--el-text-color-placeholder); font-size:11px; white-space:nowrap">({{ item.lsl }} ~ {{ item.usl }})</span>
             </div>
           </div>
-        </el-form>
+        </div>
       </template>
 
       <template #footer>
-        <div class="dialog-footer">
-          <el-button @click="dialogVisible = false">取 消</el-button>
-          <el-button type="primary" @click="isSubmit ? handleSubmit() : handleSave()">
-            {{ isSubmit ? '提 交' : '保 存' }}
-          </el-button>
-        </div>
+        <el-button @click="dialogVisible = false">取 消</el-button>
+        <el-button type="primary" @click="isSubmit ? handleSubmit() : handleSave()" :loading="formSubmitting">
+          {{ isSubmit ? '提 交' : '保 存' }}
+        </el-button>
       </template>
     </el-dialog>
   </div>
 </template>
 
 <style scoped>
-.page-container {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  background: var(--el-bg-color, #f5f7fa);
-}
-
-/* ─── Page Header ────────────────────────────── */
-
-.page-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 16px 20px;
-  background: #fff;
-  border-bottom: 1px solid var(--el-border-color-lighter, #ebeef5);
-  flex-shrink: 0;
-}
-
-.page-header-left {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.page-header-icon {
-  font-size: 24px;
-  color: var(--el-color-primary, #409eff);
-}
-
-.page-header-text {
-  display: flex;
-  flex-direction: column;
-}
-
-.page-title {
-  margin: 0;
-  font-size: 18px;
-  font-weight: 600;
-  color: var(--el-text-color-primary, #303133);
-  line-height: 1.3;
-}
-
-.page-subtitle {
-  margin: 0;
-  font-size: 12px;
-  color: var(--el-text-color-secondary, #909399);
-  line-height: 1.2;
-}
-
-.page-header-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-/* ─── Action Bar ─────────────────────────────── */
-
-.action-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px 20px;
-  background: #fff;
-  margin: 12px 0 0;
-  border-radius: 8px;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
-  flex-shrink: 0;
-}
-
-.action-bar-left {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-
-.search-input :deep(.el-input__wrapper) {
-  border-radius: 6px;
-}
-
-.filter-select :deep(.el-input__wrapper) {
-  border-radius: 6px;
-}
-
-/* ─── Data Card ──────────────────────────────── */
-
-.data-card {
-  flex: 1;
-  overflow: auto;
-  background: #fff;
-  border-radius: 8px;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
-  margin-bottom: 12px;
-}
-
-.styled-table {
-  width: 100%;
-}
-
-.styled-table :deep(.el-table__header-wrapper th) {
-  background: #f5f7fa !important;
-  font-weight: 600;
-  font-size: 13px;
-  color: var(--el-text-color-regular, #606266);
-}
-
-.styled-table :deep(.el-table__row) {
-  transition: background-color 0.2s;
-}
-
-.styled-table :deep(.el-table__row:hover) {
-  background-color: #ecf5ff !important;
-}
-
-.conclusion-tag {
-  font-weight: 500;
-}
-
-/* ─── Pagination ─────────────────────────────── */
-
-.pagination-row {
-  display: flex;
-  justify-content: flex-end;
-  padding: 12px 20px;
-  background: #fff;
-  border-radius: 8px;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
-  flex-shrink: 0;
-}
-
-/* ─── Dialog ─────────────────────────────────── */
-
-.dialog-section {
-  margin-bottom: 8px;
-}
-
-.section-title-text {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  margin: 0 0 16px;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--el-text-color-primary, #303133);
-}
-
-.section-title-text .el-icon {
-  color: var(--el-color-primary, #409eff);
-}
-
 .plan-loading {
-  color: var(--el-text-color-secondary, #909399);
+  color: var(--el-text-color-secondary);
   padding: 8px 0;
   font-size: 13px;
-}
-
-.items-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.item-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
-  background: var(--el-fill-color-lighter, #f2f3f5);
-  border-radius: 6px;
-  transition: background-color 0.2s;
-}
-
-.item-row:hover {
-  background: var(--el-fill-color-light, #f0f2f5);
-}
-
-.item-fields {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex: 1;
-  flex-wrap: wrap;
-}
-
-.item-fields :deep(.el-input),
-.item-fields :deep(.el-select),
-.item-fields :deep(.el-input-number) {
-  min-width: 0;
-  flex: 0 0 auto;
-}
-
-.item-name {
-  min-width: 120px;
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--el-text-color-regular, #606266);
-  flex-shrink: 0;
-}
-
-.range-info {
-  color: var(--el-text-color-placeholder, #c0c4cc);
-  font-size: 11px;
-  flex-shrink: 0;
-}
-
-.remove-btn {
-  flex-shrink: 0;
-}
-
-.dialog-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-}
-
-.styled-dialog :deep(.el-dialog__header) {
-  border-bottom: 1px solid var(--el-border-color-lighter, #ebeef5);
-  padding: 16px 20px;
-  margin-right: 0;
-}
-
-.styled-dialog :deep(.el-dialog__body) {
-  padding: 20px;
-}
-
-.styled-dialog :deep(.el-dialog__footer) {
-  border-top: 1px solid var(--el-border-color-lighter, #ebeef5);
-  padding: 12px 20px;
 }
 </style>

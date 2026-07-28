@@ -48,7 +48,6 @@ export const menuConfigs: MenuConfig[] = [
       { id: 'iqc-inspections', name: '检验单', icon: 'Document', path: '/iqc/inspections', closable: true, order: 3, module: 'iqc' },
       { id: 'iqc-anomalies', name: '来料异常', icon: 'WarningFilled', path: '/iqc/anomalies', closable: true, order: 4, module: 'iqc' },
       { id: 'iqc-suppliers', name: '供应商评分', icon: 'DataAnalysis', path: '/iqc/suppliers', closable: true, order: 5, module: 'iqc' },
-      { id: 'iqc-trace', name: '批次追溯', icon: 'Search', path: '/iqc/trace', closable: true, order: 6, module: 'iqc' },
     ],
   },
   {
@@ -113,7 +112,7 @@ export const menuConfigs: MenuConfig[] = [
     order: 6,
     module: 'trace',
     children: [
-      { id: 'trace-page', name: '追溯查询', icon: 'Search', path: '/trace', closable: true, order: 1, module: 'trace' },
+      { id: 'trace-page', name: '批次追溯', icon: 'Search', path: '/trace', closable: true, order: 1, module: 'trace' },
       { id: 'ng-diffusion-page', name: 'NG 扩散分析', icon: 'DataAnalysis', path: '/trace/ng-diffusion', closable: true, order: 2, module: 'trace' },
       { id: 'recall-simulation-page', name: '召回模拟', icon: 'RefreshLeft', path: '/trace/recall-simulation', closable: true, order: 3, module: 'trace' },
     ],
