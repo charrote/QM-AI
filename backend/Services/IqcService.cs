@@ -895,7 +895,7 @@ public class IqcService
         };
     }
 
-    public async Task<SupplierScoreDto?> UpdateSupplierScore(int supplierId, UpdateSupplierScoreDto dto)
+    public async Task<SupplierScoreDto?> UpdateSupplierScore(long supplierId, UpdateSupplierScoreDto dto)
     {
         var supplier = await _db.Suppliers.FindAsync(supplierId);
         if (supplier == null) return null;

@@ -262,8 +262,8 @@ public class IqcController : ControllerBase
     /// <summary>
     /// 获取供应商评分
     /// </summary>
-    [HttpGet("suppliers/{supplierId:int}/score")]
-    public async Task<ActionResult<SupplierScoreDto>> GetSupplierScore(int supplierId)
+    [HttpGet("suppliers/{supplierId:long}/score")]
+    public async Task<ActionResult<SupplierScoreDto>> GetSupplierScore(long supplierId)
     {
         var result = await _iqcService.GetSupplierScore(supplierId);
         if (result == null) return NotFound(new { message = "供应商不存在" });
@@ -273,8 +273,8 @@ public class IqcController : ControllerBase
     /// <summary>
     /// 手动更新供应商评分
     /// </summary>
-    [HttpPut("suppliers/{supplierId:int}/score")]
-    public async Task<ActionResult<SupplierScoreDto>> UpdateSupplierScore(int supplierId, [FromBody] UpdateSupplierScoreDto dto)
+    [HttpPut("suppliers/{supplierId:long}/score")]
+    public async Task<ActionResult<SupplierScoreDto>> UpdateSupplierScore(long supplierId, [FromBody] UpdateSupplierScoreDto dto)
     {
         var result = await _iqcService.UpdateSupplierScore(supplierId, dto);
         if (result == null) return NotFound(new { message = "供应商不存在" });
