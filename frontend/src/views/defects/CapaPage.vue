@@ -333,8 +333,8 @@ onMounted(() => {
 .search-card { margin-bottom: 12px; }
 .search-bar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .table-card { flex: 1; display: flex; flex-direction: column; }
-.table-card >>> .el-card__body { flex: 1; display: flex; flex-direction: column; padding: 0; }
-.table-card >>> .el-table { flex: 1; }
+.table-card :deep(.el-card__body) { flex: 1; display: flex; flex-direction: column; padding: 0; }
+.table-card :deep(.el-table) { flex: 1; }
 .pagination-row { display: flex; justify-content: flex-end; padding: 12px 8px; border-top: 1px solid #f0f0f0; }
 .overdue-text { color: #f56c6c; font-weight: 600; }
 </style>

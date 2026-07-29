@@ -2,7 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { Search, Check, Document, List, ArrowLeft, Clock } from '@element-plus/icons-vue'
+import { Search, Check, Close, Document, List, ArrowLeft, Clock } from '@element-plus/icons-vue'
 import { patrolApi } from '@/api/ipqc'
 import type { IpqcPatrolDetail, IpqcPatrolItemSubmit } from '@/types/ipqc'
 import { IPQC_PATROL_CONCLUSION_OPTIONS, INSPECTION_RESULT_OPTIONS } from '@/types/ipqc'
@@ -262,7 +262,7 @@ function resultTag(r: string) {
   padding: 12px 16px;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   min-height: 100vh;
-  background: #f5f7fa;
+  background: var(--bg-base, #f5f7fa);
 }
 
 /* ─── Header ───────────────────────── */
@@ -274,7 +274,7 @@ function resultTag(r: string) {
   margin-bottom: 20px;
   position: sticky;
   top: 0;
-  background: #f5f7fa;
+  background: var(--bg-base, #f5f7fa);
   padding: 8px 0;
   z-index: 10;
 }
@@ -286,10 +286,10 @@ function resultTag(r: string) {
   background: none;
   border: none;
   font-size: 16px;
-  color: #409eff;
+  color: var(--primary, #1677ff);
   cursor: pointer;
   padding: 8px 12px;
-  border-radius: 8px;
+  border-radius: var(--radius-lg, 8px);
   min-height: 44px;
 }
 
@@ -299,14 +299,14 @@ function resultTag(r: string) {
   gap: 8px;
   font-size: 18px;
   margin: 0;
-  color: #303133;
+  color: var(--el-text-color-primary, #303133);
   font-weight: 600;
 }
 
 /* ─── Scan Section ─────────────────── */
 .scan-section {
-  background: #fff;
-  border-radius: 12px;
+  background: var(--el-bg-color, #fff);
+  border-radius: var(--radius-xl, 12px);
   padding: 28px 20px;
   margin-bottom: 16px;
   box-shadow: 0 1px 3px rgba(0,0,0,0.06);
@@ -322,7 +322,7 @@ function resultTag(r: string) {
 
 .scan-tip {
   font-size: 15px;
-  color: #606266;
+  color: var(--el-text-color-regular, #606266);
   text-align: center;
   font-weight: 500;
 }
@@ -335,17 +335,17 @@ function resultTag(r: string) {
 .pda-input {
   flex: 1;
   padding: 14px 16px;
-  border: 2px solid #dcdfe6;
-  border-radius: 10px;
+  border: 2px solid var(--el-border-color, #dcdfe6);
+  border-radius: var(--radius-lg, 10px);
   font-size: 17px;
   outline: none;
   transition: border-color 0.2s;
-  background: #fff;
+  background: var(--el-bg-color, #fff);
   min-height: 48px;
 }
 
 .pda-input:focus {
-  border-color: #409eff;
+  border-color: var(--primary, #1677ff);
 }
 
 .scan-btn {
@@ -360,7 +360,7 @@ function resultTag(r: string) {
   gap: 6px;
   padding: 14px 24px;
   border: none;
-  border-radius: 10px;
+  border-radius: var(--radius-lg, 10px);
   font-size: 16px;
   font-weight: 500;
   cursor: pointer;
@@ -375,26 +375,26 @@ function resultTag(r: string) {
 }
 
 .pda-btn--primary {
-  background: #409eff;
+  background: var(--primary, #409eff);
   color: #fff;
 }
 
 .pda-btn--secondary {
-  background: #f0f2f5;
-  color: #606266;
+  background: var(--el-fill-color-light, #f0f2f5);
+  color: var(--el-text-color-regular, #606266);
 }
 
 /* ─── Patrol Form ──────────────────── */
 .patrol-form {
-  background: #fff;
-  border-radius: 12px;
+  background: var(--el-bg-color, #fff);
+  border-radius: var(--radius-xl, 12px);
   padding: 16px;
   box-shadow: 0 1px 3px rgba(0,0,0,0.06);
 }
 
 .patrol-info {
-  background: #f0f9ff;
-  border-radius: 10px;
+  background: var(--primary-light-9, #f0f9ff);
+  border-radius: var(--radius-lg, 10px);
   padding: 14px 16px;
   margin-bottom: 20px;
 }
@@ -406,7 +406,7 @@ function resultTag(r: string) {
   margin-bottom: 10px;
   font-size: 14px;
   font-weight: 600;
-  color: #303133;
+  color: var(--el-text-color-primary, #303133);
 }
 
 .info-row {
@@ -416,12 +416,12 @@ function resultTag(r: string) {
 }
 
 .info-row .label {
-  color: #909399;
+  color: var(--el-text-color-secondary, #909399);
   font-size: 14px;
 }
 
 .info-row .value {
-  color: #303133;
+  color: var(--el-text-color-primary, #303133);
   font-weight: 500;
   font-size: 14px;
 }
@@ -433,7 +433,7 @@ function resultTag(r: string) {
   gap: 6px;
   font-size: 15px;
   font-weight: 600;
-  color: #303133;
+  color: var(--el-text-color-primary, #303133);
   margin-bottom: 12px;
 }
 
@@ -443,8 +443,8 @@ function resultTag(r: string) {
 }
 
 .inspect-item {
-  background: #fafafa;
-  border-radius: 10px;
+  background: var(--el-fill-color-lighter, #fafafa);
+  border-radius: var(--radius-lg, 10px);
   padding: 14px;
   margin-bottom: 10px;
 }
@@ -459,7 +459,7 @@ function resultTag(r: string) {
 .item-name {
   font-weight: 500;
   font-size: 15px;
-  color: #303133;
+  color: var(--el-text-color-primary, #303133);
 }
 
 .item-result {
@@ -472,10 +472,10 @@ function resultTag(r: string) {
   align-items: center;
   gap: 4px;
   padding: 10px 16px;
-  border: 2px solid #67c23a;
+  border: 2px solid var(--success, #67c23a);
   border-radius: 24px;
   background: #fff;
-  color: #67c23a;
+  color: var(--success, #67c23a);
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
@@ -483,17 +483,17 @@ function resultTag(r: string) {
 }
 
 .result-btn--fail {
-  border-color: #f56c6c;
-  color: #f56c6c;
+  border-color: var(--danger, #f56c6c);
+  color: var(--danger, #f56c6c);
 }
 
 .result-btn.active {
-  background: #67c23a;
+  background: var(--success, #67c23a);
   color: #fff;
 }
 
 .result-btn--fail.active {
-  background: #f56c6c;
+  background: var(--danger, #f56c6c);
   color: #fff;
 }
 
@@ -507,8 +507,8 @@ function resultTag(r: string) {
   flex: 1;
   padding: 12px 14px;
   font-size: 15px;
-  border: 2px solid #dcdfe6;
-  border-radius: 8px;
+  border: 2px solid var(--el-border-color, #dcdfe6);
+  border-radius: var(--radius-md, 8px);
   outline: none;
   min-height: 44px;
 }
@@ -526,18 +526,20 @@ function resultTag(r: string) {
 .pda-textarea {
   width: 100%;
   padding: 12px 14px;
-  border: 2px solid #dcdfe6;
-  border-radius: 10px;
+  border: 2px solid var(--el-border-color, #dcdfe6);
+  border-radius: var(--radius-lg, 10px);
   font-size: 15px;
   outline: none;
   resize: vertical;
   box-sizing: border-box;
   font-family: inherit;
   min-height: 80px;
+  background: var(--el-bg-color, #fff);
+  color: var(--el-text-color-primary, #303133);
 }
 
 .pda-textarea:focus {
-  border-color: #409eff;
+  border-color: var(--primary, #1677ff);
 }
 
 /* ─── Conclusion ───────────────────── */
@@ -553,10 +555,10 @@ function resultTag(r: string) {
 .conclusion-btn {
   flex: 1;
   padding: 14px 12px;
-  border: 2px solid #dcdfe6;
-  border-radius: 10px;
-  background: #fff;
-  color: #606266;
+  border: 2px solid var(--el-border-color, #dcdfe6);
+  border-radius: var(--radius-lg, 10px);
+  background: var(--el-bg-color, #fff);
+  color: var(--el-text-color-regular, #606266);
   font-size: 15px;
   font-weight: 500;
   cursor: pointer;
@@ -566,9 +568,9 @@ function resultTag(r: string) {
 }
 
 .conclusion-btn.active {
-  border-color: #409eff;
-  background: #ecf5ff;
-  color: #409eff;
+  border-color: var(--primary, #1677ff);
+  background: var(--primary-light-9, #ecf5ff);
+  color: var(--primary, #1677ff);
   font-weight: 600;
 }
 
@@ -586,15 +588,15 @@ function resultTag(r: string) {
 
 /* ─── History ──────────────────────── */
 .history-section {
-  background: #fff;
-  border-radius: 12px;
+  background: var(--el-bg-color, #fff);
+  border-radius: var(--radius-xl, 12px);
   padding: 16px;
   margin-top: 16px;
 }
 
 .history-empty {
   text-align: center;
-  color: #c0c4cc;
+  color: var(--el-text-color-placeholder, #c0c4cc);
   font-size: 14px;
   padding: 24px 0;
 }

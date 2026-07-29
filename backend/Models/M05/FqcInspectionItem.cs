@@ -19,6 +19,7 @@ public class FqcInspectionItem
     public long InspectionId { get; set; }
 
     /// <summary>关联检验项目主数据</summary>
+    [Column("inspection_item_id")]
     public long? InspectionItemId { get; set; }
 
     /// <summary>检验项目名称</summary>
@@ -63,6 +64,5 @@ public class FqcInspectionItem
     public FqcInspection? Inspection { get; set; }
 
     [ForeignKey(nameof(InspectionItemId))]
-    [Column("inspection_item")]
     public InspectionItem? InspectionItem { get; set; }
 }

@@ -1016,6 +1016,14 @@ onMounted(async () => {
   border: 1px solid var(--el-border-color-light);
   border-radius: 6px;
   overflow: hidden;
+  flex-shrink: 0;
+  max-height: 320px;
+}
+
+/* Data Card Table — constrained within card, internal row scroll */
+.data-card__table :deep(.el-table__body-wrapper) {
+  max-height: calc(320px - 48px - 12px); /* card max-height minus header minus padding/gap */
+  overflow-y: auto !important;
 }
 
 /* Sub-Tabs */
@@ -1032,14 +1040,15 @@ onMounted(async () => {
   flex-direction: column;
   gap: 12px;
   padding: 12px;
+  min-height: 0;
   overflow-y: auto;
 }
 
 .params-main-row {
   display: flex;
   gap: 12px;
-  flex: 1;
-  min-height: 400px;
+  min-height: 0;
+  overflow: hidden;
 }
 
 /* Panel Styles */
@@ -1174,6 +1183,7 @@ onMounted(async () => {
 /* Dashboard Preview */
 .dashboard-preview {
   border-top: 1px solid var(--el-border-color-light);
+  flex-shrink: 0;
   max-height: 240px;
   overflow-y: auto;
 }

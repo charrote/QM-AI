@@ -19,6 +19,7 @@ public class IpqcAiRiskScore
     public long EquipmentId { get; set; }
 
     /// <summary>关联工序</summary>
+    [Column("process_id")]
     public long ProcessId { get; set; }
 
     /// <summary>关联工单（可选）</summary>
@@ -36,6 +37,7 @@ public class IpqcAiRiskScore
     public string RiskLevel { get; set; } = "normal";
 
     /// <summary>风险因素分解 (JSON)</summary>
+    [Column("factors_json")]
     public string? FactorsJson { get; set; }
 
     /// <summary>趋势方向：stable/rising/falling</summary>

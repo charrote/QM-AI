@@ -21,6 +21,7 @@ public class IpqcPatrol
     public string PatrolNo { get; set; } = string.Empty;
 
     /// <summary>关联巡检计划</summary>
+    [Column("patrol_plan_id")]
     public long PatrolPlanId { get; set; }
 
     /// <summary>关联工单（可选）</summary>
@@ -28,6 +29,7 @@ public class IpqcPatrol
     public long? WorkOrderId { get; set; }
 
     /// <summary>关联工序</summary>
+    [Column("process_id")]
     public long ProcessId { get; set; }
 
     /// <summary>关联设备</summary>
@@ -35,6 +37,7 @@ public class IpqcPatrol
     public long EquipmentId { get; set; }
 
     /// <summary>检验员</summary>
+    [Column("inspector_id")]
     public long InspectorId { get; set; }
 
     /// <summary>计划时间</summary>
@@ -70,6 +73,7 @@ public class IpqcPatrol
     public string Status { get; set; } = "scheduled";
 
     /// <summary>备注</summary>
+    [Column("remarks")]
     public string? Remarks { get; set; }
 
     [Column("created_at")]

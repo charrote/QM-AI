@@ -2,8 +2,7 @@
 import { ref, onMounted, reactive, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
-  Search, Refresh, Box, Plus, PriceTag, Setting, Check, DocumentChecked,
-  ArrowRight,
+  Search, Refresh, Box, Plus, PriceTag, Setting, Check,
 } from '@element-plus/icons-vue'
 import { packagingApi, batchApi } from '@/api/fqc'
 import type { PackagingConfirmation, CreatePackagingConfirmation } from '@/types/fqc'
@@ -29,7 +28,6 @@ const createForm = reactive<CreatePackagingConfirmation>({
 
 // ─── Batch select for create dialog ───
 const batchOptions = ref<Array<{ value: number; label: string; batchCode: string; productName: string }>>([])
-const batchSearchQuery = ref('')
 const batchSelectLoading = ref(false)
 
 const PACKAGING_METHOD_OPTIONS = [
@@ -106,6 +104,11 @@ const totalLabelsPrinted = computed(() =>
   list.value.filter(r => r.labelPrinted).length,
 )
 
+function formatDate(d?: string) {
+  if (!d) return '-'
+  return new Date(d).toLocaleString('zh-CN')
+}
+
 onMounted(() => {
   fetchList()
   fetchBatchOptions()
@@ -115,70 +118,69 @@ onMounted(() => {
 <template>
   <div class="page-container">
     <!-- Page Header -->
-    <div class="page-header">
-      <div class="page-header__icon-wrapper">
-        <el-icon :size="28"><Box /></el-icon>
+    <div class="page-header-banner page-header-banner--success">
+      <div class="page-header-banner-main">
+        <div class="page-header-banner-icon">
+          <el-icon :size="28"><Box /></el-icon>
+        </div>
+        <div class="page-header-banner-text">
+          <h2 class="page-header-banner-title">包装确认</h2>
+          <span class="page-header-banner-subtitle">管理成品包装信息，确认包装方式与标签打印</span>
+        </div>
       </div>
-      <div class="page-header__info">
-        <h1 class="page-header__title">包装确认</h1>
-        <p class="page-header__subtitle">管理成品包装信息，确认包装方式与标签打印</p>
-      </div>
-    </div>
-
-    <!-- Flow Banner -->
-    <div class="flow-banner">
-      <span class="flow-banner__step"><el-icon><DocumentChecked /></el-icon> OQC 放行通过</span>
-      <el-icon class="flow-banner__arrow"><ArrowRight /></el-icon>
-      <span class="flow-banner__step"><el-icon><Box /></el-icon> 包装确认</span>
-      <el-icon class="flow-banner__arrow"><ArrowRight /></el-icon>
-      <span class="flow-banner__step"><el-icon><PriceTag /></el-icon> 标签打印</span>
-      <el-icon class="flow-banner__arrow"><ArrowRight /></el-icon>
-      <span class="flow-banner__step"><el-icon><Check /></el-icon> 发货</span>
     </div>
 
     <!-- Summary Metrics -->
-    <div class="metrics-row">
-      <div class="metrics-row__item">
-        <div class="metrics-row__label">包装记录总数</div>
-        <div class="metrics-row__value">{{ total }}</div>
+    <div class="stat-grid">
+      <div class="stat-grid__item stat-grid__item--primary">
+        <div class="stat-grid__icon stat-grid__icon--primary">
+          <el-icon :size="20"><Box /></el-icon>
+        </div>
+        <div class="stat-grid__text">
+          <div class="stat-grid__label">包装记录总数</div>
+          <div class="stat-grid__value">{{ total }}</div>
+        </div>
       </div>
-      <div class="metrics-row__item metrics-row__item--accent">
-        <div class="metrics-row__label">已打印标签</div>
-        <div class="metrics-row__value">{{ totalLabelsPrinted }}</div>
+      <div class="stat-grid__item stat-grid__item--success">
+        <div class="stat-grid__icon stat-grid__icon--success">
+          <el-icon :size="20"><PriceTag /></el-icon>
+        </div>
+        <div class="stat-grid__text">
+          <div class="stat-grid__label">已打印标签</div>
+          <div class="stat-grid__value">{{ totalLabelsPrinted }}</div>
+        </div>
       </div>
     </div>
 
     <!-- Toolbar -->
-    <div class="action-bar">
-      <div class="action-bar__left">
-        <el-input
-          v-model="query.keyword"
-          placeholder="搜索批次号/包装方式"
-          :prefix-icon="Search"
-          clearable
-          style="width: 260px"
-          @clear="fetchList"
-          @keyup.enter="fetchList"
-        />
-        <el-button @click="fetchList">
-          <el-icon><Refresh /></el-icon>
-          刷新
-        </el-button>
-      </div>
-      <div class="action-bar__right">
-        <el-button type="primary" @click="createVisible = true">
-          <el-icon><Plus /></el-icon>
-          包装确认
-        </el-button>
-      </div>
-    </div>
-
-    <!-- Table Card -->
     <div class="data-card">
+      <div class="data-card__header">
+        <span class="data-card__title">包装确认记录</span>
+        <div class="data-card__toolbar">
+          <el-input
+            v-model="query.keyword"
+            placeholder="搜索批次号/包装方式"
+            clearable
+            size="small"
+            :prefix-icon="Search"
+            style="width: 220px"
+            @clear="fetchList"
+            @keyup.enter="fetchList"
+          />
+          <el-button size="small" @click="fetchList">
+            <el-icon><Refresh /></el-icon>刷新
+          </el-button>
+          <el-button size="small" type="primary" @click="createVisible = true">
+            <el-icon><Plus /></el-icon>包装确认
+          </el-button>
+        </div>
+      </div>
       <el-table
         :data="list"
         v-loading="loading"
-        :row-class-name="() => 'data-card__row'"
+        size="small"
+        class="data-card__table"
+        @row-click="() => {}"
         style="width: 100%"
       >
         <el-table-column prop="batchCode" label="批次号" min-width="160" show-overflow-tooltip />
@@ -217,7 +219,9 @@ onMounted(() => {
           </template>
         </el-table-column>
         <el-table-column prop="confirmedByName" label="确认人" min-width="110" show-overflow-tooltip />
-        <el-table-column prop="confirmedAt" label="确认时间" min-width="150" show-overflow-tooltip />
+        <el-table-column prop="confirmedAt" label="确认时间" min-width="150">
+          <template #default="{ row }">{{ formatDate(row.confirmedAt) }}</template>
+        </el-table-column>
         <el-table-column label="操作" width="120" fixed="right" align="center">
           <template #default="{ row }">
             <el-button
@@ -245,17 +249,19 @@ onMounted(() => {
 
       <!-- Pagination -->
       <div v-if="list.length > 0" class="data-card__footer">
-        <el-pagination
-          v-model:current-page="query.page"
-          v-model:page-size="query.pageSize"
-          :total="total"
-          :page-sizes="[10, 20, 50, 100]"
-          :sizes-layout="'first, prev, pager, next'"
-          :pager-count="7"
-          layout="total, sizes, prev, pager, next, jumper"
-          background
-          @change="fetchList"
-        />
+        <div class="data-card__pagination">
+          <el-pagination
+            v-model:current-page="query.page"
+            v-model:page-size="query.pageSize"
+            :total="total"
+            :page-sizes="[10, 20, 50, 100]"
+            layout="total, sizes, prev, pager, next, jumper"
+            :sizes-layout="'first, prev, pager, next'"
+            :pager-count="7"
+            background
+            @change="fetchList"
+          />
+        </div>
       </div>
     </div>
 
@@ -263,8 +269,8 @@ onMounted(() => {
     <el-dialog v-model="createVisible" title="包装确认" width="540px" :close-on-click-modal="false" top="6vh">
       <div v-if="createVisible">
         <div class="dialog-section">
-          <div class="dialog-section__title">
-            <el-icon><Box /></el-icon>
+          <div class="dialog-section-header">
+            <el-icon class="dialog-section-icon"><Box /></el-icon>
             <span>包装信息</span>
           </div>
           <el-form :model="createForm" label-width="90px" label-position="left">
@@ -276,7 +282,6 @@ onMounted(() => {
                 :loading="batchSelectLoading"
                 placeholder="搜索批次号/产品名"
                 style="width: 100%"
-                @change="batchSearchQuery = ''"
               >
                 <el-option
                   v-for="opt in batchOptions"
@@ -315,8 +320,8 @@ onMounted(() => {
         </div>
 
         <div class="dialog-section">
-          <div class="dialog-section__title">
-            <el-icon><Setting /></el-icon>
+          <div class="dialog-section-header">
+            <el-icon class="dialog-section-icon"><Setting /></el-icon>
             <span>包装参数</span>
           </div>
           <el-form :model="createForm" label-width="90px" label-position="left">
@@ -355,160 +360,6 @@ onMounted(() => {
   gap: 16px;
 }
 
-/* ─── Page Header ──────────────────── */
-.page-header {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 0 4px;
-}
-
-.page-header__icon-wrapper {
-  width: 44px;
-  height: 44px;
-  border-radius: 10px;
-  background: var(--el-color-success-light-9, #f0f9eb);
-  color: var(--el-color-success, #67c23a);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.page-header__info {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.page-header__title {
-  margin: 0;
-  font-size: 20px;
-  font-weight: 600;
-  color: var(--text-primary, #303133);
-  line-height: 1.3;
-}
-
-.page-header__subtitle {
-  margin: 0;
-  font-size: 13px;
-  color: var(--text-secondary, #909399);
-  line-height: 1.4;
-}
-
-/* ─── Flow Banner ──────────────────── */
-.flow-banner {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 10px 16px;
-  background: var(--el-color-success-light-9, #f0f9eb);
-  border-radius: 8px;
-  font-size: 13px;
-}
-
-.flow-banner__step {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  color: var(--el-text-regular, #606266);
-  white-space: nowrap;
-}
-
-.flow-banner__arrow {
-  color: var(--el-color-info, #909399);
-  flex-shrink: 0;
-}
-
-/* ─── Metrics Row ──────────────────── */
-.metrics-row {
-  display: flex;
-  align-items: stretch;
-  gap: 16px;
-}
-
-.metrics-row__item {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 12px 16px;
-  background: var(--bg-card, #fff);
-  border-radius: 8px;
-  box-shadow: var(--shadow-sm, 0 1px 2px rgba(0,0,0,0.06));
-  min-width: 140px;
-}
-
-.metrics-row__label {
-  font-size: 12px;
-  color: var(--el-text-secondary, #909399);
-  margin-bottom: 4px;
-}
-
-.metrics-row__value {
-  font-size: 24px;
-  font-weight: 700;
-  color: var(--el-text-primary, #303133);
-  line-height: 1;
-}
-
-.metrics-row__item--accent {
-  background: var(--el-color-success-light-9, #f0f9eb);
-}
-
-.metrics-row__item--accent .metrics-row__value {
-  color: var(--el-color-success, #67c23a);
-}
-
-/* ─── Action Bar ───────────────────── */
-.action-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-
-.action-bar__left {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.action-bar__right {
-  display: flex;
-  gap: 8px;
-}
-
-/* ─── Data Card ────────────────────── */
-.data-card {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  background: var(--bg-card, #fff);
-  border-radius: 8px;
-  box-shadow: var(--shadow-sm, 0 1px 2px rgba(0,0,0,0.06));
-  overflow: hidden;
-}
-
-.data-card__row {
-  transition: background-color 0.2s;
-}
-
-.data-card__row:hover {
-  background-color: var(--el-fill-color-light, #f5f7fa) !important;
-}
-
-.data-card__footer {
-  display: flex;
-  justify-content: flex-end;
-  padding: 12px 16px;
-  border-top: 1px solid var(--el-border-color-lighter, #ebeef5);
-}
-
-/* ─── Label Printed Cell ───────────── */
 .label-printed-cell {
   display: flex;
   align-items: center;
@@ -516,7 +367,6 @@ onMounted(() => {
   gap: 6px;
 }
 
-/* ─── Empty State ──────────────────── */
 .empty-state {
   flex: 1;
   display: flex;
@@ -533,28 +383,6 @@ onMounted(() => {
   color: var(--el-text-secondary, #909399);
 }
 
-/* ─── Dialog Sections ──────────────── */
-.dialog-section {
-  margin-bottom: 20px;
-}
-
-.dialog-section__title {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-primary, #303133);
-  margin-bottom: 12px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid var(--el-border-color-lighter, #ebeef5);
-}
-
-.dialog-section__title .el-icon {
-  color: var(--el-color-primary, #409eff);
-}
-
-/* ─── Total Calculation Display ────── */
 .total-calc-display {
   font-size: 18px;
   font-weight: 700;

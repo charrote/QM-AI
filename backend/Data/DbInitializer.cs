@@ -1635,6 +1635,174 @@ public static class DbInitializer
             Console.WriteLine($"[DbInitializer] SPC 判异规则初始化失败（不阻断启动）: {ex.Message}");
         }
         #endregion
+
+        #region IPQC 过程检验种子数据
+        try
+        {
+            var ipqcProcess = await context.Processes.Where(p => p.Name == "过程检验").FirstOrDefaultAsync();
+            var firstPieceProcess = await context.Processes.Where(p => p.Name == "来料检验").FirstOrDefaultAsync();
+            var assemblyProcess = await context.Processes.Where(p => p.Name == "精车").FirstOrDefaultAsync();
+            var weldingProcess = await context.Processes.Where(p => p.Name == "钻孔").FirstOrDefaultAsync();
+            var packagingProcess = await context.Processes.Where(p => p.Name == "清洗包装").FirstOrDefaultAsync();
+
+            var equipmentInj = await context.Equipment.Where(e => e.Code == "INJ-001").FirstOrDefaultAsync();
+            var equipmentAssy = await context.Equipment.Where(e => e.Code == "ROBOT-INS-01").FirstOrDefaultAsync();
+            var equipmentWeld = await context.Equipment.Where(e => e.Code == "ROBOT-WLD-01").FirstOrDefaultAsync();
+            var equipmentPkg = await context.Equipment.Where(e => e.Code == "PKG-001").FirstOrDefaultAsync();
+
+            if (ipqcProcess == null || firstPieceProcess == null || assemblyProcess == null)
+            {
+                Console.WriteLine("[DbInitializer] IPQC 种子数据跳过（工序缺失）");
+            }
+            else
+            {
+                var now = DateTime.UtcNow;
+
+                // 如果已存在 IPQC 检验项目则跳过，否则创建
+                var existingInspectionItems = await context.InspectionItems
+                    .Where(i => i.ItemCode.StartsWith("IPQC-"))
+                    .ToListAsync();
+                List<InspectionItem>? ipqcInspectionItems;
+                if (existingInspectionItems.Count > 0)
+                {
+                    Console.WriteLine("[DbInitializer] IPQC 检验项目已存在，跳过");
+                    ipqcInspectionItems = existingInspectionItems;
+                }
+                else
+                {
+                    ipqcInspectionItems = new List<InspectionItem>
+                    {
+                        new() { ItemCode = "IPQC-FP-001", ItemName = "外观检查", Description = "首件检验外观检查", DataType = "visual", InspectionMethod = "目视检查", SampleSize = 5 },
+                        new() { ItemCode = "IPQC-FP-002", ItemName = "尺寸测量", Description = "关键尺寸测量，公差 ±0.05mm", DataType = "numeric", Unit = "mm", Usl = 50.05m, Lsl = 49.95m, TargetValue = 50.00m, InspectionMethod = "千分尺", SampleSize = 5 },
+                        new() { ItemCode = "IPQC-FP-003", ItemName = "功能测试", Description = "产品功能测试", DataType = "attribute", InspectionMethod = "专用测试治具", SampleSize = 3 },
+                        new() { ItemCode = "IPQC-PL-001", ItemName = "设备点检", Description = "设备运行状态点检", DataType = "visual", InspectionMethod = "目视 + 听诊", SampleSize = 1 },
+                        new() { ItemCode = "IPQC-PL-002", ItemName = "工艺参数核对", Description = "核对设备参数与工艺卡片一致性", DataType = "visual", InspectionMethod = "目视核对", SampleSize = 1 },
+                        new() { ItemCode = "IPQC-PL-003", ItemName = "首件样品确认", Description = "确认首件样品与标准样品一致", DataType = "visual", InspectionMethod = "目视比对", SampleSize = 1 },
+                    };
+                    context.InspectionItems.AddRange(ipqcInspectionItems);
+                    await context.SaveChangesAsync();
+                }
+
+                // 如果已存在首件检验数据则跳过，否则创建
+                var existingFirstPieces = await context.IpqcFirstPieces.CountAsync();
+                if (existingFirstPieces > 0)
+                {
+                    Console.WriteLine("[DbInitializer] IPQC 首件检验已存在，跳过");
+                }
+                else
+                {
+                    var firstPieces = new List<IpqcFirstPiece>
+                    {
+                        new() { FpNo = "FP-20260729-001", WorkOrderId = 1001, ProcessId = firstPieceProcess.Id, EquipmentId = equipmentInj?.Id ?? 0, OperatorId = 1, Shift = "早班", Reason = "开机首件", Conclusion = "qualified", AllowedToProduce = true, InspectorId = 3, CheckedAt = now - TimeSpan.FromHours(2), CreatedAt = now - TimeSpan.FromHours(24), UpdatedAt = now },
+                        new() { FpNo = "FP-20260729-002", WorkOrderId = 1002, ProcessId = assemblyProcess.Id, EquipmentId = equipmentAssy?.Id ?? 0, OperatorId = 2, Shift = "早班", Reason = "班次切换", Conclusion = "pending", AllowedToProduce = false, InspectorId = null, CheckedAt = null, CreatedAt = now - TimeSpan.FromHours(1), UpdatedAt = now },
+                        new() { FpNo = "FP-20260729-003", WorkOrderId = 1003, ProcessId = weldingProcess.Id, EquipmentId = equipmentWeld?.Id ?? 0, OperatorId = 3, Shift = "中班", Reason = "换模后首件", Conclusion = "unqualified", AllowedToProduce = false, InspectorId = 3, CheckedAt = now - TimeSpan.FromHours(4), CreatedAt = now - TimeSpan.FromHours(48), UpdatedAt = now },
+                        new() { FpNo = "FP-20260728-004", WorkOrderId = 1004, ProcessId = firstPieceProcess.Id, EquipmentId = equipmentInj?.Id ?? 0, OperatorId = 1, Shift = "晚班", Reason = "开机首件", Conclusion = "qualified", AllowedToProduce = true, InspectorId = 2, CheckedAt = now - TimeSpan.FromHours(72), CreatedAt = now - TimeSpan.FromHours(96), UpdatedAt = now },
+                        new() { FpNo = "FP-20260728-005", WorkOrderId = 1005, ProcessId = packagingProcess.Id, EquipmentId = equipmentPkg?.Id ?? 0, OperatorId = 4, Shift = "早班", Reason = "维修后首件", Conclusion = "qualified", AllowedToProduce = true, InspectorId = 3, CheckedAt = now - TimeSpan.FromHours(70), CreatedAt = now - TimeSpan.FromHours(94), UpdatedAt = now },
+                    };
+                    context.IpqcFirstPieces.AddRange(firstPieces);
+                    await context.SaveChangesAsync();
+
+                    var firstPieceItems = new List<IpqcFirstPieceItem>();
+                    foreach (var fp in firstPieces)
+                    {
+                        if (fp.Conclusion == "qualified")
+                        {
+                            firstPieceItems.Add(new IpqcFirstPieceItem { FirstPieceId = fp.Id, InspectionItemId = ipqcInspectionItems[0].Id, ItemName = "外观检查", DataType = "visual", Result = "pass", ActualValue = null });
+                            firstPieceItems.Add(new IpqcFirstPieceItem { FirstPieceId = fp.Id, InspectionItemId = ipqcInspectionItems[1].Id, ItemName = "尺寸测量", DataType = "numeric", Usl = 50.05m, Lsl = 49.95m, Result = "pass", ActualValue = 50.02m });
+                            firstPieceItems.Add(new IpqcFirstPieceItem { FirstPieceId = fp.Id, InspectionItemId = ipqcInspectionItems[2].Id, ItemName = "功能测试", DataType = "attribute", Result = "pass", ActualValue = null });
+                        }
+                        else if (fp.Conclusion == "pending")
+                        {
+                            firstPieceItems.Add(new IpqcFirstPieceItem { FirstPieceId = fp.Id, InspectionItemId = ipqcInspectionItems[0].Id, ItemName = "外观检查", DataType = "visual", Result = "pending", ActualValue = null });
+                            firstPieceItems.Add(new IpqcFirstPieceItem { FirstPieceId = fp.Id, InspectionItemId = ipqcInspectionItems[1].Id, ItemName = "尺寸测量", DataType = "numeric", Usl = 50.05m, Lsl = 49.95m, Result = "pending", ActualValue = null });
+                        }
+                        else
+                        {
+                            firstPieceItems.Add(new IpqcFirstPieceItem { FirstPieceId = fp.Id, InspectionItemId = ipqcInspectionItems[0].Id, ItemName = "外观检查", DataType = "visual", Result = "pass", ActualValue = null });
+                            firstPieceItems.Add(new IpqcFirstPieceItem { FirstPieceId = fp.Id, InspectionItemId = ipqcInspectionItems[1].Id, ItemName = "尺寸测量", DataType = "numeric", Usl = 50.05m, Lsl = 49.95m, Result = "fail", ActualValue = 50.08m });
+                            firstPieceItems.Add(new IpqcFirstPieceItem { FirstPieceId = fp.Id, InspectionItemId = ipqcInspectionItems[2].Id, ItemName = "功能测试", DataType = "attribute", Result = "pass", ActualValue = null });
+                            firstPieceItems.Add(new IpqcFirstPieceItem { FirstPieceId = fp.Id, InspectionItemId = ipqcInspectionItems[3].Id, ItemName = "设备点检", DataType = "visual", Result = "pass", ActualValue = null });
+                        }
+                    }
+                    context.IpqcFirstPieceItems.AddRange(firstPieceItems);
+                    await context.SaveChangesAsync();
+                }
+
+                // 如果已存在巡检计划数据则跳过，否则创建
+                var existingPatrolPlans = await context.IpqcPatrolPlans.CountAsync();
+                if (existingPatrolPlans > 0)
+                {
+                    Console.WriteLine("[DbInitializer] IPQC 巡检计划已存在，跳过");
+                }
+                else
+                {
+                    var patrolPlans = new List<IpqcPatrolPlan>
+                    {
+                        new() { PlanNo = "PL-20260729-001", ProcessId = firstPieceProcess.Id, EquipmentId = equipmentInj?.Id ?? 0, PatrolIntervalMin = 120, AutoGenerate = true, Status = "active", Inspector = "李四", CreatedAt = now, UpdatedAt = now },
+                        new() { PlanNo = "PL-20260729-002", ProcessId = assemblyProcess.Id, EquipmentId = equipmentAssy?.Id ?? 0, PatrolIntervalMin = 60, AutoGenerate = true, Status = "active", Inspector = "王五", CreatedAt = now, UpdatedAt = now },
+                        new() { PlanNo = "PL-20260728-003", ProcessId = weldingProcess.Id, EquipmentId = equipmentWeld?.Id ?? 0, PatrolIntervalMin = 90, AutoGenerate = false, Status = "paused", Inspector = null, CreatedAt = now, UpdatedAt = now },
+                        new() { PlanNo = "PL-20260728-004", ProcessId = packagingProcess.Id, EquipmentId = equipmentPkg?.Id ?? 0, PatrolIntervalMin = 180, AutoGenerate = true, Status = "active", Inspector = "李四", CreatedAt = now, UpdatedAt = now },
+                    };
+                    context.IpqcPatrolPlans.AddRange(patrolPlans);
+                    await context.SaveChangesAsync();
+
+                    var patrols = new List<IpqcPatrol>
+                    {
+                        new() { PatrolNo = "PTL-20260729-001", PatrolPlanId = patrolPlans[0].Id, ProcessId = firstPieceProcess.Id, EquipmentId = equipmentInj?.Id ?? 0, InspectorId = 3, ScheduledTime = now - TimeSpan.FromHours(1), ActualTime = now - TimeSpan.FromMinutes(50), TotalChecked = 3, TotalPass = 3, TotalFail = 0, Conclusion = "qualified", Status = "completed", Remarks = "", CreatedAt = now, UpdatedAt = now },
+                        new() { PatrolNo = "PTL-20260729-002", PatrolPlanId = patrolPlans[1].Id, ProcessId = assemblyProcess.Id, EquipmentId = equipmentAssy?.Id ?? 0, InspectorId = 2, ScheduledTime = now - TimeSpan.FromMinutes(30), ActualTime = null, TotalChecked = 0, TotalPass = 0, TotalFail = 0, Conclusion = "pending", Status = "scheduled", Remarks = "", CreatedAt = now, UpdatedAt = now },
+                        new() { PatrolNo = "PTL-20260729-003", PatrolPlanId = patrolPlans[0].Id, ProcessId = firstPieceProcess.Id, EquipmentId = equipmentInj?.Id ?? 0, InspectorId = 3, ScheduledTime = now - TimeSpan.FromHours(3), ActualTime = now - TimeSpan.FromHours(2.5f), TotalChecked = 3, TotalPass = 2, TotalFail = 1, Conclusion = "unqualified", Status = "completed", Remarks = "尺寸测量超差", CreatedAt = now, UpdatedAt = now },
+                        new() { PatrolNo = "PTL-20260728-004", PatrolPlanId = patrolPlans[3].Id, ProcessId = packagingProcess.Id, EquipmentId = equipmentPkg?.Id ?? 0, InspectorId = 3, ScheduledTime = now - TimeSpan.FromHours(24), ActualTime = null, TotalChecked = 0, TotalPass = 0, TotalFail = 0, Conclusion = "pending", Status = "missed", Remarks = "检验员请假", CreatedAt = now, UpdatedAt = now },
+                        new() { PatrolNo = "PTL-20260728-005", PatrolPlanId = patrolPlans[2].Id, ProcessId = weldingProcess.Id, EquipmentId = equipmentWeld?.Id ?? 0, InspectorId = 1, ScheduledTime = now - TimeSpan.FromHours(25), ActualTime = now - TimeSpan.FromHours(24.5f), TotalChecked = 2, TotalPass = 2, TotalFail = 0, Conclusion = "qualified", Status = "completed", Remarks = "", CreatedAt = now, UpdatedAt = now },
+                    };
+                    context.IpqcPatrols.AddRange(patrols);
+                    await context.SaveChangesAsync();
+
+                    var patrolItems = new List<IpqcPatrolItem>();
+                    foreach (var patrol in patrols)
+                    {
+                        if (patrol.Conclusion == "qualified")
+                        {
+                            patrolItems.Add(new IpqcPatrolItem { PatrolId = patrol.Id, InspectionItemId = ipqcInspectionItems[0].Id, ItemName = "外观检查", DataType = "visual", Result = "pass", ActualValue = null });
+                            patrolItems.Add(new IpqcPatrolItem { PatrolId = patrol.Id, InspectionItemId = ipqcInspectionItems[3].Id, ItemName = "设备点检", DataType = "visual", Result = "pass", ActualValue = null });
+                            patrolItems.Add(new IpqcPatrolItem { PatrolId = patrol.Id, InspectionItemId = ipqcInspectionItems[1].Id, ItemName = "尺寸测量", DataType = "numeric", Usl = 50.05m, Lsl = 49.95m, Result = "pass", ActualValue = 50.01m });
+                        }
+                        else if (patrol.Conclusion == "unqualified")
+                        {
+                            patrolItems.Add(new IpqcPatrolItem { PatrolId = patrol.Id, InspectionItemId = ipqcInspectionItems[0].Id, ItemName = "外观检查", DataType = "visual", Result = "pass", ActualValue = null });
+                            patrolItems.Add(new IpqcPatrolItem { PatrolId = patrol.Id, InspectionItemId = ipqcInspectionItems[1].Id, ItemName = "尺寸测量", DataType = "numeric", Usl = 50.05m, Lsl = 49.95m, Result = "fail", ActualValue = 50.08m });
+                            patrolItems.Add(new IpqcPatrolItem { PatrolId = patrol.Id, InspectionItemId = ipqcInspectionItems[3].Id, ItemName = "设备点检", DataType = "visual", Result = "pass", ActualValue = null });
+                        }
+                    }
+                    context.IpqcPatrolItems.AddRange(patrolItems);
+                    await context.SaveChangesAsync();
+                }
+
+                // 如果已存在 AI 风险评分数据则跳过，否则创建
+                var existingRiskScores = await context.IpqcAiRiskScores.CountAsync();
+                if (existingRiskScores > 0)
+                {
+                    Console.WriteLine("[DbInitializer] IPQC AI 风险评分已存在，跳过");
+                }
+                else
+                {
+                    var riskScores = new List<IpqcAiRiskScore>
+                    {
+                        new() { EquipmentId = equipmentInj?.Id ?? 0, ProcessId = firstPieceProcess.Id, RiskScore = 45, RiskLevel = "normal", TrendDirection = "falling", FactorsJson = System.Text.Json.JsonSerializer.Serialize(new[] { new { Name = "尺寸偏差", Description = "关键尺寸超出控制限", CurrentValue = 0.15m, TargetValue = 0.10m, Impact = 12 }, new { Name = "温度波动", Description = "设备温度稳定性下降", CurrentValue = 2.5m, TargetValue = 1.0m, Impact = 8 }, new { Name = "设备参数", Description = "设备参数偏离标准范围", CurrentValue = 0.05m, TargetValue = 0.02m, Impact = 5 } }), CreatedAt = now },
+                        new() { EquipmentId = equipmentAssy?.Id ?? 0, ProcessId = assemblyProcess.Id, RiskScore = 32, RiskLevel = "normal", TrendDirection = "stable", FactorsJson = System.Text.Json.JsonSerializer.Serialize(new[] { new { Name = "装配间隙", Description = "装配间隙在公差范围内", CurrentValue = 0.08m, TargetValue = 0.10m, Impact = 3 } }), CreatedAt = now },
+                    };
+                    context.IpqcAiRiskScores.AddRange(riskScores);
+                    await context.SaveChangesAsync();
+                    Console.WriteLine("[DbInitializer] IPQC AI 风险评分已创建");
+                }
+
+                Console.WriteLine("[DbInitializer] IPQC 种子数据初始化完成");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[DbInitializer] IPQC 种子数据初始化失败（不阻断启动）: {ex.Message}");
+        }
+        #endregion
     }
 
 private static List<SpcAlertRule> GetDefaultAlertRules(long chartId, DateTime now)

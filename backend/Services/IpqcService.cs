@@ -67,40 +67,45 @@ public class IpqcService
 
     public async Task<IpqcFirstPieceDetailDto?> GetFirstPiece(long id)
     {
-        return await _db.IpqcFirstPieces
-            .Include(f => f.Items)
-            .Where(f => f.Id == id)
-            .Select(f => new IpqcFirstPieceDetailDto
+        var entity = await _db.IpqcFirstPieces
+            .FirstOrDefaultAsync(f => f.Id == id);
+        if (entity == null) return null;
+
+        var items = await _db.IpqcFirstPieceItems
+            .Where(i => i.FirstPieceId == id)
+            .Select(i => new IpqcFirstPieceItemDto
             {
-                Id = f.Id,
-                FpNo = f.FpNo,
-                WorkOrderId = f.WorkOrderId,
-                ProcessId = f.ProcessId,
-                EquipmentId = f.EquipmentId,
-                OperatorId = f.OperatorId,
-                Shift = f.Shift,
-                Reason = f.Reason,
-                Conclusion = f.Conclusion,
-                AllowedToProduce = f.AllowedToProduce,
-                Inspector = null, // populated from employee if needed
-                CheckedAt = f.CheckedAt,
-                CreatedAt = f.CreatedAt,
-                Items = f.Items!.Select(i => new IpqcFirstPieceItemDto
-                {
-                    Id = i.Id,
-                    FirstPieceId = i.FirstPieceId,
-                    ItemName = i.ItemName,
-                    ItemCode = i.ItemCode,
-                    Usl = i.Usl,
-                    Lsl = i.Lsl,
-                    DataType = i.DataType,
-                    ActualValue = i.ActualValue,
-                    Result = i.Result,
-                    ImageUrls = i.ImageUrls,
-                    Remarks = i.Remarks
-                }).ToList()
+                Id = i.Id,
+                FirstPieceId = i.FirstPieceId,
+                ItemName = i.ItemName,
+                ItemCode = i.ItemCode,
+                Usl = i.Usl,
+                Lsl = i.Lsl,
+                DataType = i.DataType,
+                ActualValue = i.ActualValue,
+                Result = i.Result,
+                ImageUrls = i.ImageUrls,
+                Remarks = i.Remarks
             })
-            .FirstOrDefaultAsync();
+            .ToListAsync();
+
+        return new IpqcFirstPieceDetailDto
+        {
+            Id = entity.Id,
+            FpNo = entity.FpNo,
+            WorkOrderId = entity.WorkOrderId,
+            ProcessId = entity.ProcessId,
+            EquipmentId = entity.EquipmentId,
+            OperatorId = entity.OperatorId,
+            Shift = entity.Shift,
+            Reason = entity.Reason,
+            Conclusion = entity.Conclusion,
+            AllowedToProduce = entity.AllowedToProduce,
+            Inspector = null,
+            CheckedAt = entity.CheckedAt,
+            CreatedAt = entity.CreatedAt,
+            Items = items
+        };
     }
 
     public async Task<IpqcFirstPieceDetailDto> CreateFirstPiece(CreateIpqcFirstPieceDto dto)
@@ -411,41 +416,46 @@ public class IpqcService
 
     public async Task<IpqcPatrolDetailDto?> GetPatrol(long id)
     {
-        return await _db.IpqcPatrols
-            .Include(p => p.Items)
-            .Where(p => p.Id == id)
-            .Select(p => new IpqcPatrolDetailDto
+        var entity = await _db.IpqcPatrols
+            .FirstOrDefaultAsync(p => p.Id == id);
+        if (entity == null) return null;
+
+        var items = await _db.IpqcPatrolItems
+            .Where(i => i.PatrolId == id)
+            .Select(i => new IpqcPatrolItemDto
             {
-                Id = p.Id,
-                PatrolNo = p.PatrolNo,
-                PatrolPlanId = p.PatrolPlanId,
-                WorkOrderId = p.WorkOrderId,
-                ProcessId = p.ProcessId,
-                EquipmentId = p.EquipmentId,
-                ScheduledTime = p.ScheduledTime,
-                ActualTime = p.ActualTime,
-                TotalChecked = p.TotalChecked,
-                TotalPass = p.TotalPass,
-                TotalFail = p.TotalFail,
-                Conclusion = p.Conclusion,
-                Status = p.Status,
-                Remarks = p.Remarks,
-                CreatedAt = p.CreatedAt,
-                Items = p.Items!.Select(i => new IpqcPatrolItemDto
-                {
-                    Id = i.Id,
-                    PatrolId = i.PatrolId,
-                    ItemName = i.ItemName,
-                    ItemCode = i.ItemCode,
-                    Usl = i.Usl,
-                    Lsl = i.Lsl,
-                    DataType = i.DataType,
-                    ActualValue = i.ActualValue,
-                    Result = i.Result,
-                    ImageUrls = i.ImageUrls
-                }).ToList()
+                Id = i.Id,
+                PatrolId = i.PatrolId,
+                ItemName = i.ItemName,
+                ItemCode = i.ItemCode,
+                Usl = i.Usl,
+                Lsl = i.Lsl,
+                DataType = i.DataType,
+                ActualValue = i.ActualValue,
+                Result = i.Result,
+                ImageUrls = i.ImageUrls
             })
-            .FirstOrDefaultAsync();
+            .ToListAsync();
+
+        return new IpqcPatrolDetailDto
+        {
+            Id = entity.Id,
+            PatrolNo = entity.PatrolNo,
+            PatrolPlanId = entity.PatrolPlanId,
+            WorkOrderId = entity.WorkOrderId,
+            ProcessId = entity.ProcessId,
+            EquipmentId = entity.EquipmentId,
+            ScheduledTime = entity.ScheduledTime,
+            ActualTime = entity.ActualTime,
+            TotalChecked = entity.TotalChecked,
+            TotalPass = entity.TotalPass,
+            TotalFail = entity.TotalFail,
+            Conclusion = entity.Conclusion,
+            Status = entity.Status,
+            Remarks = entity.Remarks,
+            CreatedAt = entity.CreatedAt,
+            Items = items
+        };
     }
 
     /// <summary>

@@ -29,9 +29,11 @@ public class IpqcClosureStatus
     public DateTime? ClosedAt { get; set; }
 
     /// <summary>关联关单规则</summary>
+    [Column("rule_id")]
     public long? RuleId { get; set; }
 
     /// <summary>关单评估结果 (JSON)</summary>
+    [Column("evaluation_result")]
     public string? EvaluationResult { get; set; }
 
     [Column("created_at")]

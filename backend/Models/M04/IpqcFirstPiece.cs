@@ -25,6 +25,7 @@ public class IpqcFirstPiece
     public long WorkOrderId { get; set; }
 
     /// <summary>关联工序</summary>
+    [Column("process_id")]
     public long ProcessId { get; set; }
 
     /// <summary>关联设备</summary>
@@ -32,6 +33,7 @@ public class IpqcFirstPiece
     public long EquipmentId { get; set; }
 
     /// <summary>操作员</summary>
+    [Column("operator_id")]
     public long OperatorId { get; set; }
 
     /// <summary>班次：早班/中班/晚班</summary>
@@ -56,6 +58,7 @@ public class IpqcFirstPiece
     public bool AllowedToProduce { get; set; }
 
     /// <summary>检验员</summary>
+    [Column("inspector_id")]
     public long? InspectorId { get; set; }
 
     /// <summary>检验时间</summary>

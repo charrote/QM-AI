@@ -3,7 +3,7 @@ import { ref, onMounted, reactive, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   Search, Plus, DocumentChecked, Edit, Check,
-  Refresh, Box, Setting,
+  Refresh, Box, Setting, Delete,
 } from '@element-plus/icons-vue'
 import { inspectionApi, batchApi } from '@/api/fqc'
 import { inspectionPlanApi } from '@/api/inspectionPlan'
@@ -55,6 +55,12 @@ const stats = computed(() => {
   }
 })
 
+// ─── Helpers ──────────────────────────────────────
+function formatDate(d?: string) {
+  if (!d) return '-'
+  return new Date(d).toLocaleString('zh-CN')
+}
+
 // ─── 获取列表 ─────────────────────────────────────
 async function fetchList() {
   loading.value = true
@@ -81,7 +87,6 @@ async function openCreate() {
   createForm.sampleSize = 0
   createForm.ac = 0
   createForm.re = 0
-  // 加载批次列表
   try {
     const res = await batchApi.list({ page: 1, pageSize: 100 })
     batches.value = res.items
@@ -169,7 +174,6 @@ async function openSubmit(id: number) {
 
 async function handleSubmit() {
   try {
-    // Validation
     if (submitForm.totalChecked === 0) {
       ElMessage.warning('已检数量不能为 0')
       return
@@ -261,194 +265,202 @@ function conclusionResultType(result: string): string {
   return result === 'pass' ? 'success' : result === 'fail' ? 'danger' : 'info'
 }
 
-// ─── 检验方式选项 ─────────────────────────────────
-const INSPECTION_TYPE_MAP: Record<string, string> = {
-  full: '全检',
-  sampling: '抽检',
-}
-
 onMounted(fetchList)
 </script>
 
 <template>
   <div class="page-container">
-    <!-- Page Header -->
-    <div class="page-header">
-      <div class="page-header__icon-wrapper">
-        <el-icon :size="28"><DocumentChecked /></el-icon>
-      </div>
-      <div class="page-header__info">
-        <h1 class="page-header__title">FQC 成品检验</h1>
-        <p class="page-header__subtitle">管理成品检验单，跟踪检验进度与判定结果</p>
-      </div>
-    </div>
-
-    <!-- Summary Metrics -->
-    <el-row :gutter="16" class="metrics-row">
-      <el-col :span="8">
-        <el-statistic title="检验单总数" :value="stats.total">
-          <template #prefix>
-            <el-icon color="var(--el-color-primary)"><DocumentChecked /></el-icon>
-          </template>
-        </el-statistic>
-      </el-col>
-      <el-col :span="8">
-        <el-statistic title="待检验" :value="stats.pending">
-          <template #prefix>
-            <el-icon color="var(--el-color-warning)"><Edit /></el-icon>
-          </template>
-        </el-statistic>
-      </el-col>
-      <el-col :span="8">
-        <el-statistic title="合格率" :value="stats.passRate" suffix="%">
-          <template #prefix>
-            <el-icon color="var(--el-color-success)"><Check /></el-icon>
-          </template>
-        </el-statistic>
-      </el-col>
-    </el-row>
-
-    <!-- Source Banner -->
-    <div class="source-banner">
-      <el-icon :size="18" color="var(--el-color-info)"><DocumentChecked /></el-icon>
-      <span class="source-banner__text">检验流程：</span>
-      <span class="source-banner__flow">IPQC</span>
-      <span class="source-banner__flow">→ FQC 成品检验</span>
-      <span class="source-banner__flow">→ OQC 出货放行</span>
-    </div>
-
-    <!-- Action Bar -->
-    <div class="action-bar">
-      <div class="action-bar__left">
-        <el-input
-          v-model="query.keyword"
-          placeholder="搜索检验单号/批次号"
-          :prefix-icon="Search"
-          clearable
-          style="width: 260px"
-          @clear="fetchList"
-          @keyup.enter="fetchList"
-        />
-        <el-select
-          v-model="query.status"
-          placeholder="检验结论"
-          clearable
-          style="width: 140px"
-          @change="fetchList"
-        >
-          <el-option v-for="opt in FQC_CONCLUSION_OPTIONS" :key="opt.value" :label="opt.label" :value="opt.value" />
-        </el-select>
-        <el-button @click="fetchList">
-          <el-icon><Refresh /></el-icon>
-          刷新
-        </el-button>
-      </div>
-      <div class="action-bar__right">
-        <el-button type="primary" @click="openCreate">
-          <el-icon><Plus /></el-icon>
-          新建检验单
-        </el-button>
+    <!-- Page Header Banner -->
+    <div class="page-header-banner page-header-banner--primary">
+      <div class="page-header-banner-main">
+        <div class="page-header-banner-icon">
+          <el-icon :size="28"><DocumentChecked /></el-icon>
+        </div>
+        <div class="page-header-banner-text">
+          <h2 class="page-header-banner-title">FQC 成品检验</h2>
+          <span class="page-header-banner-subtitle">管理成品检验单，跟踪检验进度与判定结果</span>
+        </div>
       </div>
     </div>
 
-    <!-- Data Card -->
-    <div class="data-card">
-      <el-table
-        :data="list"
-        v-loading="loading"
-        :row-class-name="() => 'data-card__row'"
-        style="width: 100%"
-      >
-        <el-table-column prop="inspectionNo" label="检验单号" min-width="160" show-overflow-tooltip />
-        <el-table-column prop="batchCode" label="批次号" min-width="150" show-overflow-tooltip />
-        <el-table-column label="检验方式" width="80" align="center">
-          <template #default="{ row }">
-            <el-tag :type="inspectionTypeTag(row.inspectionType)" size="small" effect="dark">
-              {{ inspectionTypeLabel(row.inspectionType) }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column prop="sampleSize" label="样本量" width="80" align="center" show-overflow-tooltip />
-        <el-table-column prop="totalChecked" label="已检" width="70" align="center" show-overflow-tooltip />
-        <el-table-column prop="totalPass" label="合格" width="70" align="center" show-overflow-tooltip />
-        <el-table-column prop="totalFail" label="不合格" width="80" align="center" show-overflow-tooltip />
-        <el-table-column label="结论" width="90" align="center">
-          <template #default="{ row }">
-            <el-tag :type="conclusionTag(row.conclusion)" size="small" effect="dark">
-              {{ conclusionLabel(row.conclusion) }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column prop="checkedAt" label="检验时间" min-width="150" show-overflow-tooltip />
-        <el-table-column label="操作" width="160" fixed="right" align="center">
-          <template #default="{ row }">
-            <el-button link size="small" type="primary" @click.stop="openDetail(row.id)">
-              <el-icon><Edit /></el-icon>
-              详情
-            </el-button>
-            <el-button
-              link
+    <!-- Content Area -->
+    <div class="iqc-content">
+      <!-- Stats Bar -->
+      <div v-if="list.length > 0" class="stats-bar">
+        <div class="stat-item stat-pending">
+          <div class="stat-accent"></div>
+          <div class="stat-content">
+            <div class="stat-value">{{ stats.total }}</div>
+            <div class="stat-label">检验单总数</div>
+          </div>
+        </div>
+        <div class="stat-item stat-inspecting">
+          <div class="stat-accent"></div>
+          <div class="stat-content">
+            <div class="stat-value">{{ stats.pending }}</div>
+            <div class="stat-label">待检验</div>
+          </div>
+        </div>
+        <div class="stat-item stat-qualified">
+          <div class="stat-accent"></div>
+          <div class="stat-content">
+            <div class="stat-value">{{ stats.passRate }}%</div>
+            <div class="stat-label">合格率</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Data Card with Toolbar -->
+      <div class="data-card">
+        <div class="data-card__header">
+          <span class="data-card__title">
+            检验清单
+            <el-tag v-if="total" type="info" size="small">{{ total }} 条</el-tag>
+          </span>
+          <div class="data-card__actions">
+            <el-input
+              v-model="query.keyword"
+              placeholder="搜索检验单号/批次号"
+              clearable
               size="small"
-              type="primary"
-              v-if="row.conclusion === 'pending'"
-              @click.stop="openSubmit(row.id)"
+              :prefix-icon="Search"
+              style="width: 220px"
+              @keyup.enter="fetchList"
+            />
+            <el-select
+              v-model="query.status"
+              clearable
+              placeholder="检验结论"
+              size="small"
+              style="width: 120px"
+              @change="fetchList"
             >
-              <el-icon><Check /></el-icon>
-              提交
+              <el-option v-for="opt in FQC_CONCLUSION_OPTIONS" :key="opt.value" :label="opt.label" :value="opt.value" />
+            </el-select>
+            <el-button size="small" @click="fetchList">
+              <el-icon><Refresh /></el-icon>刷新
             </el-button>
-          </template>
-        </el-table-column>
-      </el-table>
-
-      <!-- Pagination -->
-      <div class="data-card__footer">
-        <el-pagination
-          v-model:current-page="query.page"
-          v-model:page-size="query.pageSize"
-          :total="total"
-          :page-sizes="[10, 20, 50, 100]"
-          :sizes-layout="'first, prev, pager, next'"
-          :pager-count="7"
-          layout="total, sizes, prev, pager, next, jumper"
-          background
-          @change="fetchList"
-        />
-      </div>
-    </div>
-
-    <!-- 详情抽屉 -->
-    <el-drawer v-model="detailVisible" title="检验详情" size="640px" :with-header="true" destroy-on-close>
-      <template v-if="detail">
-        <!-- 头部信息 -->
-        <div class="detail-header">
-          <el-tag :type="conclusionTag(detail.conclusion)" size="large" effect="dark">
-            {{ conclusionLabel(detail.conclusion) }}
-          </el-tag>
-          <span class="detail-inspection-no">{{ detail.inspectionNo }}</span>
+            <el-button type="primary" size="small" @click="openCreate">
+              <el-icon><Plus /></el-icon>新建检验单
+            </el-button>
+          </div>
         </div>
 
-        <!-- 检验概览 -->
-        <div class="detail-section">
-          <div class="detail-section-title">
-            <el-icon color="var(--el-color-primary)"><DocumentChecked /></el-icon>
-            <span>检验概览</span>
+        <el-table
+          :data="list"
+          border
+          stripe
+          v-loading="loading"
+          @row-click="openDetail"
+          style="width: 100%"
+          size="small"
+          class="data-card__table"
+        >
+          <el-table-column type="index" label="序号" width="55" fixed class-name="index-cell" />
+          <el-table-column prop="inspectionNo" label="检验单号" min-width="160" show-overflow-tooltip />
+          <el-table-column prop="batchCode" label="批次号" min-width="150" show-overflow-tooltip />
+          <el-table-column label="检验方式" width="80" align="center">
+            <template #default="{ row }">
+              <el-tag :type="inspectionTypeTag(row.inspectionType)" size="small" effect="plain">
+                {{ inspectionTypeLabel(row.inspectionType) }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column prop="sampleSize" label="样本量" width="80" align="center" />
+          <el-table-column prop="totalChecked" label="已检" width="70" align="center" />
+          <el-table-column prop="totalPass" label="合格" width="70" align="center" />
+          <el-table-column prop="totalFail" label="不合格" width="70" align="center" />
+          <el-table-column label="结论" width="90" align="center">
+            <template #default="{ row }">
+              <el-tag :type="conclusionTag(row.conclusion)" size="small" effect="plain" round>
+                {{ conclusionLabel(row.conclusion) }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column prop="checkedAt" label="检验时间" min-width="140">
+            <template #default="{ row }">{{ formatDate(row.checkedAt) }}</template>
+          </el-table-column>
+          <el-table-column label="操作" width="140" fixed="right" align="center">
+            <template #default="{ row }">
+              <el-button size="small" type="primary" link @click.stop="openDetail(row.id)">详情</el-button>
+              <el-button
+                v-if="row.conclusion === 'pending'"
+                size="small" type="success" link @click.stop="openSubmit(row.id)"
+              >提交</el-button>
+            </template>
+          </el-table-column>
+        </el-table>
+
+        <!-- Pagination -->
+        <div class="data-card__footer">
+          <el-pagination
+            v-model:current-page="query.page"
+            v-model:page-size="query.pageSize"
+            :total="total"
+            :page-sizes="[10, 20, 50, 100]"
+            layout="total, sizes, prev, pager, next, jumper"
+            @size-change="fetchList"
+            @current-change="fetchList"
+          />
+        </div>
+      </div>
+    </div>
+
+    <!-- ================================================================== -->
+    <!-- Drawers -->
+    <!-- ================================================================== -->
+
+    <!-- 详情抽屉 -->
+    <el-drawer
+      v-model="detailVisible"
+      size="640px"
+      direction="rtl"
+      :close-on-click-modal="false"
+    >
+      <template #header>
+        <div class="drawer-header">
+          <el-icon class="drawer-header-icon"><DocumentChecked /></el-icon>
+          <div class="drawer-header-text">
+            <span class="drawer-title">检验详情</span>
+            <span class="drawer-subtitle">{{ detail?.inspectionNo }}</span>
           </div>
-          <el-descriptions :column="2" border class="detail-descriptions">
+          <el-tag v-if="detail" :type="conclusionTag(detail.conclusion)" effect="dark" round>
+            {{ conclusionLabel(detail.conclusion) }}
+          </el-tag>
+        </div>
+      </template>
+
+      <template v-if="detail">
+        <!-- 基本信息 -->
+        <div class="drawer-section">
+          <div class="drawer-section-header">
+            <el-icon class="drawer-section-icon"><DocumentChecked /></el-icon>
+            <span>基本信息</span>
+          </div>
+          <el-descriptions :column="2" border size="default">
             <el-descriptions-item label="批次号">{{ detail.batchCode }}</el-descriptions-item>
-            <el-descriptions-item label="产品名称">{{ detail.productName }}</el-descriptions-item>
+            <el-descriptions-item label="产品名称">
+              <span class="desc-highlight">{{ detail.productName }}</span>
+            </el-descriptions-item>
             <el-descriptions-item label="检验方式">
               <el-tag size="small" effect="plain">{{ inspectionTypeLabel(detail.inspectionType) }}</el-tag>
             </el-descriptions-item>
-            <el-descriptions-item label="样本量/总数量">{{ detail.sampleSize }} / {{ detail.batchQuantity }}</el-descriptions-item>
-            <el-descriptions-item label="合格/不合格">{{ detail.totalPass }} / {{ detail.totalFail }}</el-descriptions-item>
-            <el-descriptions-item label="检验时间">{{ detail.checkedAt || '-' }}</el-descriptions-item>
+            <el-descriptions-item label="样本量/总数量">
+              {{ detail.sampleSize }} / {{ detail.batchQuantity }}
+            </el-descriptions-item>
+            <el-descriptions-item label="合格/不合格">
+              {{ detail.totalPass }} / {{ detail.totalFail }}
+            </el-descriptions-item>
+            <el-descriptions-item label="检验时间">
+              {{ detail.checkedAt || '-' }}
+            </el-descriptions-item>
           </el-descriptions>
         </div>
 
         <!-- 进度条 -->
-        <div v-if="detail.totalChecked > 0 || detail.sampleSize > 0" class="detail-section">
-          <div class="detail-section-title">
-            <el-icon color="var(--el-color-success)"><Check /></el-icon>
+        <div v-if="detail.totalChecked > 0 || detail.sampleSize > 0" class="drawer-section">
+          <div class="drawer-section-header">
+            <el-icon class="drawer-section-icon"><Check /></el-icon>
             <span>检验进度</span>
           </div>
           <el-progress
@@ -460,23 +472,23 @@ onMounted(fetchList)
         </div>
 
         <!-- 检验明细 -->
-        <div class="detail-section">
-          <div class="detail-section-title">
-            <el-icon color="var(--el-color-info)"><Box /></el-icon>
+        <div class="drawer-section">
+          <div class="drawer-section-header">
+            <el-icon class="drawer-section-icon"><Box /></el-icon>
             <span>检验明细</span>
+            <el-tag type="info" size="small" effect="plain">{{ (detail.items || []).length }} 项</el-tag>
           </div>
-          <el-table :data="detail.items || []" border size="small" style="width: 100%">
+          <el-table :data="detail.items || []" stripe size="small">
             <el-table-column prop="itemName" label="项目名称" min-width="120" show-overflow-tooltip />
-            <el-table-column prop="usl" label="规格上限 (USL)" width="110" align="center" show-overflow-tooltip />
-            <el-table-column prop="lsl" label="规格下限 (LSL)" width="110" align="center" show-overflow-tooltip />
-            <el-table-column prop="actualValue" label="实测值" width="100" align="center" show-overflow-tooltip />
-            <el-table-column label="结果" width="80" align="center">
+            <el-table-column label="规格" width="160" align="center">
               <template #default="{ row }">
-                <el-tag
-                  :type="conclusionResultType(row.result)"
-                  size="small"
-                  effect="dark"
-                >
+                {{ row.usl ?? '-' }} ~ {{ row.lsl ?? '-' }}
+              </template>
+            </el-table-column>
+            <el-table-column prop="actualValue" label="实测值" width="100" align="center" />
+            <el-table-column label="结果" width="70" align="center">
+              <template #default="{ row }">
+                <el-tag :type="conclusionResultType(row.result)" size="small" round>
                   {{ conclusionResultLabel(row.result) }}
                 </el-tag>
               </template>
@@ -486,21 +498,27 @@ onMounted(fetchList)
       </template>
     </el-drawer>
 
-    <!-- 新建检验单对话框 -->
-    <el-dialog v-model="createVisible" title="新建成品检验单" width="560px" :close-on-click-modal="false" top="8vh">
-      <div v-if="createVisible">
+    <!-- 新建检验单抽屉 -->
+    <el-drawer
+      v-model="createVisible"
+      title="新建成品检验单"
+      size="560px"
+      direction="rtl"
+      :close-on-click-modal="false"
+    >
+      <div>
         <!-- 批次信息 -->
         <div class="dialog-section">
-          <div class="dialog-section__title">
-            <el-icon><Box /></el-icon>
+          <div class="dialog-section-header">
+            <el-icon class="dialog-section-icon"><Box /></el-icon>
             <span>批次信息</span>
           </div>
-          <el-form :model="createForm" label-width="100px" label-position="left">
+          <el-form :model="createForm" label-width="90px">
             <el-form-item label="批次" required>
               <el-select
                 v-model="createForm.batchId"
                 placeholder="请选择批次"
-                style="width:100%"
+                style="width: 100%"
                 filterable
                 clearable
               >
@@ -517,11 +535,11 @@ onMounted(fetchList)
 
         <!-- 抽样参数 -->
         <div class="dialog-section">
-          <div class="dialog-section__title">
-            <el-icon><Setting /></el-icon>
+          <div class="dialog-section-header">
+            <el-icon class="dialog-section-icon"><Setting /></el-icon>
             <span>抽样参数</span>
           </div>
-          <el-form :model="createForm" label-width="100px" label-position="left">
+          <el-form :model="createForm" label-width="90px">
             <el-form-item label="检验方式" required>
               <el-radio-group v-model="createForm.inspectionType">
                 <el-radio
@@ -534,61 +552,88 @@ onMounted(fetchList)
               </el-radio-group>
             </el-form-item>
             <template v-if="createForm.inspectionType === 'sampling'">
-              <el-form-item label="样本量">
-                <el-input-number v-model="createForm.sampleSize" :min="1" style="width:100%" />
-              </el-form-item>
-              <el-form-item label="合格判定 Ac">
-                <el-input-number v-model="createForm.ac" :min="0" style="width:100%" />
-              </el-form-item>
-              <el-form-item label="不合格判定 Re">
-                <el-input-number v-model="createForm.re" :min="1" style="width:100%" />
-              </el-form-item>
+              <el-row :gutter="16">
+                <el-col :span="8">
+                  <el-form-item label="样本量">
+                    <el-input-number v-model="createForm.sampleSize" :min="1" style="width: 100%" controls-position="right" />
+                  </el-form-item>
+                </el-col>
+                <el-col :span="8">
+                  <el-form-item label="Ac">
+                    <el-input-number v-model="createForm.ac" :min="0" style="width: 100%" controls-position="right" />
+                  </el-form-item>
+                </el-col>
+                <el-col :span="8">
+                  <el-form-item label="Re">
+                    <el-input-number v-model="createForm.re" :min="1" style="width: 100%" controls-position="right" />
+                  </el-form-item>
+                </el-col>
+              </el-row>
             </template>
           </el-form>
         </div>
       </div>
 
       <template #footer>
-        <el-button @click="createVisible = false">取消</el-button>
-        <el-button type="primary" @click="handleCreate">
-          <el-icon><Check /></el-icon>
-          创建检验单
-        </el-button>
+        <div style="display: flex; gap: 8px; justify-content: flex-end;">
+          <el-button size="small" @click="createVisible = false">取消</el-button>
+          <el-button size="small" type="primary" @click="handleCreate">
+            <el-icon><Check /></el-icon>
+            创建检验单
+          </el-button>
+        </div>
       </template>
-    </el-dialog>
+    </el-drawer>
 
-    <!-- 提交检验结果对话框 -->
-    <el-dialog v-model="submitVisible" title="提交检验结果" width="900px" :close-on-click-modal="false" top="5vh">
-      <div v-if="submitVisible">
+    <!-- 提交检验结果抽屉 -->
+    <el-drawer
+      v-model="submitVisible"
+      size="720px"
+      direction="rtl"
+      :close-on-click-modal="false"
+    >
+      <template #header>
+        <div class="drawer-header">
+          <div class="drawer-header-icon">
+            <el-icon :size="18"><Edit /></el-icon>
+          </div>
+          <div class="drawer-header-text">
+            <span class="drawer-title">提交检验结果</span>
+            <span class="drawer-subtitle">填写检验项目实测值与判定</span>
+          </div>
+        </div>
+      </template>
+
+      <div>
         <!-- 汇总统计 -->
         <div class="dialog-section">
-          <div class="dialog-section__title">
-            <el-icon color="var(--el-color-primary)"><DocumentChecked /></el-icon>
+          <div class="drawer-section-header">
+            <el-icon class="drawer-section-icon"><DocumentChecked /></el-icon>
             <span>检验汇总</span>
           </div>
-          <el-row :gutter="12" class="submit-stats">
+          <el-row :gutter="16" class="submit-stats">
             <el-col :span="8">
-              <div class="stat-item">
-                <div class="stat-item__value" :class="submitForm.totalChecked === 0 ? 'stat-item__value--warning' : ''">
+              <div class="submit-stat">
+                <div class="submit-stat__value" :class="submitForm.totalChecked === 0 ? 'submit-stat__value--warning' : ''">
                   {{ submitForm.totalChecked }}
                 </div>
-                <div class="stat-item__label">已检数量</div>
+                <div class="submit-stat__label">已检数量</div>
               </div>
             </el-col>
             <el-col :span="8">
-              <div class="stat-item">
-                <div class="stat-item__value stat-item__value--success">
+              <div class="submit-stat">
+                <div class="submit-stat__value submit-stat__value--success">
                   {{ submitForm.totalPass }}
                 </div>
-                <div class="stat-item__label">合格数量</div>
+                <div class="submit-stat__label">合格数量</div>
               </div>
             </el-col>
             <el-col :span="8">
-              <div class="stat-item">
-                <div class="stat-item__value stat-item__value--danger">
+              <div class="submit-stat">
+                <div class="submit-stat__value submit-stat__value--danger">
                   {{ submitForm.totalFail }}
                 </div>
-                <div class="stat-item__label">不合格数量</div>
+                <div class="submit-stat__label">不合格数量</div>
               </div>
             </el-col>
           </el-row>
@@ -602,284 +647,80 @@ onMounted(fetchList)
 
         <!-- 检验明细 -->
         <div class="dialog-section">
-          <div class="dialog-section__title">
-            <el-icon><Box /></el-icon>
+          <div class="drawer-section-header">
+            <el-icon class="drawer-section-icon"><Box /></el-icon>
             <span>检验明细</span>
           </div>
-          <el-table :data="submitForm.items" border size="small" style="width: 100%; margin-bottom: 12px">
-            <el-table-column label="项目名称" min-width="140">
-              <template #default="{ row }">
-                <el-input v-model="row.itemName" placeholder="项目名称" size="small" />
-              </template>
-            </el-table-column>
-            <el-table-column label="USL" width="110">
-              <template #default="{ row }">
-                <el-input-number
-                  v-model="row.usl"
-                  :precision="2"
-                  :step="0.1"
-                  :controls="false"
-                  size="small"
-                  style="width: 100%"
-                  @change="evaluateItem(row)"
-                />
-              </template>
-            </el-table-column>
-            <el-table-column label="LSL" width="110">
-              <template #default="{ row }">
-                <el-input-number
-                  v-model="row.lsl"
-                  :precision="2"
-                  :step="0.1"
-                  :controls="false"
-                  size="small"
-                  style="width: 100%"
-                  @change="evaluateItem(row)"
-                />
-              </template>
-            </el-table-column>
-            <el-table-column label="实测值" width="120">
-              <template #default="{ row }">
-                <el-input-number
-                  v-model="row.actualValue"
-                  :precision="2"
-                  :step="0.1"
-                  :controls="false"
-                  size="small"
-                  style="width: 100%"
-                  @change="evaluateItem(row)"
-                />
-              </template>
-            </el-table-column>
-            <el-table-column label="结果" width="90" align="center">
-              <template #default="{ row }">
-                <el-select v-model="row.result" size="small" style="width: 100%">
-                  <el-option label="合格" value="pass" />
-                  <el-option label="不合格" value="fail" />
-                  <el-option label="待检" value="pending" />
-                </el-select>
-              </template>
-            </el-table-column>
-            <el-table-column label="操作" width="60" align="center" fixed="right">
-              <template #default="{ $index }">
-                <el-button
-                  link
-                  size="small"
-                  type="danger"
-                  @click="removeItem($index)"
-                >
-                  删除
-                </el-button>
-              </template>
-            </el-table-column>
-          </el-table>
-          <el-button size="small" @click="addItem" type="primary" plain>
-            <el-icon><Plus /></el-icon>
-            添加项目
+          <div class="submit-list">
+            <div v-for="(item, index) in submitForm.items" :key="index" class="submit-row">
+              <span class="submit-index">{{ index + 1 }}</span>
+              <el-input v-model="item.itemName" placeholder="项目名称" size="small" style="width: 140px" />
+              <el-input-number
+                v-model="item.usl"
+                :precision="2"
+                :step="0.1"
+                :controls="false"
+                size="small"
+                style="width: 100px"
+                placeholder="USL"
+                controls-position="right"
+              />
+              <el-input-number
+                v-model="item.lsl"
+                :precision="2"
+                :step="0.1"
+                :controls="false"
+                size="small"
+                style="width: 100px"
+                placeholder="LSL"
+                controls-position="right"
+              />
+              <el-input-number
+                v-model="item.actualValue"
+                :precision="2"
+                :step="0.1"
+                :controls="false"
+                size="small"
+                style="width: 100px"
+                placeholder="实测值"
+                controls-position="right"
+              />
+              <el-select v-model="item.result" size="small" style="width: 90px">
+                <el-option label="合格" value="pass" />
+                <el-option label="不合格" value="fail" />
+                <el-option label="待检" value="pending" />
+              </el-select>
+              <el-button link size="small" type="danger" @click="removeItem(index)">
+                <el-icon><Delete /></el-icon>
+              </el-button>
+            </div>
+          </div>
+          <el-button size="small" @click="addItem" style="margin-top: 8px">
+            <el-icon><Plus /></el-icon>添加项目
           </el-button>
         </div>
       </div>
 
       <template #footer>
-        <el-button @click="submitVisible = false">取消</el-button>
-        <el-button type="primary" @click="handleSubmit">
-          <el-icon><Check /></el-icon>
-          提交结果
-        </el-button>
+        <div style="display: flex; gap: 8px; justify-content: flex-end;">
+          <el-button size="small" @click="submitVisible = false">取消</el-button>
+          <el-button size="small" type="primary" @click="handleSubmit">
+            <el-icon><Check /></el-icon>
+            提交结果
+          </el-button>
+        </div>
       </template>
-    </el-dialog>
+    </el-drawer>
   </div>
 </template>
 
 <style scoped>
-.page-container {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  gap: 16px;
-}
-
-/* ─── Page Header ──────────────────── */
-.page-header {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 0 4px;
-}
-
-.page-header__icon-wrapper {
-  width: 44px;
-  height: 44px;
-  border-radius: 10px;
-  background: var(--el-color-primary-light-9, #ecf5ff);
-  color: var(--el-color-primary, #409eff);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.page-header__info {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.page-header__title {
-  margin: 0;
-  font-size: 20px;
-  font-weight: 600;
-  color: var(--text-primary, #303133);
-  line-height: 1.3;
-}
-
-.page-header__subtitle {
-  margin: 0;
-  font-size: 13px;
-  color: var(--text-secondary, #909399);
-  line-height: 1.4;
-}
-
-/* ─── Source Banner ────────────────── */
-.source-banner {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-  padding: 10px 16px;
-  background: var(--el-color-info-light-9, #ecf5ff);
-  border-radius: 8px;
-  font-size: 13px;
-  color: var(--el-text-secondary, #909399);
-}
-
-.source-banner__text {
-  font-weight: 500;
-  color: var(--el-text-regular, #606266);
-}
-
-.source-banner__flow {
-  font-weight: 500;
-  color: var(--el-color-primary, #409eff);
-}
-
-/* ─── Action Bar ───────────────────── */
-.action-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-
-.action-bar__left {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.action-bar__right {
-  display: flex;
-  gap: 8px;
-}
-
-/* ─── Data Card ────────────────────── */
-.data-card {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  background: var(--bg-card, #fff);
-  border-radius: 8px;
-  box-shadow: var(--shadow-sm, 0 1px 2px rgba(0,0,0,0.06));
-  overflow: hidden;
-}
-
-.data-card__row {
-  transition: background-color 0.2s;
-}
-
-.data-card__row:hover {
-  background-color: var(--el-fill-color-light, #f5f7fa) !important;
-}
-
-.data-card__footer {
-  display: flex;
-  justify-content: flex-end;
-  padding: 12px 16px;
-  border-top: 1px solid var(--el-border-color-lighter, #ebeef5);
-}
-
-/* ─── Detail Drawer ────────────────── */
-.detail-header {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 16px;
-}
-
-.detail-inspection-no {
-  font-size: 18px;
-  font-weight: 600;
-  color: var(--text-primary, #303133);
-}
-
-.detail-descriptions {
-  margin-bottom: 16px;
-}
-
-.detail-section {
-  margin-bottom: 20px;
-}
-
-.detail-section-title {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--text-primary, #303133);
-  margin-bottom: 12px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid var(--el-border-color-lighter, #ebeef5);
-}
-
-/* ─── Dialog Sections ──────────────── */
-.dialog-section {
-  margin-bottom: 20px;
-}
-
-.dialog-section__title {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-primary, #303133);
-  margin-bottom: 12px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid var(--el-border-color-lighter, #ebeef5);
-}
-
-.dialog-section__title .el-icon {
-  color: var(--el-color-primary, #409eff);
-}
-
-/* ─── Metrics Row ──────────────────── */
-.metrics-row {
-  margin-bottom: 0;
-}
-
-.metrics-row .el-statistic {
-  margin-right: 16px;
-}
-
 /* ─── Submit Stats ─────────────────── */
 .submit-stats {
   margin-bottom: 12px;
 }
 
-.stat-item {
+.submit-stat {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -889,27 +730,45 @@ onMounted(fetchList)
   border-radius: 6px;
 }
 
-.stat-item__value {
+.submit-stat__value {
   font-size: 24px;
   font-weight: 700;
   color: var(--el-color-primary, #409eff);
   line-height: 1.2;
 }
 
-.stat-item__value--success {
+.submit-stat__value--success {
   color: var(--el-color-success, #67c23a);
 }
 
-.stat-item__value--danger {
+.submit-stat__value--danger {
   color: var(--el-color-danger, #f56c6c);
 }
 
-.stat-item__value--warning {
+.submit-stat__value--warning {
   color: var(--el-color-warning, #e6a23c);
 }
 
-.stat-item__label {
+.submit-stat__label {
   font-size: 12px;
   color: var(--text-secondary, #909399);
+}
+
+/* ─── Table Link Buttons ───────────── */
+.data-card__table .el-button.is-link {
+  padding: 0 4px;
+  border: none !important;
+  box-shadow: none !important;
+  background: transparent !important;
+}
+
+.data-card__table .el-button.is-link:hover,
+.data-card__table .el-button.is-link:focus,
+.data-card__table .el-button.is-link:focus-visible,
+.data-card__table .el-button.is-link:active {
+  border: none !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  outline: none;
 }
 </style>

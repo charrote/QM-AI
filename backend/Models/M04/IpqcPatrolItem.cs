@@ -16,18 +16,22 @@ public class IpqcPatrolItem
     public long Id { get; set; }
 
     /// <summary>关联巡检记录</summary>
+    [Column("patrol_id")]
     public long PatrolId { get; set; }
 
     /// <summary>关联检验项目主数据</summary>
+    [Column("inspection_item_id")]
     public long? InspectionItemId { get; set; }
 
     /// <summary>检验项目名称</summary>
     [Required]
     [MaxLength(200)]
+    [Column("item_name")]
     public string ItemName { get; set; } = string.Empty;
 
     /// <summary>检验项目编码</summary>
     [MaxLength(50)]
+    [Column("item_code")]
     public string? ItemCode { get; set; }
 
     /// <summary>规格上限</summary>
@@ -63,6 +67,5 @@ public class IpqcPatrolItem
     public IpqcPatrol? Patrol { get; set; }
 
     [ForeignKey(nameof(InspectionItemId))]
-    [Column("inspection_item")]
     public InspectionItem? InspectionItem { get; set; }
 }

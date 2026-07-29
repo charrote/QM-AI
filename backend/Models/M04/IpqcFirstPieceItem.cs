@@ -16,18 +16,22 @@ public class IpqcFirstPieceItem
     public long Id { get; set; }
 
     /// <summary>关联首件检验</summary>
+    [Column("first_piece_id")]
     public long FirstPieceId { get; set; }
 
     /// <summary>关联检验项目主数据</summary>
+    [Column("inspection_item_id")]
     public long? InspectionItemId { get; set; }
 
     /// <summary>检验项目名称</summary>
     [Required]
     [MaxLength(200)]
+    [Column("item_name")]
     public string ItemName { get; set; } = string.Empty;
 
     /// <summary>检验项目编码</summary>
     [MaxLength(50)]
+    [Column("item_code")]
     public string? ItemCode { get; set; }
 
     /// <summary>规格上限</summary>
@@ -59,6 +63,7 @@ public class IpqcFirstPieceItem
     public string? ImageUrls { get; set; }
 
     /// <summary>备注</summary>
+    [Column("remarks")]
     public string? Remarks { get; set; }
 
     // Navigation
@@ -66,6 +71,5 @@ public class IpqcFirstPieceItem
     public IpqcFirstPiece? FirstPiece { get; set; }
 
     [ForeignKey(nameof(InspectionItemId))]
-    [Column("inspection_item")]
     public InspectionItem? InspectionItem { get; set; }
 }

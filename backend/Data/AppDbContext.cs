@@ -453,8 +453,17 @@ public class AppDbContext : DbContext
         // ── M05 FQC/OQC 成品检验 ──
         modelBuilder.Entity<ProductBatch>(entity =>
         {
+            entity.ToTable("product_batches");
             entity.HasIndex(b => b.BatchCode).IsUnique();
-            entity.Property(b => b.Source).HasMaxLength(20);
+            entity.Property(b => b.Id).HasColumnName("id");
+            entity.Property(b => b.BatchCode).HasColumnName("batch_code");
+            entity.Property(b => b.Source).HasColumnName("source").HasMaxLength(20);
+            entity.Property(b => b.ProductId).HasColumnName("product_id");
+            entity.Property(b => b.WorkOrderId).HasColumnName("work_order_id");
+            entity.Property(b => b.Quantity).HasColumnName("quantity");
+            entity.Property(b => b.Status).HasColumnName("status");
+            entity.Property(b => b.CreatedAt).HasColumnName("created_at");
+            entity.Property(b => b.UpdatedAt).HasColumnName("updated_at");
             entity.HasOne(b => b.Product)
                   .WithMany()
                   .HasForeignKey(b => b.ProductId)
@@ -473,21 +482,90 @@ public class AppDbContext : DbContext
                   .OnDelete(DeleteBehavior.Cascade);
         });
 
+        // FqcInspection 列名显式映射（MySQL snake_case）
         modelBuilder.Entity<FqcInspection>(entity =>
         {
+            entity.ToTable("fqc_inspections");
             entity.HasIndex(i => i.InspectionNo).IsUnique();
-            entity.Property(i => i.InspectionType).HasMaxLength(10);
-            entity.Property(i => i.Conclusion).HasMaxLength(20);
+            entity.Property(i => i.Id).HasColumnName("id");
+            entity.Property(i => i.InspectionNo).HasColumnName("inspection_no");
+            entity.Property(i => i.BatchId).HasColumnName("batch_id");
+            entity.Property(i => i.WorkOrderId).HasColumnName("work_order_id");
+            entity.Property(i => i.InspectionType).HasColumnName("inspection_type").HasMaxLength(10);
+            entity.Property(i => i.AqlLevel).HasColumnName("aql_level");
+            entity.Property(i => i.SampleSize).HasColumnName("sample_size");
+            entity.Property(i => i.TotalChecked).HasColumnName("total_checked");
+            entity.Property(i => i.TotalPass).HasColumnName("total_pass");
+            entity.Property(i => i.TotalFail).HasColumnName("total_fail");
+            entity.Property(i => i.Ac).HasColumnName("ac");
+            entity.Property(i => i.Re).HasColumnName("re");
+            entity.Property(i => i.Conclusion).HasColumnName("conclusion").HasMaxLength(20);
+            entity.Property(i => i.InspectorId).HasColumnName("inspector_id");
+            entity.Property(i => i.CheckedAt).HasColumnName("checked_at");
+            entity.Property(i => i.CreatedAt).HasColumnName("created_at");
+            entity.Property(i => i.UpdatedAt).HasColumnName("updated_at");
             entity.HasMany(i => i.Items)
                   .WithOne(it => it.Inspection)
                   .HasForeignKey(it => it.InspectionId)
                   .OnDelete(DeleteBehavior.Cascade);
         });
 
+        // FqcInspectionItem 列名显式映射
         modelBuilder.Entity<FqcInspectionItem>(entity =>
         {
-            entity.Property(i => i.DataType).HasMaxLength(20);
-            entity.Property(i => i.Result).HasMaxLength(10);
+            entity.ToTable("fqc_inspection_items");
+            entity.Property(i => i.Id).HasColumnName("id");
+            entity.Property(i => i.InspectionId).HasColumnName("inspection_id");
+            entity.Property(i => i.InspectionItemId).HasColumnName("inspection_item_id");
+            entity.Property(i => i.ItemName).HasColumnName("item_name");
+            entity.Property(i => i.ItemCode).HasColumnName("item_code");
+            entity.Property(i => i.Usl).HasColumnName("usl");
+            entity.Property(i => i.Lsl).HasColumnName("lsl");
+            entity.Property(i => i.DataType).HasColumnName("data_type").HasMaxLength(20);
+            entity.Property(i => i.ActualValue).HasColumnName("actual_value");
+            entity.Property(i => i.Result).HasColumnName("result").HasMaxLength(10);
+            entity.Property(i => i.ImageUrls).HasColumnName("image_urls");
+        });
+
+        // OqcRelease 列名显式映射
+        modelBuilder.Entity<OqcRelease>(entity =>
+        {
+            entity.ToTable("oqc_releases");
+            entity.HasIndex(r => r.ReleaseNumber).IsUnique();
+            entity.Property(r => r.Id).HasColumnName("id");
+            entity.Property(r => r.BatchId).HasColumnName("batch_id");
+            entity.Property(r => r.CustomerId).HasColumnName("customer_id");
+            entity.Property(r => r.ReleaseNumber).HasColumnName("release_number");
+            entity.Property(r => r.ReleaseDate).HasColumnName("release_date");
+            entity.Property(r => r.Quantity).HasColumnName("quantity");
+            entity.Property(r => r.AuthorizedBy).HasColumnName("authorized_by");
+            entity.Property(r => r.ESignatureUrl).HasColumnName("e_signature_url");
+            entity.Property(r => r.SignatureTime).HasColumnName("signature_time");
+            entity.Property(r => r.Status).HasColumnName("status").HasMaxLength(20);
+            entity.Property(r => r.CreatedAt).HasColumnName("created_at");
+            entity.Property(r => r.UpdatedAt).HasColumnName("updated_at");
+            entity.HasOne(r => r.Customer)
+                  .WithMany()
+                  .HasForeignKey(r => r.CustomerId)
+                  .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        // PackagingConfirmation 列名显式映射
+        modelBuilder.Entity<PackagingConfirmation>(entity =>
+        {
+            entity.ToTable("packaging_confirmations");
+            entity.Property(p => p.Id).HasColumnName("id");
+            entity.Property(p => p.BatchId).HasColumnName("batch_id");
+            entity.Property(p => p.PackagingMethod).HasColumnName("packaging_method");
+            entity.Property(p => p.QtyPerBox).HasColumnName("qty_per_box");
+            entity.Property(p => p.TotalBoxes).HasColumnName("total_boxes");
+            entity.Property(p => p.LabelPrinted).HasColumnName("label_printed");
+            entity.Property(p => p.ConfirmedBy).HasColumnName("confirmed_by");
+            entity.Property(p => p.ConfirmedAt).HasColumnName("confirmed_at");
+            entity.HasOne(p => p.Batch)
+                  .WithMany(b => b.PackagingConfirmations)
+                  .HasForeignKey(p => p.BatchId)
+                  .OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<OqcRelease>(entity =>

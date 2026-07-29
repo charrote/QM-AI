@@ -441,5 +441,5 @@ onMounted(loadCapaDetail)
 .phase-active { border-top: 3px solid #409eff; box-shadow: 0 2px 12px rgba(64, 158, 255, 0.1); }
 .card-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .phase-form { margin-top: 12px; padding: 12px; background: #f5f7fa; border-radius: 6px; }
-.phase-form >>> .el-form-item { margin-bottom: 0; margin-right: 8px; }
+.phase-form :deep(.el-form-item) { margin-bottom: 0; margin-right: 8px; }
 </style>

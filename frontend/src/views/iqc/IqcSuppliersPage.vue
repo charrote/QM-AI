@@ -669,15 +669,15 @@ onMounted(async () => {
 .supplier-name-cell {
   font-weight: 500;
   color: var(--el-text-color-primary);
-  display: block;
+  display: inline;
 }
 .supplier-contact {
   font-size: 12px;
   color: var(--el-text-color-secondary);
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 2px;
-  margin-top: 2px;
+  margin-left: 4px;
 }
 .score-cell {
   font-weight: 700;

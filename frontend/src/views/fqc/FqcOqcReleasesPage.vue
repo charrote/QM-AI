@@ -3,7 +3,7 @@ import { ref, onMounted, reactive, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   Search, Refresh, Document, EditPen, Check, Plus, Setting, Upload,
-  Clock, CircleCheck, Promotion, Close, User, Picture, Calendar, Right,
+  Clock, CircleCheck, Promotion, Close, User,
 } from '@element-plus/icons-vue'
 import { releaseApi } from '@/api/fqc'
 import { batchApi } from '@/api/fqc'
@@ -95,19 +95,10 @@ function onCustomerSelect(val: number) {
   createForm.customerId = val
 }
 
-// ─── Flow banner ───────────────────────────────────
-const flowSteps = [
-  { label: 'FQC 检验合格', icon: Check, status: 'done' },
-  { label: 'OQC 出货放行', icon: Document, status: 'process' },
-  { label: '包装确认', icon: Setting, status: 'wait' },
-  { label: '发货', icon: Promotion, status: 'wait' },
-]
-
-function getRowFlowStatus(row: OqcRelease): string {
-  if (row.status === 'cancelled') return 'error'
-  if (row.status === 'released') return 'done'
-  if (row.status === 'signed') return 'process'
-  return 'wait'
+// ─── Helpers ──────────────────────────────────────
+function formatDate(d?: string) {
+  if (!d) return '-'
+  return new Date(d).toLocaleString('zh-CN')
 }
 
 // ─── Status helpers ────────────────────────────────
@@ -224,93 +215,96 @@ onMounted(fetchList)
 <template>
   <div class="page-container">
     <!-- Page Header -->
-    <div class="page-header">
-      <div class="page-header__icon-wrapper">
-        <el-icon :size="28"><Document /></el-icon>
-      </div>
-      <div class="page-header__info">
-        <h1 class="page-header__title">FQC/OQC 放行管理</h1>
-        <p class="page-header__subtitle">管理成品放行流程，从检验合格到出货确认的完整链路</p>
-      </div>
-    </div>
-
-    <!-- Flow Info Banner -->
-    <div class="flow-banner">
-      <template v-for="(step, idx) in flowSteps" :key="idx">
-        <span
-          class="flow-banner__step"
-          :class="{ 'flow-banner__step--active': step.status === 'process' }"
-        >
-          <el-icon :size="14"><component :is="step.icon" /></el-icon>
-          {{ step.label }}
-        </span>
-        <span v-if="idx < flowSteps.length - 1" class="flow-banner__arrow">
-          <el-icon :size="14"><Right /></el-icon>
-        </span>
-      </template>
-    </div>
-
-    <!-- Summary Metrics -->
-    <div class="metrics-row">
-      <div class="metrics-row__item">
-        <div class="metrics-row__number">{{ metrics.total }}</div>
-        <div class="metrics-row__label">总放行单</div>
-      </div>
-      <div class="metrics-row__item metrics-row__item--pending">
-        <div class="metrics-row__number">{{ metrics.pending }}</div>
-        <div class="metrics-row__label">待签名</div>
-      </div>
-      <div class="metrics-row__item metrics-row__item--signed">
-        <div class="metrics-row__number">{{ metrics.signed }}</div>
-        <div class="metrics-row__label">已签名</div>
-      </div>
-      <div class="metrics-row__item metrics-row__item--released">
-        <div class="metrics-row__number">{{ metrics.released }}</div>
-        <div class="metrics-row__label">已放行</div>
+    <div class="page-header-banner page-header-banner--warning">
+      <div class="page-header-banner-main">
+        <div class="page-header-banner-icon">
+          <el-icon :size="28"><Document /></el-icon>
+        </div>
+        <div class="page-header-banner-text">
+          <h2 class="page-header-banner-title">FQC/OQC 放行管理</h2>
+          <span class="page-header-banner-subtitle">管理成品放行流程，从检验合格到出货确认的完整链路</span>
+        </div>
       </div>
     </div>
 
-    <!-- Action Bar -->
-    <div class="action-bar">
-      <div class="action-bar__left">
-        <el-input
-          v-model="query.keyword"
-          placeholder="搜索放行单号/批次/客户"
-          :prefix-icon="Search"
-          clearable
-          style="width: 260px"
-          @clear="fetchList"
-          @keyup.enter="fetchList"
-        />
-        <el-select
-          v-model="query.status"
-          placeholder="放行状态"
-          clearable
-          style="width: 140px"
-          @change="fetchList"
-        >
-          <el-option v-for="opt in RELEASE_STATUS_OPTIONS" :key="opt.value" :label="opt.label" :value="opt.value" />
-        </el-select>
-        <el-button @click="fetchList">
-          <el-icon><Refresh /></el-icon>
-          刷新
-        </el-button>
+    <!-- Content Area -->
+    <div class="iqc-content">
+      <!-- Stats Bar -->
+      <div class="stats-bar">
+        <div class="stat-item stat-total">
+          <div class="stat-accent"></div>
+          <div class="stat-content">
+            <div class="stat-value">{{ metrics.total }}</div>
+            <div class="stat-label">总放行单</div>
+          </div>
+        </div>
+        <div class="stat-item stat-pending">
+          <div class="stat-accent"></div>
+          <div class="stat-content">
+            <div class="stat-value">{{ metrics.pending }}</div>
+            <div class="stat-label">待签名</div>
+          </div>
+        </div>
+        <div class="stat-item stat-signed">
+          <div class="stat-accent"></div>
+          <div class="stat-content">
+            <div class="stat-value">{{ metrics.signed }}</div>
+            <div class="stat-label">已签名</div>
+          </div>
+        </div>
+        <div class="stat-item stat-released">
+          <div class="stat-accent"></div>
+          <div class="stat-content">
+            <div class="stat-value">{{ metrics.released }}</div>
+            <div class="stat-label">已放行</div>
+          </div>
+        </div>
       </div>
-      <div class="action-bar__right">
-        <el-button type="primary" @click="createVisible = true">
-          <el-icon><Plus /></el-icon>
-          新建放行单
-        </el-button>
-      </div>
-    </div>
 
-    <!-- Data Card -->
+    <!-- Data Card with Toolbar -->
     <div class="data-card">
+      <div class="data-card__header">
+        <span class="data-card__title">
+          放行清单
+          <el-tag v-if="total" type="info" size="small">{{ total }} 条</el-tag>
+        </span>
+        <div class="data-card__actions">
+          <el-input
+            v-model="query.keyword"
+            placeholder="搜索放行单号/批次/客户"
+            clearable
+            size="small"
+            :prefix-icon="Search"
+            style="width: 220px"
+            @clear="fetchList"
+            @keyup.enter="fetchList"
+          />
+          <el-select
+            v-model="query.status"
+            clearable
+            placeholder="放行状态"
+            size="small"
+            style="width: 110px"
+            @change="fetchList"
+          >
+            <el-option v-for="opt in RELEASE_STATUS_OPTIONS" :key="opt.value" :label="opt.label" :value="opt.value" />
+          </el-select>
+          <el-button size="small" @click="fetchList">
+            <el-icon><Refresh /></el-icon>刷新
+          </el-button>
+          <el-button type="primary" size="small" @click="createVisible = true">
+            <el-icon><Plus /></el-icon>新建放行单
+          </el-button>
+        </div>
+      </div>
+
       <el-table
         :data="list"
         v-loading="loading"
+        border
+        stripe
         style="width: 100%"
-        row-class-name="data-card__row"
+        size="small"
       >
         <el-table-column label="状态流程" width="150" align="center" fixed>
           <template #default="{ row }">
@@ -385,16 +379,13 @@ onMounted(fetchList)
         </el-table-column>
       </el-table>
 
-      <div class="data-card__footer">
+      <div class="data-card__pagination">
         <el-pagination
           v-model:current-page="query.page"
           v-model:page-size="query.pageSize"
           :total="total"
           :page-sizes="[10, 20, 50, 100]"
-          :sizes-layout="'first, prev, pager, next'"
-          :pager-count="7"
           layout="total, sizes, prev, pager, next, jumper"
-          background
           @change="fetchList"
         />
       </div>
@@ -410,8 +401,8 @@ onMounted(fetchList)
     >
       <!-- 放行信息 -->
       <div class="dialog-section">
-        <div class="dialog-section__title">
-          <el-icon><Document /></el-icon>
+        <div class="dialog-section-header">
+          <el-icon class="dialog-section-icon"><Document /></el-icon>
           <span>放行信息</span>
         </div>
         <el-form :model="createForm" label-width="90px" label-position="left">
@@ -461,8 +452,8 @@ onMounted(fetchList)
 
       <!-- 放行参数 -->
       <div class="dialog-section">
-        <div class="dialog-section__title">
-          <el-icon><Setting /></el-icon>
+        <div class="dialog-section-header">
+          <el-icon class="dialog-section-icon"><Setting /></el-icon>
           <span>放行参数</span>
         </div>
         <el-form :model="createForm" label-width="90px" label-position="left">
@@ -504,8 +495,8 @@ onMounted(fetchList)
     >
       <!-- 放行信息摘要 -->
       <div class="dialog-section">
-        <div class="dialog-section__title">
-          <el-icon><Document /></el-icon>
+        <div class="dialog-section-header">
+          <el-icon class="dialog-section-icon"><Document /></el-icon>
           <span>放行信息</span>
         </div>
         <div v-if="activeBatch" class="release-summary">
@@ -530,8 +521,8 @@ onMounted(fetchList)
 
       <!-- 签名区域 -->
       <div class="dialog-section">
-        <div class="dialog-section__title">
-          <el-icon><EditPen /></el-icon>
+        <div class="dialog-section-header">
+          <el-icon class="dialog-section-icon"><EditPen /></el-icon>
           <span>电子签名</span>
         </div>
         <el-form :model="signForm" label-width="90px" label-position="left">
@@ -572,6 +563,7 @@ onMounted(fetchList)
       </template>
     </el-dialog>
   </div>
+  </div>
 </template>
 
 <style scoped>
@@ -579,144 +571,109 @@ onMounted(fetchList)
   display: flex;
   flex-direction: column;
   height: 100%;
-  gap: 16px;
 }
 
-/* ─── Page Header ──────────────────── */
-.page-header {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 0 4px;
-}
-
-.page-header__icon-wrapper {
-  width: 44px;
-  height: 44px;
-  border-radius: 10px;
-  background: var(--el-color-warning-light-9, #fdf6ec);
-  color: var(--el-color-warning, #e6a23c);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.page-header__info {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.page-header__title {
-  margin: 0;
-  font-size: 20px;
-  font-weight: 600;
-  color: var(--text-primary, #303133);
-  line-height: 1.3;
-}
-
-.page-header__subtitle {
-  margin: 0;
-  font-size: 13px;
-  color: var(--text-secondary, #909399);
-  line-height: 1.4;
-}
-
-/* ─── Flow Banner ──────────────────── */
-.flow-banner {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 10px 16px;
-  background: var(--el-color-warning-light-9, #fdf6ec);
-  border-radius: 8px;
-  font-size: 13px;
-}
-
-.flow-banner__step {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  color: var(--el-text-regular, #606266);
-}
-
-.flow-banner__step--active {
-  color: var(--el-color-warning, #e6a23c);
-  font-weight: 600;
-}
-
-.flow-banner__arrow {
-  color: var(--el-color-info, #909399);
-}
-
-/* ─── Metrics Row ──────────────────── */
-.metrics-row {
-  display: flex;
-  gap: 12px;
-  padding: 0 4px;
-}
-
-.metrics-row__item {
+/* ─── 主体布局 ──────────────────────────────────── */
+.iqc-content {
   flex: 1;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 14px 12px;
-  background: var(--bg-card, #fff);
-  border-radius: 8px;
-  box-shadow: var(--shadow-sm, 0 1px 2px rgba(0,0,0,0.06));
-  border: 1px solid var(--el-border-color-lighter, #ebeef5);
+  gap: 12px;
+  padding: 12px;
+  overflow-y: auto;
 }
 
-.metrics-row__number {
-  font-size: 26px;
+/* ── 统计栏 ── */
+.stats-bar {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  flex-shrink: 0;
+}
+.stat-item {
+  display: flex;
+  align-items: center;
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-light);
+  border-radius: 6px;
+  padding: 14px 18px;
+  transition: box-shadow 0.2s, transform 0.2s;
+}
+.stat-item:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transform: translateY(-1px);
+}
+.stat-accent {
+  width: 4px;
+  border-radius: 2px;
+}
+.stat-total .stat-accent { background: var(--el-color-info); }
+.stat-pending .stat-accent { background: var(--el-color-info); }
+.stat-signed .stat-accent { background: var(--el-color-warning); }
+.stat-released .stat-accent { background: var(--el-color-success); }
+.stat-content {
+  display: flex;
+  flex-direction: column;
+}
+.stat-value {
+  font-size: 28px;
   font-weight: 700;
   line-height: 1.2;
-  color: var(--el-text-primary, #303133);
+}
+.stat-total .stat-value { color: var(--el-color-info); }
+.stat-pending .stat-value { color: var(--el-color-info); }
+.stat-signed .stat-value { color: var(--el-color-warning); }
+.stat-released .stat-value { color: var(--el-color-success); }
+.stat-label {
+  font-size: 13px;
+  color: var(--el-text-color-secondary);
+  margin-top: 2px;
 }
 
-.metrics-row__item--pending .metrics-row__number { color: var(--el-color-info, #409eff); }
-.metrics-row__item--signed .metrics-row__number { color: var(--el-color-warning, #e6a23c); }
-.metrics-row__item--released .metrics-row__number { color: var(--el-color-success, #67c23a); }
-
-.metrics-row__label {
-  font-size: 12px;
-  color: var(--text-secondary, #909399);
-  margin-top: 4px;
+/* ── 通用 data-card ── */
+.data-card {
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+  overflow: hidden;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 
-/* ─── Action Bar ───────────────────── */
-.action-bar {
+.data-card__header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  flex-wrap: wrap;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+  background: var(--el-fill-color-blank);
+  flex-shrink: 0;
 }
 
-.action-bar__left {
+.data-card__title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+
+.data-card__actions {
   display: flex;
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
 }
 
-.action-bar__right {
+.data-card__pagination {
   display: flex;
-  gap: 8px;
-}
-
-/* ─── Data Card ────────────────────── */
-.data-card {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  background: var(--bg-card, #fff);
-  border-radius: 8px;
-  box-shadow: var(--shadow-sm, 0 1px 2px rgba(0,0,0,0.06));
-  overflow: hidden;
+  justify-content: flex-end;
+  padding: 12px 16px;
+  border-top: 1px solid var(--el-border-color-lighter);
+  flex-shrink: 0;
 }
 
 .data-card__row {
@@ -727,14 +684,7 @@ onMounted(fetchList)
   background-color: var(--el-fill-color-light, #f5f7fa) !important;
 }
 
-.data-card__footer {
-  display: flex;
-  justify-content: flex-end;
-  padding: 12px 16px;
-  border-top: 1px solid var(--el-border-color-lighter, #ebeef5);
-}
-
-/* ─── Status Flow ──────────────────── */
+/* ── 状态流程 ── */
 .status-flow {
   display: flex;
   align-items: center;
@@ -746,9 +696,9 @@ onMounted(fetchList)
   font-size: 12px;
 }
 
-/* ─── Info Styles ──────────────────── */
+/* ── 单元格样式 ── */
 .info-primary {
-  color: var(--el-text-primary, #303133);
+  color: var(--el-text-color-primary);
   font-weight: 500;
 }
 
@@ -756,7 +706,7 @@ onMounted(fetchList)
   color: var(--el-text-placeholder, #c0c4cc);
 }
 
-/* ─── Release Summary ──────────────── */
+/* ── Release Summary ──────────────────── */
 .release-summary {
   padding: 12px 16px;
   background: var(--el-fill-color-lighter, #f2f6fc);
@@ -785,28 +735,33 @@ onMounted(fetchList)
   font-weight: 500;
 }
 
-/* ─── Dialog Sections ──────────────── */
+/* ── 对话框 Sections ── */
 .dialog-section {
-  margin-bottom: 20px;
+  margin-bottom: 16px;
 }
-
-.dialog-section__title {
+.dialog-section:last-of-type {
+  margin-bottom: 0;
+}
+.dialog-section-header {
   display: flex;
   align-items: center;
   gap: 6px;
+  padding: 8px 12px;
+  background: var(--el-fill-color-light);
+  border-radius: 6px;
+  margin-bottom: 12px;
+}
+.dialog-section-icon {
+  font-size: 15px;
+  color: var(--el-color-warning);
+}
+.dialog-section-title {
   font-size: 13px;
   font-weight: 600;
-  color: var(--text-primary, #303133);
-  margin-bottom: 12px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid var(--el-border-color-lighter, #ebeef5);
+  color: var(--el-text-color-regular);
 }
 
-.dialog-section__title .el-icon {
-  color: var(--el-color-primary, #409eff);
-}
-
-/* ─── Signature Upload ─────────────── */
+/* ── 签名上传 ─────────────── */
 .sig-upload {
   display: flex;
   flex-direction: column;
@@ -836,7 +791,7 @@ onMounted(fetchList)
   color: var(--el-text-placeholder, #c0c4cc);
 }
 
-/* ─── Signature Preview ────────────── */
+/* ── 签名预览 ────────────── */
 .sig-preview {
   padding: 12px;
   background: var(--el-fill-color-lighter, #f2f6fc);

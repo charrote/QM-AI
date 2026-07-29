@@ -31,9 +31,11 @@ public class FqcInspection
     /// <summary>检验方式：full / sampling</summary>
     [Required]
     [MaxLength(10)]
+    [Column("inspection_type")]
     public string InspectionType { get; set; } = "full";
 
     /// <summary>AQL 值（抽检时）</summary>
+    [Column("aql_level")]
     public decimal? AqlLevel { get; set; }
 
     /// <summary>样本量</summary>
@@ -67,6 +69,7 @@ public class FqcInspection
     public string Conclusion { get; set; } = "pending";
 
     /// <summary>检验员 ID</summary>
+    [Column("inspector_id")]
     public long? InspectorId { get; set; }
 
     /// <summary>检验时间</summary>

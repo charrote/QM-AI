@@ -78,6 +78,12 @@ function formatQuantity(n: number): string {
   return n.toLocaleString('en-US')
 }
 
+// ─── 格式化日期 ──────────────────────────────────
+function formatDate(d?: string): string {
+  if (!d) return '-'
+  return new Date(d).toISOString().slice(0, 10)
+}
+
 // ─── 数据获取 ────────────────────────────────────
 async function fetchList() {
   loading.value = true
@@ -147,176 +153,170 @@ function statusTag(status: string): string {
 </script>
 
 <template>
-  <div class="page-container">
+  <div class="iqc-container">
     <!-- Page Header -->
-    <div class="page-header">
-      <div class="page-header__icon-wrapper">
-        <el-icon :size="28"><Box /></el-icon>
-      </div>
-      <div class="page-header__info">
-        <h1 class="page-header__title">批次管理</h1>
-        <p class="page-header__subtitle">管理成品检验批次，从创建到放行全流程追踪</p>
-      </div>
-    </div>
-
-    <!-- Batch Source Banner -->
-    <div class="source-banner">
-      <div class="source-banner__left">
-        <el-icon :size="18" color="var(--el-color-info)"><DocumentChecked /></el-icon>
-        <span class="source-banner__text">批次来源：</span>
-        <div class="source-tag-group">
-          <el-tag size="small" type="success" effect="plain" class="source-tag">
-            IPQC 关单自动生成
-          </el-tag>
-          <el-icon class="source-tag__arrow"><ArrowRight /></el-icon>
-          <el-tag size="small" type="warning" effect="plain" class="source-tag">
-            工单完工自动生成
-          </el-tag>
-          <el-icon class="source-tag__arrow"><ArrowRight /></el-icon>
-          <el-tag size="small" type="info" effect="plain" class="source-tag">
-            手动创建（兜底）
-          </el-tag>
+    <div class="page-header-banner page-header-banner--success">
+      <div class="page-header-banner-main">
+        <div class="page-header-banner-icon">
+          <el-icon :size="28"><Box /></el-icon>
+        </div>
+        <div class="page-header-banner-text">
+          <h2 class="page-header-banner-title">批次管理</h2>
+          <span class="page-header-banner-subtitle">管理成品检验批次，从创建到放行全流程追踪</span>
         </div>
       </div>
-      <div class="source-banner__right">
-        <el-icon class="source-banner__flow-icon"><ArrowRight /></el-icon>
-        <span class="source-banner__flow">FQC 成品检验 <el-icon><ArrowRight /></el-icon> OQC 出货放行</span>
+    </div>
+
+    <!-- Stats Bar -->
+    <div class="stats-bar">
+      <div class="stat-item stat-total">
+        <div class="stat-accent"></div>
+        <div class="stat-content">
+          <div class="stat-value">{{ stats.total }}</div>
+          <div class="stat-label">总批次数</div>
+        </div>
+      </div>
+      <div class="stat-item stat-primary">
+        <div class="stat-accent"></div>
+        <div class="stat-content">
+          <div class="stat-value">{{ stats.in_progress }}</div>
+          <div class="stat-label">进行中</div>
+        </div>
+      </div>
+      <div class="stat-item stat-warning">
+        <div class="stat-accent"></div>
+        <div class="stat-content">
+          <div class="stat-value">{{ stats.inspected }}</div>
+          <div class="stat-label">已检验</div>
+        </div>
+      </div>
+      <div class="stat-item stat-success">
+        <div class="stat-accent"></div>
+        <div class="stat-content">
+          <div class="stat-value">{{ stats.released }}</div>
+          <div class="stat-label">已放行</div>
+        </div>
       </div>
     </div>
 
-    <!-- Stats Card -->
-    <div class="stats-card">
-      <div class="stats-card__item">
-        <div class="stats-card__value">{{ stats.total }}</div>
-        <div class="stats-card__label">总批次数</div>
-      </div>
-      <div class="stats-card__divider" />
-      <div class="stats-card__item">
-        <div class="stats-card__value stats-card__value--primary">{{ stats.in_progress }}</div>
-        <div class="stats-card__label">进行中</div>
-      </div>
-      <div class="stats-card__divider" />
-      <div class="stats-card__item">
-        <div class="stats-card__value stats-card__value--warning">{{ stats.inspected }}</div>
-        <div class="stats-card__label">已检验</div>
-      </div>
-      <div class="stats-card__divider" />
-      <div class="stats-card__item">
-        <div class="stats-card__value stats-card__value--success">{{ stats.released }}</div>
-        <div class="stats-card__label">已放行</div>
-      </div>
-    </div>
-
-    <!-- Toolbar -->
-    <div class="action-bar">
-      <div class="action-bar__left">
-        <el-input
-          v-model="query.keyword"
-          placeholder="搜索批次号/产品"
-          :prefix-icon="Search"
-          clearable
-          style="width: 260px"
-          @clear="fetchList"
-          @keyup.enter="fetchList"
-        />
-        <el-select
-          v-model="query.status"
-          placeholder="批次状态"
-          clearable
-          style="width: 140px"
-          @change="fetchList"
-        >
-          <el-option v-for="opt in BATCH_STATUS_OPTIONS" :key="opt.value" :label="opt.label" :value="opt.value" />
-        </el-select>
-        <el-button @click="fetchList">
-          <el-icon><Refresh /></el-icon>
-          刷新
-        </el-button>
-      </div>
-      <div class="action-bar__right">
-        <el-button type="primary" @click="openCreate">
-          <el-icon><Plus /></el-icon>
-          新建批次
-        </el-button>
-      </div>
-    </div>
-
-    <!-- Table Card -->
+    <!-- Data Card -->
     <div class="data-card">
-      <el-table
-        :data="list"
-        v-loading="loading"
-        :row-class-name="() => 'data-card__row'"
-        style="width: 100%"
-      >
-        <el-table-column prop="batchCode" label="批次号" min-width="160" show-overflow-tooltip>
-          <template #default="{ row }">
-            <el-button link type="primary" class="data-card__batch-code" @click="openDetail(row.id)">
-              {{ row.batchCode }}
-            </el-button>
-          </template>
-        </el-table-column>
-        <el-table-column prop="productName" label="产品名称" min-width="150" show-overflow-tooltip />
-        <el-table-column prop="quantity" label="数量" width="90" align="center">
-          <template #default="{ row }">
-            <span class="data-card__quantity">{{ formatQuantity(row.quantity) }}</span>
-          </template>
-        </el-table-column>
-        <el-table-column label="状态" width="110" align="center">
-          <template #default="{ row }">
-            <el-tag
-              :type="statusTag(row.status)"
-              size="small"
-              :effect="row.status === 'in_progress' ? 'dark' : 'dark'"
-              :class="{ 'data-card__status--pulse': row.status === 'in_progress' }"
-            >
-              <el-icon class="data-card__status-icon"><component :is="BATCH_STATUS_ICON[row.status] || InfoFilled" /></el-icon>
-              {{ BATCH_STATUS_MAP[row.status] || row.status }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column label="来源" width="130" align="center">
-          <template #default="{ row }">
-            <el-tag size="small" type="info" effect="plain">{{ BATCH_SOURCE_DESC[row.source]?.label || '手动创建' }}</el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column prop="createdAt" label="创建时间" min-width="150" />
-        <el-table-column label="操作" width="100" fixed="right" align="center">
-          <template #default="{ row }">
-            <el-button link size="small" type="primary" @click.stop="openDetail(row.id)">
-              <el-icon><DocumentChecked /></el-icon>
-              详情
-            </el-button>
-          </template>
-        </el-table-column>
-      </el-table>
+      <div class="data-card__header">
+        <span class="data-card__title">
+          批次清单
+          <el-tag v-if="total" type="info" size="small">{{ total }} 条</el-tag>
+        </span>
+        <div class="data-card__actions">
+          <el-input
+            v-model="query.keyword"
+            placeholder="搜索批次号/产品"
+            :prefix-icon="Search"
+            clearable
+            size="small"
+            style="width: 220px"
+            @clear="fetchList"
+            @keyup.enter="fetchList"
+          />
+          <el-select
+            v-model="query.status"
+            placeholder="批次状态"
+            clearable
+            size="small"
+            style="width: 120px"
+            @change="fetchList"
+          >
+            <el-option v-for="opt in BATCH_STATUS_OPTIONS" :key="opt.value" :label="opt.label" :value="opt.value" />
+          </el-select>
+          <el-button size="small" @click="fetchList">
+            <el-icon><Refresh /></el-icon>刷新
+          </el-button>
+          <el-button type="primary" size="small" @click="openCreate">
+            <el-icon><Plus /></el-icon>新建批次
+          </el-button>
+        </div>
+      </div>
 
-      <!-- Empty State -->
-      <el-empty
-        v-if="!loading && list.length === 0"
-        description="暂无批次数据"
-        :image-size="100"
-        class="data-card__empty"
-      >
-        <el-button type="primary" @click="openCreate">
-          <el-icon><Plus /></el-icon>
-          新建批次
-        </el-button>
-      </el-empty>
+      <div class="data-card__body">
+        <el-table
+          :data="list"
+          border
+          stripe
+          size="small"
+          class="data-card__table"
+          v-loading="loading"
+          style="width: 100%"
+        >
+          <el-table-column prop="batchCode" label="批次号" min-width="160" show-overflow-tooltip>
+            <template #default="{ row }">
+              <el-button link type="primary" class="data-card__batch-code" @click="openDetail(row.id)">
+                {{ row.batchCode }}
+              </el-button>
+            </template>
+          </el-table-column>
+          <el-table-column prop="productName" label="产品名称" min-width="150" show-overflow-tooltip />
+          <el-table-column prop="quantity" label="数量" width="90" align="center">
+            <template #default="{ row }">
+              <span class="data-card__quantity">{{ formatQuantity(row.quantity) }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="状态" width="110" align="center">
+            <template #default="{ row }">
+              <el-tag
+                :type="statusTag(row.status)"
+                size="small"
+                :effect="row.status === 'in_progress' ? 'dark' : 'dark'"
+                :class="{ 'data-card__status--pulse': row.status === 'in_progress' }"
+              >
+                <el-icon class="data-card__status-icon"><component :is="BATCH_STATUS_ICON[row.status] || InfoFilled" /></el-icon>
+                {{ BATCH_STATUS_MAP[row.status] || row.status }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column label="来源" width="130" align="center">
+            <template #default="{ row }">
+              <el-tag size="small" type="info" effect="plain">{{ BATCH_SOURCE_DESC[row.source]?.label || '手动创建' }}</el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column prop="createdAt" label="创建时间" min-width="150" />
+          <el-table-column label="操作" width="100" fixed="right" align="center">
+            <template #default="{ row }">
+              <el-button link size="small" type="primary" @click.stop="openDetail(row.id)">
+                <el-icon><DocumentChecked /></el-icon>
+                详情
+              </el-button>
+            </template>
+          </el-table-column>
+        </el-table>
 
-      <!-- Pagination -->
-      <div class="data-card__footer">
-        <el-pagination
-          v-model:current-page="query.page"
-          v-model:page-size="query.pageSize"
-          :total="total"
-          :page-sizes="[10, 20, 50, 100]"
-          :sizes-layout="'first, prev, pager, next'"
-          :pager-count="7"
-          layout="total, sizes, prev, pager, next, jumper"
-          background
-          @change="fetchList"
-        />
+        <!-- Empty State -->
+        <el-empty
+          v-if="!loading && list.length === 0"
+          description="暂无批次数据"
+          :image-size="100"
+          class="data-card__empty"
+        >
+          <el-button type="primary" @click="openCreate">
+            <el-icon><Plus /></el-icon>
+            新建批次
+          </el-button>
+        </el-empty>
+
+        <!-- Pagination -->
+        <div class="data-card__footer" v-if="total > query.pageSize">
+          <div class="data-card__pagination">
+            <el-pagination
+              v-model:current-page="query.page"
+              v-model:page-size="query.pageSize"
+              :total="total"
+              :page-sizes="[10, 20, 50, 100]"
+              :sizes-layout="'first, prev, pager, next'"
+              :pager-count="7"
+              layout="total, sizes, prev, pager, next, jumper"
+              background
+              @change="fetchList"
+            />
+          </div>
+        </div>
       </div>
     </div>
 
@@ -347,27 +347,36 @@ function statusTag(status: string): string {
           </div>
         </div>
 
-        <div class="detail-header">
-          <el-tag
-            :type="statusTag(detail.status)"
-            size="large"
-            :effect="detail.status === 'in_progress' ? 'dark' : 'dark'"
-            :class="{ 'data-card__status--pulse': detail.status === 'in_progress' }"
-          >
-            <el-icon class="data-card__status-icon"><component :is="BATCH_STATUS_ICON[detail.status] || InfoFilled" /></el-icon>
-            {{ BATCH_STATUS_MAP[detail.status] }}
-          </el-tag>
-          <span class="detail-batch-code">{{ detail.batchCode }}</span>
-          <el-tag v-if="detail.source" size="small" type="info" effect="plain" class="detail-source-tag">
-            {{ BATCH_SOURCE_DESC[detail.source]?.label || detail.source }}
-          </el-tag>
+        <!-- Detail Header -->
+        <div class="drawer-header" style="margin-bottom: 16px;">
+          <div class="drawer-header-icon">
+            <el-icon :size="18"><Box /></el-icon>
+          </div>
+          <div class="drawer-header-text">
+            <span class="drawer-title">{{ detail.batchCode }}</span>
+            <span class="drawer-subtitle">
+              <el-tag
+                :type="statusTag(detail.status)"
+                size="small"
+                :effect="detail.status === 'in_progress' ? 'dark' : 'dark'"
+                :class="{ 'data-card__status--pulse': detail.status === 'in_progress' }"
+                style="margin-right: 8px;"
+              >
+                <el-icon style="margin-right: 3px; font-size: 12px;"><component :is="BATCH_STATUS_ICON[detail.status] || InfoFilled" /></el-icon>
+                {{ BATCH_STATUS_MAP[detail.status] }}
+              </el-tag>
+              <el-tag v-if="detail.source" size="small" type="info" effect="plain">
+                {{ BATCH_SOURCE_DESC[detail.source]?.label || detail.source }}
+              </el-tag>
+            </span>
+          </div>
         </div>
 
-        <el-descriptions :column="2" border class="detail-descriptions">
+        <el-descriptions :column="2" border style="margin-bottom: 20px;">
           <el-descriptions-item label="产品名称">{{ detail.productName }}</el-descriptions-item>
           <el-descriptions-item label="数量">{{ formatQuantity(detail.quantity) }}</el-descriptions-item>
           <el-descriptions-item label="关联工单">{{ detail.workOrderId || '-' }}</el-descriptions-item>
-          <el-descriptions-item label="创建时间">{{ detail.createdAt }}</el-descriptions-item>
+          <el-descriptions-item label="创建时间">{{ formatDate(detail.createdAt) }}</el-descriptions-item>
         </el-descriptions>
 
         <!-- 快速操作 -->
@@ -379,16 +388,16 @@ function statusTag(status: string): string {
         </div>
 
         <!-- 检验记录 -->
-        <h4 class="detail-section-title">
-          <el-icon color="var(--el-color-primary)"><DocumentChecked /></el-icon>
+        <div class="drawer-section-header">
+          <el-icon class="drawer-section-icon"><DocumentChecked /></el-icon>
           检验记录
-          <el-tag size="small" type="success" effect="plain" class="detail-section__badge" v-if="detail.inspections?.length">
+          <el-tag size="small" type="success" effect="plain" v-if="detail.inspections?.length">
             {{ detail.inspections.length }} 条
           </el-tag>
-          <el-tag size="small" type="warning" effect="plain" class="detail-section__badge" v-if="detail.inspections?.length">
+          <el-tag size="small" type="warning" effect="plain" v-if="detail.inspections?.length">
             合格率 {{ inspectionPassRate(detail.inspections) }}%
           </el-tag>
-        </h4>
+        </div>
         <el-table :data="detail.inspections || []" border size="small" v-if="detail.inspections?.length">
           <el-table-column prop="inspectionNo" label="检验单号" min-width="160" />
           <el-table-column prop="inspectorName" label="检验员" width="100" />
@@ -416,13 +425,13 @@ function statusTag(status: string): string {
         <el-empty v-else description="暂无检验记录" :image-size="50" />
 
         <!-- 放行记录 -->
-        <h4 class="detail-section-title">
-          <el-icon color="var(--el-color-success)"><RefreshRight /></el-icon>
+        <div class="drawer-section-header">
+          <el-icon class="drawer-section-icon"><RefreshRight /></el-icon>
           放行记录
-          <el-tag size="small" type="success" effect="plain" class="detail-section__badge" v-if="detail.releases?.length">
+          <el-tag size="small" type="success" effect="plain" v-if="detail.releases?.length">
             {{ detail.releases.length }} 条
           </el-tag>
-        </h4>
+        </div>
         <el-table :data="detail.releases || []" border size="small" v-if="detail.releases?.length">
           <el-table-column prop="releaseNumber" label="放行单号" min-width="160" />
           <el-table-column prop="customerName" label="客户" min-width="130" />
@@ -446,9 +455,9 @@ function statusTag(status: string): string {
       </div>
 
       <div class="dialog-section">
-        <div class="dialog-section__title">
-          <el-icon><Box /></el-icon>
-          <span>批次信息</span>
+        <div class="dialog-section-header">
+          <el-icon class="dialog-section-icon"><Box /></el-icon>
+          批次信息
         </div>
         <el-form :model="createForm" label-width="90px" label-position="left">
           <el-form-item label="批次号">
@@ -487,9 +496,9 @@ function statusTag(status: string): string {
       </div>
 
       <div class="dialog-section">
-        <div class="dialog-section__title">
-          <el-icon><Setting /></el-icon>
-          <span>生产信息</span>
+        <div class="dialog-section-header">
+          <el-icon class="dialog-section-icon"><Setting /></el-icon>
+          生产信息
         </div>
         <el-form :model="createForm" label-width="90px" label-position="left">
           <el-form-item label="关联工单">
@@ -514,213 +523,92 @@ function statusTag(status: string): string {
 </template>
 
 <style scoped>
-.page-container {
-  display: flex;
-  flex-direction: column;
+.iqc-container {
   height: 100%;
-  gap: 16px;
-}
-
-/* ─── Page Header ──────────────────── */
-.page-header {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 0 4px;
-  background: linear-gradient(135deg, var(--el-color-success-light-9, #f0f9eb) 0%, transparent 100%);
-  border-radius: 8px;
-  padding-left: 12px;
-}
-
-.page-header__icon-wrapper {
-  width: 44px;
-  height: 44px;
-  border-radius: 10px;
-  background: var(--el-color-success-light-9, #f0f9eb);
-  color: var(--el-color-success, #67c23a);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.page-header__info {
   display: flex;
   flex-direction: column;
-  gap: 2px;
-}
-
-.page-header__title {
-  margin: 0;
-  font-size: 20px;
-  font-weight: 600;
-  color: var(--text-primary, #303133);
-  line-height: 1.3;
-}
-
-.page-header__subtitle {
-  margin: 0;
-  font-size: 13px;
-  color: var(--text-secondary, #909399);
-  line-height: 1.4;
-}
-
-/* ─── Source Banner ────────────────── */
-.source-banner {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 8px;
-  padding: 10px 16px;
-  background: var(--el-color-info-light-9, #ecf5ff);
-  border-radius: 8px;
-  border-left: 3px solid var(--el-color-info, #409eff);
-  font-size: 13px;
-  color: var(--el-text-secondary, #909399);
-}
-
-.source-banner__left {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.source-banner__right {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.source-banner__text {
-  font-weight: 500;
-  color: var(--el-text-regular, #606266);
-}
-
-.source-banner__flow {
-  font-weight: 500;
-  color: var(--el-color-primary, #409eff);
-}
-
-.source-banner__flow-icon {
-  color: var(--el-color-primary-light-3, #79a1ff);
-  animation: source-flow-pulse 2s ease-in-out infinite;
-}
-
-@keyframes source-flow-pulse {
-  0%, 100% { opacity: 0.5; }
-  50% { opacity: 1; }
-}
-
-.source-tag-group {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.source-tag__arrow {
-  color: var(--el-color-info-light-5, #a0cfff);
-  font-size: 12px;
-}
-
-.source-tag {
-  margin: 0;
-}
-
-/* ─── Stats Card ───────────────────── */
-.stats-card {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 14px 20px;
-  background: var(--bg-card, #fff);
-  border-radius: 8px;
-  box-shadow: var(--shadow-sm, 0 1px 2px rgba(0,0,0,0.06));
-}
-
-.stats-card__item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-  min-width: 80px;
-}
-
-.stats-card__value {
-  font-size: 24px;
-  font-weight: 700;
-  color: var(--text-primary, #303133);
-  line-height: 1.2;
-  transition: transform 0.15s;
-}
-
-.stats-card__value--primary { color: var(--el-color-primary, #409eff); }
-.stats-card__value--warning { color: var(--el-color-warning, #e6a23c); }
-.stats-card__value--success { color: var(--el-color-success, #67c23a); }
-
-.stats-card__label {
-  font-size: 12px;
-  color: var(--text-secondary, #909399);
-  font-weight: 500;
-}
-
-.stats-card__divider {
-  width: 1px;
-  height: 32px;
-  background: var(--el-border-color-lighter, #ebeef5);
-}
-
-/* ─── Action Bar ───────────────────── */
-.action-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-
-.action-bar__left {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.action-bar__right {
-  display: flex;
-  gap: 8px;
-}
-
-/* ─── Data Card ────────────────────── */
-.data-card {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  background: var(--bg-card, #fff);
-  border-radius: 8px;
-  box-shadow: var(--shadow-sm, 0 1px 2px rgba(0,0,0,0.06));
   overflow: hidden;
 }
 
-.data-card__row {
-  transition: background-color 0.2s;
+.iqc-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px;
+  overflow-y: auto;
 }
 
-.data-card__row:hover {
-  background-color: var(--el-fill-color-light, #f5f7fa) !important;
+/* ── Stats Bar ── */
+.stats-bar {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  flex-shrink: 0;
 }
 
-.data-card__batch-code {
+.stat-item {
+  display: flex;
+  align-items: center;
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--radius-lg, 8px);
+  padding: 16px 20px;
+  gap: 12px;
+  transition: all var(--duration-normal, 0.3s) var(--ease-out, ease-out);
+  position: relative;
+  overflow: hidden;
+}
+
+.stat-item::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  border-radius: 4px 0 0 4px;
+  background: var(--el-border-color-lighter);
+}
+
+.stat-total::before { background: var(--el-color-info); }
+.stat-primary::before { background: var(--el-color-primary); }
+.stat-warning::before { background: var(--el-color-warning); }
+.stat-success::before { background: var(--el-color-success); }
+
+.stat-item:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md, 0 4px 12px rgba(0, 0, 0, 0.08));
+}
+
+.stat-accent {
+  width: 4px;
+  height: 36px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.stat-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.stat-value {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--el-text-color-primary);
+  line-height: 1.2;
+}
+
+.stat-label {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
   font-weight: 500;
-  padding: 0 4px;
 }
 
-.data-card__quantity {
-  font-variant-numeric: tabular-nums;
-  font-weight: 500;
-}
-
+/* ── Status Pulse ── */
 .data-card__status--pulse {
   animation: status-pulse 2s ease-in-out infinite;
 }
@@ -730,78 +618,8 @@ function statusTag(status: string): string {
   50% { box-shadow: 0 0 0 4px rgba(64, 158, 255, 0.1); }
 }
 
-.data-card__status-icon {
-  margin-right: 3px;
-  font-size: 12px;
-}
-
 .data-card__empty {
   padding: 40px 0;
-}
-
-.data-card__footer {
-  display: flex;
-  justify-content: flex-end;
-  padding: 12px 16px;
-  border-top: 1px solid var(--el-border-color-lighter, #ebeef5);
-}
-
-/* ─── Detail Drawer ────────────────── */
-.detail-header {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 16px;
-}
-
-.detail-batch-code {
-  font-size: 18px;
-  font-weight: 600;
-  color: var(--text-primary, #303133);
-}
-
-.detail-source-tag {
-  margin-left: 4px;
-}
-
-.detail-descriptions {
-  margin-bottom: 20px;
-}
-
-.detail-section-title {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--text-primary, #303133);
-  margin-bottom: 12px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid var(--el-border-color-lighter, #ebeef5);
-}
-
-.detail-section__badge {
-  margin-left: auto;
-}
-
-.detail-table__pass {
-  color: var(--el-color-success, #67c23a);
-  font-weight: 600;
-}
-
-.detail-table__sep {
-  color: var(--el-text-placeholder, #c0c4cc);
-  margin: 0 2px;
-}
-
-.detail-table__total {
-  color: var(--el-text-regular, #606266);
-}
-
-.detail-quick-actions {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 20px;
 }
 
 /* ─── Flow Steps ───────────────────── */
@@ -881,27 +699,7 @@ function statusTag(status: string): string {
   flex-shrink: 0;
 }
 
-/* ─── Dialog Sections ──────────────── */
-.dialog-section {
-  margin-bottom: 20px;
-}
-
-.dialog-section__title {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-primary, #303133);
-  margin-bottom: 12px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid var(--el-border-color-lighter, #ebeef5);
-}
-
-.dialog-section__title .el-icon {
-  color: var(--el-color-primary, #409eff);
-}
-
+/* ─── Dialog ──────────────────────── */
 .create-dialog__code-preview {
   display: flex;
   align-items: center;
@@ -915,5 +713,25 @@ function statusTag(status: string): string {
   font-size: 12px;
   color: var(--el-text-placeholder, #c0c4cc);
   margin-top: 4px;
+}
+
+.detail-quick-actions {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.detail-table__pass {
+  color: var(--el-color-success, #67c23a);
+  font-weight: 600;
+}
+
+.detail-table__sep {
+  color: var(--el-text-placeholder, #c0c4cc);
+  margin: 0 2px;
+}
+
+.detail-table__total {
+  color: var(--el-text-regular, #606266);
 }
 </style>

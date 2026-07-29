@@ -19,11 +19,13 @@ public class OqcRelease
     public long BatchId { get; set; }
 
     /// <summary>关联客户</summary>
+    [Column("customer_id")]
     public long CustomerId { get; set; }
 
     /// <summary>放行单号（唯一）</summary>
     [Required]
     [MaxLength(50)]
+    [Column("release_number")]
     public string ReleaseNumber { get; set; } = string.Empty;
 
     /// <summary>放行日期</summary>
@@ -40,9 +42,11 @@ public class OqcRelease
 
     /// <summary>电子签名 URL（MinIO）</summary>
     [MaxLength(500)]
+    [Column("e_signature_url")]
     public string? ESignatureUrl { get; set; }
 
     /// <summary>签名时间</summary>
+    [Column("signature_time")]
     public DateTime? SignatureTime { get; set; }
 
     /// <summary>状态：pending / signed / released / cancelled</summary>
