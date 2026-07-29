@@ -66,7 +66,7 @@ ALTER TABLE defect_codes
 -- ============================================================================
 -- 3. 设备表改造：增加org_id + 关联车间/产线到组织层级
 -- ============================================================================
-ALTER TABLE equipments
+ALTER TABLE equipment
     ADD COLUMN org_id BIGINT COMMENT '所属组织',
     ADD COLUMN workshop_id BIGINT COMMENT '关联车间(组织ID，level=workshop)',
     ADD COLUMN line_id BIGINT COMMENT '关联产线(组织ID，level=line)',
