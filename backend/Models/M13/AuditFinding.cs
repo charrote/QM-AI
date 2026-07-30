@@ -15,6 +15,7 @@ public class AuditFinding
     public long Id { get; set; }
 
     /// <summary>关联审核</summary>
+    [Column("audit_id")]
     [Required]
     public long AuditId { get; set; }
 
@@ -56,27 +57,32 @@ public class AuditFinding
     public string Status { get; set; } = "open";
 
     /// <summary>整改措施（JSON）</summary>
+    [Column("rectification_plan")]
     public string? RectificationPlan { get; set; }
 
     /// <summary>整改责任人ID</summary>
+    [Column("responsible_user_id")]
     public long? ResponsibleUserId { get; set; }
 
     /// <summary>整改责任人标识（字符串，供服务层兼容）</summary>
     public string? ResponsibleUserIdStr { get; set; }
 
     /// <summary>整改截止日</summary>
+    [Column("rectification_due_date")]
     public DateOnly? RectificationDueDate { get; set; }
 
     /// <summary>计划完成日期（同 RectificationDueDate，供服务层兼容）</summary>
     public DateTime? PlannedCompletionDate { get; set; }
 
     /// <summary>验证人ID</summary>
+    [Column("verified_by")]
     public long? VerifiedBy { get; set; }
 
     /// <summary>验证人标识（字符串，供服务层兼容）</summary>
     public string? VerifiedByStr { get; set; }
 
     /// <summary>验证时间</summary>
+    [Column("verified_at")]
     public DateTime? VerifiedAt { get; set; }
 
     [Column("created_at")]

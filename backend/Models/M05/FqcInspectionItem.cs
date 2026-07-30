@@ -16,6 +16,7 @@ public class FqcInspectionItem
     public long Id { get; set; }
 
     /// <summary>关联检验单</summary>
+    [Column("inspection_id")]
     public long InspectionId { get; set; }
 
     /// <summary>关联检验项目主数据</summary>
@@ -23,11 +24,13 @@ public class FqcInspectionItem
     public long? InspectionItemId { get; set; }
 
     /// <summary>检验项目名称</summary>
+    [Column("item_name")]
     [Required]
     [MaxLength(200)]
     public string ItemName { get; set; } = string.Empty;
 
     /// <summary>检验项目编码</summary>
+    [Column("item_code")]
     [MaxLength(50)]
     public string? ItemCode { get; set; }
 

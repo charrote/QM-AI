@@ -75,8 +75,8 @@ export interface IpqcPatrolPlan {
   planNo: string
   processId: number
   processName?: string
-  equipmentId: number
-  equipmentName?: string
+  equipmentIds: number[]
+  equipmentNames?: string[]
   patrolIntervalMin: number
   autoGenerate: boolean
   status: string
@@ -87,15 +87,15 @@ export interface IpqcPatrolPlan {
 export interface CreateIpqcPatrolPlan {
   planNo?: string
   processId: number
-  equipmentId: number
+  equipmentIds: number[]
   patrolIntervalMin: number
   autoGenerate: boolean
   inspector?: string
 }
 
 export interface UpdateIpqcPatrolPlan {
+  equipmentIds?: number[]
   processId?: number
-  equipmentId?: number
   patrolIntervalMin?: number
   autoGenerate?: boolean
   status?: string

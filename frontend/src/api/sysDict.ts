@@ -23,4 +23,30 @@ export const sysDictApi = {
   getBatch(typeCodes: string[]): Promise<Record<string, SysDictItem[]>> {
     return request.post(`${BASE}/batch`, typeCodes).then(r => r.data)
   },
+
+  // ─── Type CRUD ────────────────────────────────
+  createType(data: { typeCode: string; typeName: string; remark?: string }): Promise<SysDictType> {
+    return request.post(`${BASE}/types`, data).then(r => r.data)
+  },
+
+  updateType(id: number, data: { typeName?: string; remark?: string; status?: boolean }): Promise<SysDictType> {
+    return request.put(`${BASE}/types/${id}`, data).then(r => r.data)
+  },
+
+  deleteType(id: number): Promise<void> {
+    return request.delete(`${BASE}/types/${id}`)
+  },
+
+  // ─── Item CRUD ────────────────────────────────
+  createItem(data: { typeCode: string; itemLabel: string; itemValue: string; sortOrder?: number; color?: string }): Promise<SysDictItem> {
+    return request.post(`${BASE}/items`, data).then(r => r.data)
+  },
+
+  updateItem(id: number, data: { itemLabel?: string; itemValue?: string; sortOrder?: number; color?: string; status?: boolean }): Promise<SysDictItem> {
+    return request.put(`${BASE}/items/${id}`, data).then(r => r.data)
+  },
+
+  deleteItem(id: number): Promise<void> {
+    return request.delete(`${BASE}/items/${id}`)
+  },
 }

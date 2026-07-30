@@ -100,6 +100,11 @@ const componentNameMap: Record<string, string> = {
   'export-center': 'ExportCenterPage',
   organizations: 'OrganizationPage',
   settings: 'Settings',
+  'user-management': 'UserManagementPage',
+  'role-management': 'RoleManagementPage',
+  'function-list': 'FunctionListPage',
+  'data-dict': 'DataDictPage',
+  'operation-log': 'OperationLogPage',
 }
 
 const keepAliveIncludes = computed(() => {

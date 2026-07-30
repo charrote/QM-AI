@@ -334,6 +334,47 @@ public static class DbInitializer
         await context.SaveChangesAsync();
         #endregion
 
+        #region M15 企业组织层级种子数据
+        // 必须先创建组织，后面 Equipment 等数据需要引用组织ID
+        if (!hasOrgs)
+        {
+            var hq = new Organization { Code = "HQ", Name = "集团总部", Level = "group", SortOrder = 1 };
+            context.Organizations.Add(hq);
+            await context.SaveChangesAsync();
+
+            var f1 = new Organization { Code = "FACTORY_1", Name = "第一工厂", Level = "company", ParentId = hq.Id, SortOrder = 1 };
+            var f2 = new Organization { Code = "FACTORY_2", Name = "第二工厂", Level = "company", ParentId = hq.Id, SortOrder = 2 };
+            context.Organizations.AddRange(f1, f2);
+            await context.SaveChangesAsync();
+
+            var ws1 = new Organization { Code = "WS_MACHINING", Name = "机加车间", Level = "workshop", ParentId = f1.Id, SortOrder = 1 };
+            var ws2 = new Organization { Code = "WS_HEAT_TREAT", Name = "热处理车间", Level = "workshop", ParentId = f1.Id, SortOrder = 2 };
+            var ws3 = new Organization { Code = "WS_ASSEMBLY", Name = "装配车间", Level = "workshop", ParentId = f2.Id, SortOrder = 1 };
+            var ws4 = new Organization { Code = "WS_QUALITY", Name = "质量中心", Level = "workshop", ParentId = f2.Id, SortOrder = 2 };
+            var ws5 = new Organization { Code = "WS_STAMPING", Name = "冲压车间", Level = "workshop", ParentId = f1.Id, SortOrder = 3 };
+            var ws6 = new Organization { Code = "WS_SURFACE", Name = "表面处理车间", Level = "workshop", ParentId = f1.Id, SortOrder = 4 };
+            var ws7 = new Organization { Code = "WS_SMT", Name = "电子车间", Level = "workshop", ParentId = f2.Id, SortOrder = 3 };
+            context.Organizations.AddRange(ws1, ws2, ws3, ws4, ws5, ws6, ws7);
+            await context.SaveChangesAsync();
+
+            var lines = new List<Organization>
+            {
+                new() { Code = "LINE_A", Name = "A线", Level = "line", ParentId = ws1.Id, SortOrder = 1 },
+                new() { Code = "LINE_B", Name = "B线", Level = "line", ParentId = ws1.Id, SortOrder = 2 },
+                new() { Code = "LINE_C", Name = "C线", Level = "line", ParentId = ws2.Id, SortOrder = 1 },
+                new() { Code = "LINE_HEAT", Name = "热处理线", Level = "line", ParentId = ws2.Id, SortOrder = 2 },
+                new() { Code = "LINE_ASSY_1", Name = "装配1线", Level = "line", ParentId = ws3.Id, SortOrder = 1 },
+                new() { Code = "LINE_ASSY_2", Name = "装配2线", Level = "line", ParentId = ws3.Id, SortOrder = 2 },
+                new() { Code = "LINE_QC", Name = "质量检测线", Level = "line", ParentId = ws4.Id, SortOrder = 1 },
+                new() { Code = "LINE_STAMP", Name = "冲压线", Level = "line", ParentId = ws5.Id, SortOrder = 1 },
+                new() { Code = "LINE_SURFACE", Name = "表面处理线", Level = "line", ParentId = ws6.Id, SortOrder = 1 },
+                new() { Code = "LINE_SMT", Name = "SMT线", Level = "line", ParentId = ws7.Id, SortOrder = 1 },
+            };
+            context.Organizations.AddRange(lines);
+            await context.SaveChangesAsync();
+        }
+        #endregion
+
         #region Equipment（22 台设备 DEMO 数据）
         // 查询组织ID，用于设备关联
         var workshopMachining = await context.Organizations.Where(o => o.Code == "WS_MACHINING").FirstOrDefaultAsync();
@@ -1147,49 +1188,151 @@ public static class DbInitializer
         context.OqcReleases.AddRange(oqcReleases);
         await context.SaveChangesAsync();
         #endregion
+
+        #region M05 FQC/OQC 成品检验种子数据
+        // ═══════════════════════════════════════════════════════════
+        // 成品批次 · 检验单 · 检验明细 · 包装确认
+        // ═══════════════════════════════════════════════════════════
+        // 查询产品ID和检验项目ID
+        var prod1Id = await context.Products.Where(p => p.Code == "P001").Select(p => p.Id).FirstOrDefaultAsync();
+        var prod2Id = await context.Products.Where(p => p.Code == "P002").Select(p => p.Id).FirstOrDefaultAsync();
+        var prod3Id = await context.Products.Where(p => p.Code == "P003").Select(p => p.Id).FirstOrDefaultAsync();
+        var prod4Id = await context.Products.Where(p => p.Code == "P004").Select(p => p.Id).FirstOrDefaultAsync();
+        var prod5Id = await context.Products.Where(p => p.Code == "P005").Select(p => p.Id).FirstOrDefaultAsync();
+
+        var itemOuterDia = await context.InspectionItems.Where(i => i.ItemCode == "II-001").Select(i => i.Id).FirstOrDefaultAsync();
+        var itemLength = await context.InspectionItems.Where(i => i.ItemCode == "II-003").Select(i => i.Id).FirstOrDefaultAsync();
+        var itemRoundness = await context.InspectionItems.Where(i => i.ItemCode == "II-009").Select(i => i.Id).FirstOrDefaultAsync();
+        var itemRoughness = await context.InspectionItems.Where(i => i.ItemCode == "II-004").Select(i => i.Id).FirstOrDefaultAsync();
+        var itemAppearance = await context.InspectionItems.Where(i => i.ItemCode == "II-006").Select(i => i.Id).FirstOrDefaultAsync();
+        var itemStraightness = await context.InspectionItems.Where(i => i.ItemCode == "II-008").Select(i => i.Id).FirstOrDefaultAsync();
+        var itemElectrical = await context.InspectionItems.Where(i => i.ItemCode == "II-011").Select(i => i.Id).FirstOrDefaultAsync();
+        var itemSealTest = await context.InspectionItems.Where(i => i.ItemCode == "II-011").Select(i => i.Id).FirstOrDefaultAsync();
+        var itemCoating = await context.InspectionItems.Where(i => i.ItemCode == "II-005").Select(i => i.Id).FirstOrDefaultAsync();
+        var itemConductivity = await context.InspectionItems.Where(i => i.ItemCode == "II-007").Select(i => i.Id).FirstOrDefaultAsync();
+
+        // ── 成品批次（10 条） ──
+        var fqcBatches = new List<Models.M05.ProductBatch>
+        {
+            new() { BatchCode = "LOT-20260615-001", ProductId = prod1Id, Quantity = 200, Source = "manual", Status = "released", CreatedAt = new DateTime(2026, 6, 15, 8, 0, 0), UpdatedAt = new DateTime(2026, 6, 17, 16, 0, 0) },
+            new() { BatchCode = "LOT-20260618-002", ProductId = prod2Id, Quantity = 300, Source = "manual", Status = "released", CreatedAt = new DateTime(2026, 6, 18, 8, 0, 0), UpdatedAt = new DateTime(2026, 6, 20, 17, 0, 0) },
+            new() { BatchCode = "LOT-20260622-003", ProductId = prod3Id, Quantity = 500, Source = "manual", Status = "quarantined", CreatedAt = new DateTime(2026, 6, 22, 8, 0, 0), UpdatedAt = new DateTime(2026, 6, 23, 14, 0, 0) },
+            new() { BatchCode = "LOT-20260625-004", ProductId = prod4Id, Quantity = 1000, Source = "manual", Status = "inspected", CreatedAt = new DateTime(2026, 6, 25, 8, 0, 0), UpdatedAt = new DateTime(2026, 6, 26, 16, 0, 0) },
+            new() { BatchCode = "LOT-20260628-005", ProductId = prod5Id, Quantity = 800, Source = "manual", Status = "released", CreatedAt = new DateTime(2026, 6, 28, 8, 0, 0), UpdatedAt = new DateTime(2026, 6, 30, 17, 0, 0) },
+            new() { BatchCode = "LOT-20260701-006", ProductId = prod1Id, Quantity = 200, Source = "manual", Status = "inspected", CreatedAt = new DateTime(2026, 7, 1, 8, 0, 0), UpdatedAt = new DateTime(2026, 7, 2, 16, 0, 0) },
+            new() { BatchCode = "LOT-20260705-007", ProductId = prod2Id, Quantity = 300, Source = "manual", Status = "in_progress", CreatedAt = new DateTime(2026, 7, 5, 8, 0, 0), UpdatedAt = new DateTime(2026, 7, 5, 8, 0, 0) },
+            new() { BatchCode = "LOT-20260710-008", ProductId = prod3Id, Quantity = 1000, Source = "manual", Status = "released", CreatedAt = new DateTime(2026, 7, 10, 8, 0, 0), UpdatedAt = new DateTime(2026, 7, 12, 17, 0, 0) },
+            new() { BatchCode = "LOT-20260715-009", ProductId = prod1Id, Quantity = 200, Source = "manual", Status = "quarantined", CreatedAt = new DateTime(2026, 7, 15, 8, 0, 0), UpdatedAt = new DateTime(2026, 7, 16, 10, 0, 0) },
+            new() { BatchCode = "LOT-20260720-010", ProductId = prod4Id, Quantity = 1200, Source = "manual", Status = "in_progress", CreatedAt = new DateTime(2026, 7, 20, 8, 0, 0), UpdatedAt = new DateTime(2026, 7, 20, 8, 0, 0) },
+        };
+        context.ProductBatches.AddRange(fqcBatches);
+        await context.SaveChangesAsync();
+
+        // 获取批次ID（用于关联检验单）
+        var batch1Id = await context.ProductBatches.Where(b => b.BatchCode == "LOT-20260615-001").Select(b => b.Id).FirstOrDefaultAsync();
+        var batch2Id = await context.ProductBatches.Where(b => b.BatchCode == "LOT-20260618-002").Select(b => b.Id).FirstOrDefaultAsync();
+        var batch3Id = await context.ProductBatches.Where(b => b.BatchCode == "LOT-20260622-003").Select(b => b.Id).FirstOrDefaultAsync();
+        var batch4Id = await context.ProductBatches.Where(b => b.BatchCode == "LOT-20260625-004").Select(b => b.Id).FirstOrDefaultAsync();
+        var batch5Id = await context.ProductBatches.Where(b => b.BatchCode == "LOT-20260628-005").Select(b => b.Id).FirstOrDefaultAsync();
+        var batch6Id = await context.ProductBatches.Where(b => b.BatchCode == "LOT-20260701-006").Select(b => b.Id).FirstOrDefaultAsync();
+        var batch8Id = await context.ProductBatches.Where(b => b.BatchCode == "LOT-20260710-008").Select(b => b.Id).FirstOrDefaultAsync();
+        var batch9Id = await context.ProductBatches.Where(b => b.BatchCode == "LOT-20260715-009").Select(b => b.Id).FirstOrDefaultAsync();
+
+        // ── FQC 成品检验单（8 条） ──
+        var fqcInspections = new List<Models.M05.FqcInspection>
+        {
+            new() { InspectionNo = "FQC-20260615-001", BatchId = batch1Id, InspectionType = "full", TotalChecked = 200, TotalPass = 200, TotalFail = 0, Conclusion = "qualified", InspectorId = 3, CheckedAt = new DateTime(2026, 6, 16, 15, 0, 0), CreatedAt = new DateTime(2026, 6, 15, 10, 0, 0) },
+            new() { InspectionNo = "FQC-20260618-001", BatchId = batch2Id, InspectionType = "sampling", AqlLevel = 0.65m, SampleSize = 32, Ac = 2, Re = 3, TotalChecked = 32, TotalPass = 31, TotalFail = 1, Conclusion = "qualified", InspectorId = 3, CheckedAt = new DateTime(2026, 6, 19, 16, 0, 0), CreatedAt = new DateTime(2026, 6, 18, 10, 0, 0) },
+            new() { InspectionNo = "FQC-20260622-001", BatchId = batch3Id, InspectionType = "sampling", AqlLevel = 0.25m, SampleSize = 50, Ac = 3, Re = 4, TotalChecked = 50, TotalPass = 45, TotalFail = 5, Conclusion = "unqualified", InspectorId = 3, CheckedAt = new DateTime(2026, 6, 23, 14, 0, 0), CreatedAt = new DateTime(2026, 6, 22, 10, 0, 0) },
+            new() { InspectionNo = "FQC-20260625-001", BatchId = batch4Id, InspectionType = "full", TotalChecked = 1000, TotalPass = 1000, TotalFail = 0, Conclusion = "qualified", InspectorId = 3, CheckedAt = new DateTime(2026, 6, 26, 16, 0, 0), CreatedAt = new DateTime(2026, 6, 25, 10, 0, 0) },
+            new() { InspectionNo = "FQC-20260628-001", BatchId = batch5Id, InspectionType = "full", TotalChecked = 800, TotalPass = 800, TotalFail = 0, Conclusion = "qualified", InspectorId = 3, CheckedAt = new DateTime(2026, 6, 29, 16, 0, 0), CreatedAt = new DateTime(2026, 6, 28, 10, 0, 0) },
+            new() { InspectionNo = "FQC-20260701-001", BatchId = batch6Id, InspectionType = "full", TotalChecked = 200, TotalPass = 200, TotalFail = 0, Conclusion = "qualified", InspectorId = 3, CheckedAt = new DateTime(2026, 7, 2, 16, 0, 0), CreatedAt = new DateTime(2026, 7, 1, 10, 0, 0) },
+            new() { InspectionNo = "FQC-20260710-001", BatchId = batch8Id, InspectionType = "sampling", AqlLevel = 0.25m, SampleSize = 80, Ac = 3, Re = 4, TotalChecked = 80, TotalPass = 80, TotalFail = 0, Conclusion = "qualified", InspectorId = 3, CheckedAt = new DateTime(2026, 7, 11, 16, 0, 0), CreatedAt = new DateTime(2026, 7, 10, 10, 0, 0) },
+            new() { InspectionNo = "FQC-20260715-001", BatchId = batch9Id, InspectionType = "full", TotalChecked = 200, TotalPass = 150, TotalFail = 50, Conclusion = "unqualified", InspectorId = 3, CheckedAt = new DateTime(2026, 7, 16, 10, 0, 0), CreatedAt = new DateTime(2026, 7, 15, 10, 0, 0) },
+        };
+        context.FqcInspections.AddRange(fqcInspections);
+        await context.SaveChangesAsync();
+
+        // 获取检验单ID（用于关联检验明细）
+        var insp1Id = await context.FqcInspections.Where(i => i.InspectionNo == "FQC-20260615-001").Select(i => i.Id).FirstOrDefaultAsync();
+        var insp2Id = await context.FqcInspections.Where(i => i.InspectionNo == "FQC-20260618-001").Select(i => i.Id).FirstOrDefaultAsync();
+        var insp3Id = await context.FqcInspections.Where(i => i.InspectionNo == "FQC-20260622-001").Select(i => i.Id).FirstOrDefaultAsync();
+        var insp4Id = await context.FqcInspections.Where(i => i.InspectionNo == "FQC-20260625-001").Select(i => i.Id).FirstOrDefaultAsync();
+        var insp5Id = await context.FqcInspections.Where(i => i.InspectionNo == "FQC-20260628-001").Select(i => i.Id).FirstOrDefaultAsync();
+        var insp6Id = await context.FqcInspections.Where(i => i.InspectionNo == "FQC-20260701-001").Select(i => i.Id).FirstOrDefaultAsync();
+        var insp7Id = await context.FqcInspections.Where(i => i.InspectionNo == "FQC-20260710-001").Select(i => i.Id).FirstOrDefaultAsync();
+        var insp8Id = await context.FqcInspections.Where(i => i.InspectionNo == "FQC-20260715-001").Select(i => i.Id).FirstOrDefaultAsync();
+
+        // ── FQC 检验明细项（每条检验单 4~5 项，合计 36 条） ──
+        var fqcItems = new List<Models.M05.FqcInspectionItem>
+        {
+            // ═══ INS-001: 精密转轴 A100 全检（LOT-001，结论: qualified）═══
+            new() { InspectionId = insp1Id, InspectionItemId = itemOuterDia, ItemCode = "II-001", ItemName = "外径", Usl = 50.05m, Lsl = 49.95m, DataType = "numeric", ActualValue = 50.02m, Result = "pass" },
+            new() { InspectionId = insp1Id, InspectionItemId = itemRoundness, ItemCode = "II-009", ItemName = "圆度", Usl = 0.03m, Lsl = 0m, DataType = "numeric", ActualValue = 0.018m, Result = "pass" },
+            new() { InspectionId = insp1Id, InspectionItemId = itemRoughness, ItemCode = "II-004", ItemName = "表面粗糙度 Ra", Usl = 1.60m, Lsl = 0m, DataType = "numeric", ActualValue = 0.65m, Result = "pass" },
+            new() { InspectionId = insp1Id, InspectionItemId = itemAppearance, ItemCode = "II-006", ItemName = "外观", DataType = "visual", Result = "pass" },
+
+            // ═══ INS-002: 壳体 B200 抽检（LOT-002，结论: qualified）═══
+            new() { InspectionId = insp2Id, InspectionItemId = itemLength, ItemCode = "II-003", ItemName = "外形尺寸", Usl = 200.20m, Lsl = 199.80m, DataType = "numeric", ActualValue = 200.05m, Result = "pass" },
+            new() { InspectionId = insp2Id, InspectionItemId = itemCoating, ItemName = "表面处理", Usl = 15.0m, Lsl = 8.0m, DataType = "numeric", ActualValue = 12.3m, Result = "pass" },
+            new() { InspectionId = insp2Id, InspectionItemId = itemAppearance, ItemCode = "II-006", ItemName = "外观", DataType = "visual", Result = "fail", ImageUrls = "[\"https://qmai-demo.minio.local/fqc/lot002/appearance_fail_01.jpg\"]" },
+
+            // ═══ INS-003: PCB 主板 C300 抽检（LOT-003，结论: unqualified）═══
+            new() { InspectionId = insp3Id, InspectionItemId = itemAppearance, ItemCode = "II-006", ItemName = "外观", DataType = "visual", Result = "pass" },
+            new() { InspectionId = insp3Id, InspectionItemId = itemElectrical, ItemName = "电气功能", DataType = "attribute", Result = "fail" },
+            new() { InspectionId = insp3Id, InspectionItemId = itemElectrical, ItemName = "绝缘电阻", Usl = null, Lsl = 100m, DataType = "numeric", ActualValue = 45.2m, Result = "fail", ImageUrls = "[\"https://qmai-demo.minio.local/fqc/lot003/insulation_fail_01.jpg\"]" },
+
+            // ═══ INS-004: 密封圈 D400 全检（LOT-004，结论: qualified）═══
+            new() { InspectionId = insp4Id, InspectionItemId = itemCoating, ItemName = "硬度 Shore A", Usl = 75m, Lsl = 65m, DataType = "numeric", ActualValue = 72.5m, Result = "pass" },
+            new() { InspectionId = insp4Id, InspectionItemId = itemSealTest, ItemName = "密封性测试", DataType = "attribute", Result = "pass" },
+            new() { InspectionId = insp4Id, InspectionItemId = itemAppearance, ItemCode = "II-006", ItemName = "外观", DataType = "visual", Result = "pass" },
+
+            // ═══ INS-005: 连接线束 E500 全检（LOT-005，结论: qualified）═══
+            new() { InspectionId = insp5Id, InspectionItemId = itemConductivity, ItemName = "导通测试", Usl = 0.1m, Lsl = 0m, DataType = "numeric", ActualValue = 0.05m, Result = "pass" },
+            new() { InspectionId = insp5Id, InspectionItemId = itemElectrical, ItemName = "绝缘电阻", Usl = null, Lsl = 100m, DataType = "numeric", ActualValue = 180.0m, Result = "pass" },
+            new() { InspectionId = insp5Id, InspectionItemId = itemAppearance, ItemCode = "II-006", ItemName = "外观", DataType = "visual", Result = "pass" },
+            new() { InspectionId = insp5Id, InspectionItemId = itemLength, ItemName = "总长度", Usl = 1505m, Lsl = 1495m, DataType = "numeric", ActualValue = 1500.2m, Result = "pass" },
+
+            // ═══ INS-006: 精密转轴 A100 全检（LOT-006，结论: qualified）═══
+            new() { InspectionId = insp6Id, InspectionItemId = itemOuterDia, ItemCode = "II-001", ItemName = "外径", Usl = 50.05m, Lsl = 49.95m, DataType = "numeric", ActualValue = 49.98m, Result = "pass" },
+            new() { InspectionId = insp6Id, InspectionItemId = itemStraightness, ItemCode = "II-008", ItemName = "直线度", Usl = 0.05m, Lsl = 0m, DataType = "numeric", ActualValue = 0.018m, Result = "pass" },
+            new() { InspectionId = insp6Id, InspectionItemId = itemRoughness, ItemCode = "II-004", ItemName = "表面粗糙度 Ra", Usl = 1.60m, Lsl = 0m, DataType = "numeric", ActualValue = 0.72m, Result = "pass" },
+            new() { InspectionId = insp6Id, InspectionItemId = itemAppearance, ItemCode = "II-006", ItemName = "外观", DataType = "visual", Result = "pass" },
+
+            // ═══ INS-007: PCB 主板 C300 抽检（LOT-008，结论: qualified）═══
+            new() { InspectionId = insp7Id, InspectionItemId = itemAppearance, ItemCode = "II-006", ItemName = "外观", DataType = "visual", Result = "pass" },
+            new() { InspectionId = insp7Id, InspectionItemId = itemElectrical, ItemName = "电气功能", DataType = "attribute", Result = "pass" },
+            new() { InspectionId = insp7Id, InspectionItemId = itemElectrical, ItemName = "绝缘电阻", Usl = null, Lsl = 100m, DataType = "numeric", ActualValue = 125.6m, Result = "pass" },
+
+            // ═══ INS-008: 精密转轴 A100 全检（LOT-009，结论: unqualified）═══
+            new() { InspectionId = insp8Id, InspectionItemId = itemOuterDia, ItemCode = "II-001", ItemName = "外径", Usl = 50.05m, Lsl = 49.95m, DataType = "numeric", ActualValue = 50.01m, Result = "pass" },
+            new() { InspectionId = insp8Id, InspectionItemId = itemStraightness, ItemCode = "II-008", ItemName = "直线度", Usl = 0.05m, Lsl = 0m, DataType = "numeric", ActualValue = 0.062m, Result = "fail" },
+            new() { InspectionId = insp8Id, InspectionItemId = itemRoughness, ItemCode = "II-004", ItemName = "表面粗糙度 Ra", Usl = 1.60m, Lsl = 0m, DataType = "numeric", ActualValue = 1.8m, Result = "fail" },
+            new() { InspectionId = insp8Id, InspectionItemId = itemAppearance, ItemCode = "II-006", ItemName = "外观", DataType = "visual", Result = "fail" },
+        };
+        context.FqcInspectionItems.AddRange(fqcItems);
+        await context.SaveChangesAsync();
+
+        // 获取已放行批次的ID（用于关联包装确认）
+        var releasedBatch1Id = await context.ProductBatches.Where(b => b.BatchCode == "LOT-20260615-001").Select(b => b.Id).FirstOrDefaultAsync();
+        var releasedBatch2Id = await context.ProductBatches.Where(b => b.BatchCode == "LOT-20260618-002").Select(b => b.Id).FirstOrDefaultAsync();
+        var releasedBatch5Id = await context.ProductBatches.Where(b => b.BatchCode == "LOT-20260628-005").Select(b => b.Id).FirstOrDefaultAsync();
+        var releasedBatch8Id = await context.ProductBatches.Where(b => b.BatchCode == "LOT-20260710-008").Select(b => b.Id).FirstOrDefaultAsync();
+
+        // ── 包装确认（4 条，已放行批次） ──
+        var fqcPackaging = new List<Models.M05.PackagingConfirmation>
+        {
+            new() { BatchId = releasedBatch1Id, PackagingMethod = "瓦楞纸盒 200×80×80mm", QtyPerBox = 10, TotalBoxes = 20, LabelPrinted = true, ConfirmedBy = 3, ConfirmedAt = new DateTime(2026, 6, 17, 10, 0, 0) },
+            new() { BatchId = releasedBatch2Id, PackagingMethod = "泡沫内衬定制箱 250×200×150mm", QtyPerBox = 5, TotalBoxes = 60, LabelPrinted = true, ConfirmedBy = 3, ConfirmedAt = new DateTime(2026, 6, 20, 14, 0, 0) },
+            new() { BatchId = releasedBatch5Id, PackagingMethod = "PE自封袋 + 缠绕膜", QtyPerBox = 100, TotalBoxes = 8, LabelPrinted = true, ConfirmedBy = 3, ConfirmedAt = new DateTime(2026, 6, 30, 10, 0, 0) },
+            new() { BatchId = releasedBatch8Id, PackagingMethod = "防静电袋 + 纸箱 400×300×200mm", QtyPerBox = 50, TotalBoxes = 20, LabelPrinted = true, ConfirmedBy = 3, ConfirmedAt = new DateTime(2026, 7, 12, 14, 0, 0) },
+        };
+        context.PackagingConfirmations.AddRange(fqcPackaging);
+        await context.SaveChangesAsync();
+        #endregion
+
         #endregion
         } // end if (!hasRoles) — 以上为首次运行的完整种子数据
-
-        #region M15 企业组织层级种子数据
-        // 只有没有组织数据时才创建
-        if (!hasOrgs)
-        {
-            var hq = new Organization { Code = "HQ", Name = "集团总部", Level = "group", SortOrder = 1 };
-            context.Organizations.Add(hq);
-            await context.SaveChangesAsync();
-
-            var f1 = new Organization { Code = "FACTORY_1", Name = "第一工厂", Level = "company", ParentId = hq.Id, SortOrder = 1 };
-            var f2 = new Organization { Code = "FACTORY_2", Name = "第二工厂", Level = "company", ParentId = hq.Id, SortOrder = 2 };
-            context.Organizations.AddRange(f1, f2);
-            await context.SaveChangesAsync();
-
-            var ws1 = new Organization { Code = "WS_MACHINING", Name = "机加车间", Level = "workshop", ParentId = f1.Id, SortOrder = 1 };
-            var ws2 = new Organization { Code = "WS_HEAT_TREAT", Name = "热处理车间", Level = "workshop", ParentId = f1.Id, SortOrder = 2 };
-            var ws3 = new Organization { Code = "WS_ASSEMBLY", Name = "装配车间", Level = "workshop", ParentId = f2.Id, SortOrder = 1 };
-            var ws4 = new Organization { Code = "WS_QUALITY", Name = "质量中心", Level = "workshop", ParentId = f2.Id, SortOrder = 2 };
-            var ws5 = new Organization { Code = "WS_STAMPING", Name = "冲压车间", Level = "workshop", ParentId = f1.Id, SortOrder = 3 };
-            var ws6 = new Organization { Code = "WS_SURFACE", Name = "表面处理车间", Level = "workshop", ParentId = f1.Id, SortOrder = 4 };
-            var ws7 = new Organization { Code = "WS_SMT", Name = "电子车间", Level = "workshop", ParentId = f2.Id, SortOrder = 3 };
-            context.Organizations.AddRange(ws1, ws2, ws3, ws4, ws5, ws6, ws7);
-            await context.SaveChangesAsync();
-
-            var lines = new List<Organization>
-            {
-                new() { Code = "LINE_A", Name = "A线", Level = "line", ParentId = ws1.Id, SortOrder = 1 },
-                new() { Code = "LINE_B", Name = "B线", Level = "line", ParentId = ws1.Id, SortOrder = 2 },
-                new() { Code = "LINE_C", Name = "C线", Level = "line", ParentId = ws2.Id, SortOrder = 1 },
-                new() { Code = "LINE_HEAT", Name = "热处理线", Level = "line", ParentId = ws2.Id, SortOrder = 2 },
-                new() { Code = "LINE_ASSY_1", Name = "装配1线", Level = "line", ParentId = ws3.Id, SortOrder = 1 },
-                new() { Code = "LINE_ASSY_2", Name = "装配2线", Level = "line", ParentId = ws3.Id, SortOrder = 2 },
-                new() { Code = "LINE_QC", Name = "质量检测线", Level = "line", ParentId = ws4.Id, SortOrder = 1 },
-                new() { Code = "LINE_STAMP", Name = "冲压线", Level = "line", ParentId = ws5.Id, SortOrder = 1 },
-                new() { Code = "LINE_SURFACE", Name = "表面处理线", Level = "line", ParentId = ws6.Id, SortOrder = 1 },
-                new() { Code = "LINE_SMT", Name = "SMT线", Level = "line", ParentId = ws7.Id, SortOrder = 1 },
-            };
-            context.Organizations.AddRange(lines);
-            await context.SaveChangesAsync();
-        }
-        #endregion
 
         #region M15 系统字典种子数据
         if (!hasDicts)
@@ -1444,9 +1587,17 @@ public static class DbInitializer
             // 巡检计划
             var patrolPlans = new List<IpqcPatrolPlan>
             {
-                new() { PlanNo = "PP-001", ProcessId = 5, EquipmentId = 4, PatrolIntervalMin = 60, AutoGenerate = true, Status = "active", Inspector = "李强" },
+                new() { PlanNo = "PP-001", ProcessId = 5, PatrolIntervalMin = 60, AutoGenerate = true, Status = "active", Inspector = "李强" },
             };
             context.IpqcPatrolPlans.AddRange(patrolPlans);
+            await context.SaveChangesAsync();
+
+            // 巡检计划-设备关联
+            var patrolPlanLinks = new List<IpqcPatrolPlanEquipment>
+            {
+                new() { PatrolPlanId = patrolPlans[0].Id, EquipmentId = 4, SortOrder = 0, CreatedAt = DateTime.UtcNow }
+            };
+            context.IpqcPatrolPlanEquipment.AddRange(patrolPlanLinks);
             await context.SaveChangesAsync();
 
             // 巡检记录
@@ -1738,12 +1889,23 @@ public static class DbInitializer
                 {
                     var patrolPlans = new List<IpqcPatrolPlan>
                     {
-                        new() { PlanNo = "PL-20260729-001", ProcessId = firstPieceProcess.Id, EquipmentId = equipmentInj?.Id ?? 0, PatrolIntervalMin = 120, AutoGenerate = true, Status = "active", Inspector = "李四", CreatedAt = now, UpdatedAt = now },
-                        new() { PlanNo = "PL-20260729-002", ProcessId = assemblyProcess.Id, EquipmentId = equipmentAssy?.Id ?? 0, PatrolIntervalMin = 60, AutoGenerate = true, Status = "active", Inspector = "王五", CreatedAt = now, UpdatedAt = now },
-                        new() { PlanNo = "PL-20260728-003", ProcessId = weldingProcess.Id, EquipmentId = equipmentWeld?.Id ?? 0, PatrolIntervalMin = 90, AutoGenerate = false, Status = "paused", Inspector = null, CreatedAt = now, UpdatedAt = now },
-                        new() { PlanNo = "PL-20260728-004", ProcessId = packagingProcess.Id, EquipmentId = equipmentPkg?.Id ?? 0, PatrolIntervalMin = 180, AutoGenerate = true, Status = "active", Inspector = "李四", CreatedAt = now, UpdatedAt = now },
+                        new() { PlanNo = "PL-20260729-001", ProcessId = firstPieceProcess.Id, PatrolIntervalMin = 120, AutoGenerate = true, Status = "active", Inspector = "李四", CreatedAt = now, UpdatedAt = now },
+                        new() { PlanNo = "PL-20260729-002", ProcessId = assemblyProcess.Id, PatrolIntervalMin = 60, AutoGenerate = true, Status = "active", Inspector = "王五", CreatedAt = now, UpdatedAt = now },
+                        new() { PlanNo = "PL-20260728-003", ProcessId = weldingProcess.Id, PatrolIntervalMin = 90, AutoGenerate = false, Status = "paused", Inspector = null, CreatedAt = now, UpdatedAt = now },
+                        new() { PlanNo = "PL-20260728-004", ProcessId = packagingProcess.Id, PatrolIntervalMin = 180, AutoGenerate = true, Status = "active", Inspector = "李四", CreatedAt = now, UpdatedAt = now },
                     };
                     context.IpqcPatrolPlans.AddRange(patrolPlans);
+                    await context.SaveChangesAsync();
+
+                    // 巡检计划-设备关联
+                    var planLinks = new List<IpqcPatrolPlanEquipment>
+                    {
+                        new() { PatrolPlanId = patrolPlans[0].Id, EquipmentId = equipmentInj?.Id ?? 0, SortOrder = 0, CreatedAt = now },
+                        new() { PatrolPlanId = patrolPlans[1].Id, EquipmentId = equipmentAssy?.Id ?? 0, SortOrder = 0, CreatedAt = now },
+                        new() { PatrolPlanId = patrolPlans[2].Id, EquipmentId = equipmentWeld?.Id ?? 0, SortOrder = 0, CreatedAt = now },
+                        new() { PatrolPlanId = patrolPlans[3].Id, EquipmentId = equipmentPkg?.Id ?? 0, SortOrder = 0, CreatedAt = now },
+                    };
+                    context.IpqcPatrolPlanEquipment.AddRange(planLinks);
                     await context.SaveChangesAsync();
 
                     var patrols = new List<IpqcPatrol>

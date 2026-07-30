@@ -311,54 +311,55 @@ onMounted(async () => {
 
     <!-- Content -->
     <div class="content-area">
-      <!-- Toolbar -->
-      <div class="panel-header">
-        <div class="panel-header-left">
-          <el-icon class="panel-icon"><WarningFilled /></el-icon>
-          <span>异常记录</span>
-          <el-tag v-if="total > 0" type="danger" size="small" effect="dark" round>{{ total }} 条</el-tag>
-        </div>
-        <div class="panel-actions">
-          <el-button type="primary" size="small" @click="openCreateAnomaly()">
-            + 新建异常单
-          </el-button>
-          <el-button :icon="Refresh" size="small" @click="loadAnomalies" title="刷新" />
-        </div>
-      </div>
-
-      <!-- Filter Row -->
-      <div class="filter-row">
-        <el-input
-          v-model="searchKeyword"
-          placeholder="搜索异常单号、来料单号..."
-          clearable
-          :prefix-icon="Search"
-          style="width: 280px"
-          @keyup.enter="loadAnomalies"
-          @clear="loadAnomalies"
-        />
-        <el-select
-          v-model="filterStatus"
-          placeholder="状态筛选"
-          clearable
-          style="width: 160px"
-          @change="loadAnomalies"
-        >
-          <el-option
-            v-for="opt in IQC_ANOMALY_STATUS_OPTIONS"
-            :key="opt.value"
-            :label="opt.label"
-            :value="opt.value"
-          />
-        </el-select>
-      </div>
-
-      <!-- Data Table -->
+      <!-- Data Card -->
       <div class="data-card">
+        <div class="data-card__header">
+          <span class="data-card__title">
+            <el-icon style="color: var(--el-color-danger)"><WarningFilled /></el-icon>
+            异常记录
+            <el-tag v-if="total > 0" type="danger" size="small" effect="dark" round>{{ total }} 条</el-tag>
+          </span>
+          <div class="data-card__toolbar">
+            <el-input
+              v-model="searchKeyword"
+              placeholder="搜索异常单号、来料单号..."
+              clearable
+              size="small"
+              :prefix-icon="Search"
+              style="width: 220px"
+              @keyup.enter="loadAnomalies"
+              @clear="loadAnomalies"
+            />
+            <el-select
+              v-model="filterStatus"
+              placeholder="状态筛选"
+              clearable
+              size="small"
+              style="width: 120px"
+              @change="loadAnomalies"
+            >
+              <el-option
+                v-for="opt in IQC_ANOMALY_STATUS_OPTIONS"
+                :key="opt.value"
+                :label="opt.label"
+                :value="opt.value"
+              />
+            </el-select>
+            <el-button size="small" @click="loadAnomalies">
+              <el-icon><Refresh /></el-icon>刷新
+            </el-button>
+            <el-button type="primary" size="small" @click="openCreateAnomaly()">
+              <el-icon><Plus /></el-icon>新建异常单
+            </el-button>
+          </div>
+        </div>
         <el-table
           :data="anomalies"
+          border
           stripe
+          size="small"
           style="width: 100%"
+          class="data-card__table"
           :header-cell-class-name="'receipt-header-cell'"
         >
           <el-table-column prop="anomalyNo" label="异常单号" width="170" />
@@ -366,14 +367,14 @@ onMounted(async () => {
           <el-table-column label="类型" width="90">
             <template #default="{ row }">{{ statusLabel(row.anomalyType, IQC_ANOMALY_TYPE_OPTIONS) }}</template>
           </el-table-column>
-          <el-table-column label="严重程度" width="80" align="center">
+          <el-table-column label="严重程度" width="80">
             <template #default="{ row }">
               <el-tag :type="row.severity === 'critical' ? 'danger' : row.severity === 'major' ? 'warning' : 'info'" size="small" effect="plain" round>
                 {{ statusLabel(row.severity, IQC_SEVERITY_OPTIONS) }}
               </el-tag>
             </template>
           </el-table-column>
-          <el-table-column label="不合格数" width="80" align="center">
+          <el-table-column label="不合格数" width="80" align="right">
             <template #default="{ row }">
               <span :class="row.defectQty && row.defectQty > 0 ? 'text-danger' : ''">
                 {{ row.defectQty || '-' }}
@@ -381,10 +382,10 @@ onMounted(async () => {
             </template>
           </el-table-column>
           <el-table-column prop="description" label="描述" min-width="220" show-overflow-tooltip />
-          <el-table-column label="隔离库存" width="90" align="center">
+          <el-table-column label="隔离库存" width="90" align="right">
             <template #default="{ row }">{{ row.isolatedInventory ? row.isolatedInventory + ' pcs' : '-' }}</template>
           </el-table-column>
-          <el-table-column label="处置" width="90" align="center">
+          <el-table-column label="处置" width="90">
             <template #default="{ row }">
               <el-tag v-if="row.disposition && row.disposition !== 'none'" size="small" effect="plain" round>
                 {{ statusLabel(row.disposition, IQC_DISPOSITION_OPTIONS) }}
@@ -392,81 +393,62 @@ onMounted(async () => {
               <span v-else>-</span>
             </template>
           </el-table-column>
-          <el-table-column label="MRB" width="70" align="center">
+          <el-table-column label="MRB" width="70">
             <template #default="{ row }">
               <el-tag v-if="row.mrbReviewed" type="success" size="small" effect="plain" round>已审</el-tag>
               <el-tag v-else-if="row.status === 'mrb_reviewing'" type="warning" size="small" effect="plain" round>评审中</el-tag>
               <span v-else>-</span>
             </template>
           </el-table-column>
-          <el-table-column label="状态" width="100" align="center">
+          <el-table-column label="状态" width="100">
             <template #default="{ row }">
               <el-tag :type="statusType(row.status, IQC_ANOMALY_STATUS_OPTIONS)" size="small" effect="plain" round>
                 {{ statusLabel(row.status, IQC_ANOMALY_STATUS_OPTIONS) }}
               </el-tag>
             </template>
           </el-table-column>
-          <el-table-column label="操作" width="200" fixed="right">
+          <el-table-column label="操作" width="240" fixed="right" align="center">
             <template #default="{ row }">
-              <div class="action-buttons">
-                <el-button
-                  v-if="row.status === 'open' || row.status === 'quarantined'"
-                  link size="small" type="warning"
-                  @click="openMrbReview(row)"
-                >
-                  <el-icon><Flag /></el-icon> MRB
-                </el-button>
-                <el-button
-                  v-if="row.status === 'mrb_approved' || row.status === 'mrb_reviewing'"
-                  link size="small" type="primary"
-                  @click="openDisposition(row)"
-                >
-                  <el-icon><Setting /></el-icon> 处置
-                </el-button>
-                <el-button
-                  v-if="row.status !== 'closed' && row.status !== 'resolved'"
-                  link size="small" type="success"
-                  @click="openResolveAnomaly(row)"
-                >
-                  <el-icon><Check /></el-icon> 解决
-                </el-button>
-                <el-button
-                  v-if="!row.supplierNotified && row.status !== 'closed' && row.status !== 'resolved'"
-                  link size="small" type="info"
-                  @click="openNotifySupplier(row)"
-                >
-                  <el-icon><Bell /></el-icon> 通知
-                </el-button>
-                <el-button
-                  v-if="row.status !== 'closed' && row.status !== 'resolved'"
-                  link size="small" type="primary"
-                  @click="openEditAnomaly(row)"
-                >
-                  编辑
-                </el-button>
-                <el-button
-                  v-if="row.status === 'closed' || row.status === 'resolved'"
-                  link size="small" type="info"
-                  @click="closeAnomaly(row)"
-                >
-                  关闭
-                </el-button>
-              </div>
+              <el-button
+                v-if="row.status === 'open' || row.status === 'quarantined'"
+                size="small" type="warning" link @click.stop="openMrbReview(row)"
+              >MRB</el-button>
+              <el-button
+                v-if="row.status === 'mrb_approved' || row.status === 'mrb_reviewing'"
+                size="small" type="primary" link @click.stop="openDisposition(row)"
+              >处置</el-button>
+              <el-button
+                v-if="row.status !== 'closed' && row.status !== 'resolved'"
+                size="small" type="success" link @click.stop="openResolveAnomaly(row)"
+              >解决</el-button>
+              <el-button
+                v-if="!row.supplierNotified && row.status !== 'closed' && row.status !== 'resolved'"
+                size="small" type="info" link @click.stop="openNotifySupplier(row)"
+              >通知</el-button>
+              <el-button
+                v-if="row.status !== 'closed' && row.status !== 'resolved'"
+                size="small" type="primary" link @click.stop="openEditAnomaly(row)"
+              >编辑</el-button>
+              <el-button
+                v-if="row.status === 'closed' || row.status === 'resolved'"
+                size="small" type="info" link @click.stop="closeAnomaly(row)"
+              >关闭</el-button>
             </template>
           </el-table-column>
         </el-table>
 
-        <!-- Pagination -->
-        <div class="pagination-row">
-          <el-pagination
-            v-model:current-page="page"
-            v-model:page-size="pageSize"
-            :total="total"
-            :page-sizes="[10, 20, 50, 100]"
-            layout="total, sizes, prev, pager, next, jumper"
-            @size-change="loadAnomalies"
-            @current-change="loadAnomalies"
-          />
+        <div class="data-card__footer">
+          <div class="data-card__pagination">
+            <el-pagination
+              v-model:current-page="page"
+              v-model:page-size="pageSize"
+              :total="total"
+              :page-sizes="[10, 20, 50, 100]"
+              layout="total, sizes, prev, pager, next, jumper"
+              @size-change="loadAnomalies"
+              @current-change="loadAnomalies"
+            />
+          </div>
         </div>
       </div>
     </div>
@@ -730,83 +712,10 @@ onMounted(async () => {
   overflow-y: auto;
 }
 
-/* Panel Header */
-.panel-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 10px 14px;
-  border: 1px solid var(--el-border-color-light);
-  border-bottom: 0;
-  border-radius: 6px 6px 0 0;
-  background: var(--el-fill-color-blank);
-}
-
-.panel-header-left {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--el-text-color-primary);
-}
-
-.panel-icon {
-  font-size: 16px;
-  color: var(--el-color-danger);
-}
-
-.panel-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-/* Filter Row */
-.filter-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-/* Data Card */
-.data-card {
-  background: var(--el-bg-color);
-  border: 1px solid var(--el-border-color-light);
-  border-radius: 0 0 6px 6px;
-  overflow: hidden;
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-}
-.receipt-header-cell {
-  background: var(--el-fill-color-light) !important;
-  font-weight: 600;
-  font-size: 13px;
-}
-
-/* Action Buttons in Table */
-.action-buttons {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 2px;
-  justify-content: center;
-}
-
 /* Text Helpers */
 .text-danger {
   color: var(--el-color-danger);
   font-weight: 600;
-}
-
-/* Pagination */
-.pagination-row {
-  display: flex;
-  justify-content: flex-end;
-  padding: 10px 14px;
-  border-top: 1px solid var(--el-border-color-light);
-  background: var(--el-fill-color-blank);
 }
 
 /* Dialog Sections */

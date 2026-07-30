@@ -15,6 +15,7 @@ public class DocumentVersion
     public long Id { get; set; }
 
     /// <summary>关联文档</summary>
+    [Column("document_id")]
     [Required]
     public long DocumentId { get; set; }
 
@@ -30,6 +31,7 @@ public class DocumentVersion
     public string MinioKey { get; set; } = string.Empty;
 
     /// <summary>变更说明</summary>
+    [Column("change_description")]
     public string? ChangeDescription { get; set; }
 
     /// <summary>创建人</summary>

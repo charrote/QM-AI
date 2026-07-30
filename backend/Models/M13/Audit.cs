@@ -37,27 +37,33 @@ public class Audit
     public string? Description { get; set; }
 
     /// <summary>开始日期</summary>
+    [Column("start_date")]
     [Required]
     public DateOnly StartDate { get; set; }
 
     /// <summary>结束日期</summary>
+    [Column("end_date")]
     [Required]
     public DateOnly EndDate { get; set; }
 
     /// <summary>审核人ID</summary>
+    [Column("auditor_id")]
     [Required]
     public long AuditorId { get; set; }
 
     /// <summary>审核人IDs（JSON数组，兼容多审核人场景）</summary>
+    [Column("auditor_ids_json")]
     public string? AuditorIdsJson { get; set; }
 
     /// <summary>统计: 总发现数</summary>
+    [Column("total_findings")]
     public int TotalFindings { get; set; }
 
     /// <summary>统计: 符合项数</summary>
     public int Conformities { get; set; }
 
     /// <summary>统计: 不符合项数</summary>
+    [Column("non_conformities")]
     public int NonConformities { get; set; }
 
     /// <summary>统计: 改进机会数</summary>

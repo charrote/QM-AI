@@ -16,6 +16,7 @@ public class SpcControlChart
     [Column("name")]
     public string Name { get; set; } = string.Empty;
 
+    [Column("process_id")]
     public long ProcessId { get; set; }
 
     [Required]
@@ -37,7 +38,7 @@ public class SpcControlChart
     [Column("lsl")]
     public decimal? Lsl { get; set; }
 
-    [Column(TypeName = "decimal(15,6)")]
+    [Column("target_value", TypeName = "decimal(15,6)")]
     public decimal? TargetValue { get; set; }
 
     [Column(TypeName = "decimal(15,6)")]

@@ -11,8 +11,10 @@ public class SpcAnalysisResult
     [Column("id")]
     public long Id { get; set; }
 
+    [Column("chart_id")]
     public long ChartId { get; set; }
 
+    [Column("analysis_type")]
     [Required]
     [MaxLength(20)]
     public string AnalysisType { get; set; } = "cpk"; // cpk, ppk, capability
@@ -29,19 +31,22 @@ public class SpcAnalysisResult
     [Column(TypeName = "decimal(10,4)")]
     public decimal? Ppk { get; set; }
 
-    [Column(TypeName = "decimal(15,6)")]
+    [Column("sigma_within", TypeName = "decimal(15,6)")]
     public decimal? SigmaWithin { get; set; }
 
-    [Column(TypeName = "decimal(15,6)")]
+    [Column("sigma_overall", TypeName = "decimal(15,6)")]
     public decimal? SigmaOverall { get; set; }
 
-    [Column(TypeName = "decimal(15,2)")]
+    [Column("estimated_ppm", TypeName = "decimal(15,2)")]
     public decimal? EstimatedPpm { get; set; }
 
+    [Column("data_points_used")]
     public int? DataPointsUsed { get; set; }
 
+    [Column("analysis_period_start")]
     public DateTime? AnalysisPeriodStart { get; set; }
 
+    [Column("analysis_period_end")]
     public DateTime? AnalysisPeriodEnd { get; set; }
 
     [Column("created_at")]

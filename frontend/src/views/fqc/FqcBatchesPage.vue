@@ -155,7 +155,7 @@ function statusTag(status: string): string {
 <template>
   <div class="iqc-container">
     <!-- Page Header -->
-    <div class="page-header-banner page-header-banner--success">
+    <div class="page-header-banner page-header-banner--primary">
       <div class="page-header-banner-main">
         <div class="page-header-banner-icon">
           <el-icon :size="28"><Box /></el-icon>

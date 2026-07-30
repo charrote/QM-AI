@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Document, Plus, Search, Refresh, Setting, Clock, User, Check } from '@element-plus/icons-vue'
 import { patrolPlanApi } from '@/api/ipqc'
@@ -33,9 +33,45 @@ const editingId = ref<number | null>(null)
 
 const form = reactive<CreateIpqcPatrolPlan>({
   processId: 0,
-  equipmentId: 0,
+  equipmentIds: [],
   patrolIntervalMin: 120,
   autoGenerate: true,
+})
+
+// 设备类型分组
+const equipmentTypeOptions = ref([
+  { value: '', label: '全部设备', types: [] },
+  { value: 'CNC', label: 'CNC加工中心', types: ['CNC'] },
+  { value: 'PLC', label: 'PLC设备', types: ['PLC'] },
+  { value: '检测设备', label: '检测设备', types: ['检测设备'] },
+  { value: '机器人', label: '机器人', types: ['机器人'] },
+  { value: '其他', label: '其他', types: ['其他'] },
+])
+const selectedTypeFilter = ref('')
+
+// 按设备类型分组的设备列表（用于多选下拉）
+const equipmentByType = computed(() => {
+  const grouped: Record<string, Equipment[]> = {}
+  equipmentList.value.forEach(e => {
+    const type = e.equipmentType || '其他'
+    if (!grouped[type]) grouped[type] = []
+    grouped[type].push(e)
+  })
+  return grouped
+})
+
+// 按选中类型筛选设备
+const filteredEquipmentByType = computed(() => {
+  if (!selectedTypeFilter.value) return []
+  const opts = equipmentTypeOptions.value.find(t => t.value === selectedTypeFilter.value)
+  if (!opts) return []
+  const allDevices: Equipment[] = []
+  opts.types.forEach(type => {
+    if (equipmentByType.value[type]) {
+      allDevices.push(...equipmentByType.value[type])
+    }
+  })
+  return allDevices
 })
 
 // ─── Helpers ────────────────────────────────────
@@ -104,9 +140,10 @@ function openCreate() {
   editingId.value = null
   drawerTitle.value = '新建巡检计划'
   form.processId = 0
-  form.equipmentId = 0
+  form.equipmentIds = []
   form.patrolIntervalMin = 120
   form.autoGenerate = true
+  selectedTypeFilter.value = ''
   drawerVisible.value = true
 }
 
@@ -118,7 +155,7 @@ async function openEdit(id: number) {
     const plan = await patrolPlanApi.get(id)
     if (plan) {
       form.processId = plan.processId
-      form.equipmentId = plan.equipmentId
+      form.equipmentIds = plan.equipmentIds || []
       form.patrolIntervalMin = plan.patrolIntervalMin
       form.autoGenerate = plan.autoGenerate
       form.inspector = plan.inspector
@@ -131,8 +168,8 @@ async function openEdit(id: number) {
 }
 
 async function handleSave() {
-  if (!form.processId || !form.equipmentId) {
-    ElMessage.warning('请填写完整信息')
+  if (!form.processId || !form.equipmentIds || form.equipmentIds.length === 0) {
+    ElMessage.warning('请填写完整信息（工序和设备至少各选一个）')
     return
   }
   saving.value = true
@@ -285,7 +322,16 @@ onMounted(async () => {
           <el-table-column type="index" label="序号" width="55" fixed />
           <el-table-column prop="planNo" label="计划编号" min-width="160" show-overflow-tooltip />
           <el-table-column prop="processName" label="工序" min-width="120" show-overflow-tooltip />
-          <el-table-column prop="equipmentName" label="设备" min-width="120" show-overflow-tooltip />
+          <el-table-column prop="equipmentNames" label="设备" min-width="160" show-overflow-tooltip>
+            <template #default="{ row }">
+              <div v-if="row.equipmentNames && row.equipmentNames.length > 0" style="display: flex; flex-wrap: wrap; gap: 4px; align-items: center;">
+                <el-tag v-for="(name, idx) in row.equipmentNames" :key="idx" type="info" size="small" effect="plain" round>
+                  {{ name }}
+                </el-tag>
+              </div>
+              <span v-else class="text-muted">-</span>
+            </template>
+          </el-table-column>
           <el-table-column prop="patrolIntervalMin" label="间隔 (分钟)" width="110" align="center" />
           <el-table-column label="自动生成" width="90" align="center">
             <template #default="{ row }">
@@ -346,9 +392,62 @@ onMounted(async () => {
             </el-select>
           </el-form-item>
           <el-form-item label="设备" required>
-            <el-select v-model="form.equipmentId" filterable placeholder="选择设备" style="width: 100%">
-              <el-option v-for="e in equipmentList" :key="e.id" :label="e.name" :value="e.id" />
-            </el-select>
+            <div style="width: 100%">
+              <!-- 按类型筛选 -->
+              <el-select
+                v-model="selectedTypeFilter"
+                clearable
+                placeholder="按设备类型筛选"
+                size="small"
+                style="width: 100%; margin-bottom: 8px"
+              >
+                <el-option
+                  v-for="t in equipmentTypeOptions"
+                  :key="t.value"
+                  :label="t.label"
+                  :value="t.value"
+                />
+              </el-select>
+              <!-- 多选设备 -->
+              <el-select
+                v-model="form.equipmentIds"
+                multiple
+                filterable
+                collapse-tags
+                collapse-tags-tooltip
+                :max-collapse-tags="3"
+                placeholder="选择设备（可多选）"
+                style="width: 100%"
+              >
+                <template v-if="!selectedTypeFilter">
+                  <!-- 全部设备，按类型分组 -->
+                  <el-option-group
+                    v-for="(devices, type) in equipmentByType"
+                    :key="type"
+                    :label="type"
+                  >
+                    <el-option
+                      v-for="e in devices"
+                      :key="e.id"
+                      :label="`${e.name}（${e.code}）`"
+                      :value="e.id"
+                    />
+                  </el-option-group>
+                </template>
+                <template v-else>
+                  <!-- 按选中的类型筛选 -->
+                  <el-option
+                    v-for="e in filteredEquipmentByType"
+                    :key="e.id"
+                    :label="`${e.name}（${e.code}）`"
+                    :value="e.id"
+                  />
+                </template>
+              </el-select>
+              <div style="color: var(--el-text-color-secondary); font-size: 12px; margin-top: 4px;">
+                已选择 {{ form.equipmentIds?.length || 0 }} 台设备
+              </div>
+            </div>
           </el-form-item>
         </el-form>
       </div>

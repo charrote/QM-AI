@@ -33,9 +33,11 @@ public class Document
     public string MinioKey { get; set; } = string.Empty;
 
     /// <summary>文件大小（字节）</summary>
+    [Column("file_size_bytes")]
     public long? FileSizeBytes { get; set; }
 
     /// <summary>SHA-256 哈希</summary>
+    [Column("file_hash")]
     [MaxLength(64)]
     public string? FileHash { get; set; }
 
@@ -50,18 +52,22 @@ public class Document
     public string Status { get; set; } = "draft";
 
     /// <summary>审批人ID</summary>
+    [Column("approved_by")]
     public long? ApprovedBy { get; set; }
 
     /// <summary>审批人标识（字符串，供服务层兼容）</summary>
     public string? ApprovedByStr { get; set; }
 
     /// <summary>驳回理由</summary>
+    [Column("rejection_reason")]
     public string? RejectionReason { get; set; }
 
     /// <summary>审批时间</summary>
+    [Column("approved_at")]
     public DateTime? ApprovedAt { get; set; }
 
     /// <summary>有效期</summary>
+    [Column("expires_at")]
     public DateOnly? ExpiresAt { get; set; }
 
     [Column("created_at")]

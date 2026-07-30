@@ -16,6 +16,7 @@ public class SpcDataSource
     [Column("id")]
     public long Id { get; set; }
 
+    [Column("chart_id")]
     /// <summary>关联控制图</summary>
     public long ChartId { get; set; }
 
@@ -25,6 +26,7 @@ public class SpcDataSource
     [Column("source_type")]
     public string SourceType { get; set; } = string.Empty;
 
+    [Column("inspection_item_id")]
     /// <summary>关联检验项目（null表示该数据源类型所有项目）</summary>
     public long? InspectionItemId { get; set; }
 
@@ -32,12 +34,15 @@ public class SpcDataSource
     [Column("product_id")]
     public long? ProductId { get; set; }
 
+    [Column("process_id")]
     /// <summary>过滤：工序</summary>
     public long? ProcessId { get; set; }
 
+    [Column("supplier_id")]
     /// <summary>过滤：供应商</summary>
     public long? SupplierId { get; set; }
 
+    [Column("customer_id")]
     /// <summary>过滤：客户</summary>
     public long? CustomerId { get; set; }
 

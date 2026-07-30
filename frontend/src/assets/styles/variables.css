@@ -21,6 +21,10 @@
   --layout-content-padding: 20px;
   --layout-content-max-width: 1600px;
 
+  /* Component Heights */
+  --toolbar-height: 40px;
+  --table-row-height: 36px;
+
   /* Spacing Scale (4px base) */
   --space-1: 4px;
   --space-2: 8px;

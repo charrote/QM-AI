@@ -385,6 +385,36 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/Settings.vue'),
         meta: { title: '系统管理', keepAlive: true, requiresAuth: true },
       },
+      {
+        path: 'system/users',
+        name: 'UserManagement',
+        component: () => import('@/views/system/UserManagementPage.vue'),
+        meta: { title: '用户管理', keepAlive: true, requiresAuth: true },
+      },
+      {
+        path: 'system/roles',
+        name: 'RoleManagement',
+        component: () => import('@/views/system/RoleManagementPage.vue'),
+        meta: { title: '角色管理', keepAlive: true, requiresAuth: true },
+      },
+      {
+        path: 'system/functions',
+        name: 'FunctionList',
+        component: () => import('@/views/system/FunctionListPage.vue'),
+        meta: { title: '功能列表', keepAlive: true, requiresAuth: true },
+      },
+      {
+        path: 'system/dict',
+        name: 'DataDict',
+        component: () => import('@/views/system/DataDictPage.vue'),
+        meta: { title: '数据字典', keepAlive: true, requiresAuth: true },
+      },
+      {
+        path: 'system/logs',
+        name: 'OperationLog',
+        component: () => import('@/views/system/OperationLogPage.vue'),
+        meta: { title: '操作日志', keepAlive: true, requiresAuth: true },
+      },
     ],
   },
   {

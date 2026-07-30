@@ -43,10 +43,12 @@ public class Supplier
     public string? Grade { get; set; } = "B";
 
     /// <summary>供应产品类别 - 仅内存中保存，不持久化</summary>
+    [Column("supply_category")]
     [NotMapped]
     public string? SupplyCategory { get; set; }
 
     /// <summary>是否启用 - 仅内存中保存，不持久化</summary>
+    [Column("is_active")]
     [NotMapped]
     public bool IsActive { get; set; } = true;
 
@@ -55,6 +57,7 @@ public class Supplier
     public double? Score { get; set; }
 
     /// <summary>更新时间 - 仅内存中保存，不持久化</summary>
+    [Column("updated_at")]
     [NotMapped]
     public DateTime? UpdatedAt { get; set; }
 

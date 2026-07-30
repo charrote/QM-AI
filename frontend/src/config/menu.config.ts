@@ -200,4 +200,20 @@ export const menuConfigs: MenuConfig[] = [
       { id: 'export-center', name: '导出中心', icon: 'Download', path: '/reports/export', closable: true, order: 3, module: 'reports' },
     ],
   },
+  {
+    id: 'system',
+    name: '系统管理',
+    icon: 'Setting',
+    path: '/system',
+    closable: true,
+    order: 13,
+    module: 'system',
+    children: [
+      { id: 'user-management', name: '用户管理', icon: 'User', path: '/system/users', closable: true, order: 1, module: 'system' },
+      { id: 'role-management', name: '角色管理', icon: 'UserFilled', path: '/system/roles', closable: true, order: 2, module: 'system' },
+      { id: 'function-list', name: '功能列表', icon: 'List', path: '/system/functions', closable: true, order: 3, module: 'system' },
+      { id: 'data-dict', name: '数据字典', icon: 'Collection', path: '/system/dict', closable: true, order: 4, module: 'system' },
+      { id: 'operation-log', name: '操作日志', icon: 'Clock', path: '/system/logs', closable: true, order: 5, module: 'system' },
+    ],
+  },
 ]

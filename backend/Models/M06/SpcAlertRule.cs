@@ -11,21 +11,26 @@ public class SpcAlertRule
     [Column("id")]
     public long Id { get; set; }
 
+    [Column("chart_id")]
     public long ChartId { get; set; }
 
+    [Column("rule_number")]
     public int RuleNumber { get; set; } // 1-8
 
+    [Column("rule_name")]
     [Required]
     [MaxLength(200)]
     public string RuleName { get; set; } = string.Empty;
 
+    [Column("rule_description")]
     public string? RuleDescription { get; set; }
 
     public bool Enabled { get; set; } = true;
 
+    [Column("trigger_threshold")]
     public int TriggerThreshold { get; set; } = 1; // e.g., consecutive N points
 
-    [Column(TypeName = "decimal(5,2)")]
+    [Column("sigma_threshold", TypeName = "decimal(5,2)")]
     public decimal SigmaThreshold { get; set; } = 2.0m;
 
     [Column("created_at")]

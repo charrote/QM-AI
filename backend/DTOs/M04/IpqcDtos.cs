@@ -87,8 +87,8 @@ public class IpqcPatrolPlanListDto
     public string PlanNo { get; set; } = string.Empty;
     public long ProcessId { get; set; }
     public string? ProcessName { get; set; }
-    public long EquipmentId { get; set; }
-    public string? EquipmentName { get; set; }
+    public long[] EquipmentIds { get; set; } = Array.Empty<long>();
+    public string[] EquipmentNames { get; set; } = Array.Empty<string>();
     public int PatrolIntervalMin { get; set; }
     public bool AutoGenerate { get; set; }
     public string Status { get; set; } = "active";
@@ -100,7 +100,7 @@ public class CreateIpqcPatrolPlanDto
 {
     public string? PlanNo { get; set; }
     public long ProcessId { get; set; }
-    public long EquipmentId { get; set; }
+    public long[] EquipmentIds { get; set; } = Array.Empty<long>();
     public int PatrolIntervalMin { get; set; }
     public bool AutoGenerate { get; set; } = true;
     public string? Inspector { get; set; }
@@ -108,6 +108,7 @@ public class CreateIpqcPatrolPlanDto
 
 public class UpdateIpqcPatrolPlanDto
 {
+    public long[]? EquipmentIds { get; set; }
     public int? PatrolIntervalMin { get; set; }
     public bool? AutoGenerate { get; set; }
     public string? Status { get; set; }

@@ -14,6 +14,7 @@ public class CapaRootCause
     [Column("id")]
     public long Id { get; set; }
 
+    [Column("capa_id")]
     public long CapaId { get; set; }
 
     /// <summary>分析方法：five_whys / fishbone / other</summary>

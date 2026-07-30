@@ -155,11 +155,19 @@ var app = builder.Build();
 // ─── Global exception handler middleware ────────────────────────────
 app.UseMiddleware<AppExceptionHandlerMiddleware>();
 
-// 启动时自动初始化种子数据
+// 启动时自动初始化种子数据（容错：seed 失败不影响服务启动）
 using (var scope = app.Services.CreateScope())
 {
-    var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    await DbInitializer.Initialize(context);
+    try
+    {
+        var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        await DbInitializer.Initialize(context);
+        Console.WriteLine("[Seed] 种子数据初始化完成");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"[Seed] 种子数据初始化失败（不影响服务运行）: {ex.Message}");
+    }
 }
 
 // Middleware pipeline

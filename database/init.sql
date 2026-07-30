@@ -4,6 +4,10 @@
 -- Engine: InnoDB | Charset: utf8mb4 | Collation: utf8mb4_unicode_ci
 -- ============================================================================
 
+-- Disable foreign key checks to allow tables to be created in any order
+SET FOREIGN_KEY_CHECKS=0;
+
+
 CREATE DATABASE IF NOT EXISTS qmai CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE qmai;
 
@@ -11,7 +15,7 @@ USE qmai;
 -- M15 – System Management
 -- ============================================================================
 
-CREATE TABLE users (
+CREATE TABLE IF NOT EXISTS users (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     username VARCHAR(50) UNIQUE NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
@@ -30,14 +34,14 @@ CREATE TABLE users (
     INDEX idx_users_is_active (is_active)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE roles (
+CREATE TABLE IF NOT EXISTS roles (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(50) UNIQUE NOT NULL,
     description VARCHAR(255),
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE permissions (
+CREATE TABLE IF NOT EXISTS permissions (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(100) NOT NULL,
     code VARCHAR(100) UNIQUE NOT NULL,
@@ -45,7 +49,7 @@ CREATE TABLE permissions (
     description VARCHAR(255)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE role_permissions (
+CREATE TABLE IF NOT EXISTS role_permissions (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     role_id BIGINT NOT NULL,
     permission_id BIGINT NOT NULL,
@@ -57,7 +61,7 @@ CREATE TABLE role_permissions (
 -- M02 – Basic Data
 -- ============================================================================
 
-CREATE TABLE products (
+CREATE TABLE IF NOT EXISTS products (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     product_code VARCHAR(50) UNIQUE NOT NULL,
     product_name VARCHAR(200) NOT NULL,
@@ -74,7 +78,7 @@ CREATE TABLE products (
     INDEX idx_products_org (org_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE boms (
+CREATE TABLE IF NOT EXISTS boms (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     product_id BIGINT NOT NULL,
     material_code VARCHAR(50),
@@ -89,7 +93,7 @@ CREATE TABLE boms (
     FOREIGN KEY (product_id) REFERENCES products(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE processes (
+CREATE TABLE IF NOT EXISTS processes (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     process_code VARCHAR(50) UNIQUE NOT NULL,
     process_name VARCHAR(200) NOT NULL,
@@ -102,7 +106,7 @@ CREATE TABLE processes (
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE routings (
+CREATE TABLE IF NOT EXISTS routings (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     routing_code VARCHAR(50) NOT NULL COMMENT '工艺路线编号（同一路线多步骤共享）',
     routing_name VARCHAR(200) NOT NULL COMMENT '工艺路线名称',
@@ -119,19 +123,27 @@ CREATE TABLE routings (
     FOREIGN KEY (process_id) REFERENCES processes(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE routing_steps (
+CREATE TABLE IF NOT EXISTS routing_steps (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    routing_id BIGINT NOT NULL,
-    step_order INT NOT NULL,
-    process_id BIGINT NOT NULL,
-    process_name VARCHAR(200),
-    workcenter VARCHAR(100),
-    standard_time INT,
-    FOREIGN KEY (routing_id) REFERENCES routings(id),
-    FOREIGN KEY (process_id) REFERENCES processes(id)
+    routing_header_id BIGINT NOT NULL COMMENT '关联工艺路线头',
+    step_order INT NOT NULL COMMENT '步骤顺序',
+    process_id BIGINT NOT NULL COMMENT '关联工序',
+    process_name VARCHAR(200) COMMENT '工序名称',
+    workcenter VARCHAR(100) COMMENT '工作中心',
+    standard_time_minutes INT COMMENT '标准工时 (分钟)',
+    description TEXT COMMENT '描述',
+    pre_wait_time_minutes DOUBLE COMMENT '前置等待时间 (分钟)',
+    post_wait_time_minutes DOUBLE COMMENT '后置等待时间 (分钟)',
+    is_active TINYINT(1) DEFAULT 1 COMMENT '是否启用',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (routing_header_id) REFERENCES routing_headers(id) ON DELETE CASCADE,
+    FOREIGN KEY (process_id) REFERENCES processes(id),
+    INDEX idx_routing_steps_header (routing_header_id),
+    INDEX idx_routing_steps_process (process_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE inspection_standards (
+CREATE TABLE IF NOT EXISTS inspection_standards (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     standard_code VARCHAR(50) UNIQUE NOT NULL,
     standard_name VARCHAR(200) NOT NULL,
@@ -158,7 +170,7 @@ CREATE TABLE inspection_standards (
     INDEX idx_standards_org (org_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE defect_codes (
+CREATE TABLE IF NOT EXISTS defect_codes (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     defect_code VARCHAR(50) UNIQUE NOT NULL,
     defect_name VARCHAR(200) NOT NULL,
@@ -174,7 +186,7 @@ CREATE TABLE defect_codes (
     INDEX idx_defect_codes_severity (defect_severity)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE equipment (
+CREATE TABLE IF NOT EXISTS equipment (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     equipment_code VARCHAR(50) UNIQUE NOT NULL,
     equipment_name VARCHAR(200) NOT NULL,
@@ -188,7 +200,7 @@ CREATE TABLE equipment (
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE tools (
+CREATE TABLE IF NOT EXISTS tools (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     tool_code VARCHAR(50) UNIQUE NOT NULL,
     tool_name VARCHAR(200) NOT NULL,
@@ -210,7 +222,7 @@ CREATE TABLE tools (
     INDEX idx_tools_status (status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE suppliers (
+CREATE TABLE IF NOT EXISTS suppliers (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     supplier_code VARCHAR(50) UNIQUE NOT NULL,
     supplier_name VARCHAR(200) NOT NULL,
@@ -229,7 +241,7 @@ CREATE TABLE suppliers (
     INDEX idx_suppliers_status (status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE customers (
+CREATE TABLE IF NOT EXISTS customers (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     customer_code VARCHAR(50) UNIQUE NOT NULL,
     customer_name VARCHAR(200) NOT NULL,
@@ -250,7 +262,7 @@ CREATE TABLE customers (
 -- ============================================================================
 
 -- 检验项目主数据（品质部统一管理）
-CREATE TABLE inspection_items (
+CREATE TABLE IF NOT EXISTS inspection_items (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     item_code VARCHAR(50) UNIQUE NOT NULL COMMENT '检验项目编码',
     item_name VARCHAR(200) NOT NULL COMMENT '检验项目名称',
@@ -280,7 +292,7 @@ CREATE TABLE inspection_items (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- 检验计划（桥接检验项目与业务模块）
-CREATE TABLE inspection_plans (
+CREATE TABLE IF NOT EXISTS inspection_plans (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     plan_code VARCHAR(50) UNIQUE NOT NULL COMMENT '计划编码',
     plan_name VARCHAR(200) NOT NULL COMMENT '计划名称',
@@ -309,7 +321,7 @@ CREATE TABLE inspection_plans (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- 检验计划明细
-CREATE TABLE inspection_plan_items (
+CREATE TABLE IF NOT EXISTS inspection_plan_items (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     plan_id BIGINT NOT NULL COMMENT '关联计划',
     inspection_item_id BIGINT NOT NULL COMMENT '关联检验项目',
@@ -333,7 +345,7 @@ CREATE TABLE inspection_plan_items (
 -- ============================================================================
 
 -- 参数组
-CREATE TABLE param_groups (
+CREATE TABLE IF NOT EXISTS param_groups (
     id              BIGINT AUTO_INCREMENT PRIMARY KEY,
     name            VARCHAR(100) NOT NULL COMMENT '组名',
     code            VARCHAR(50) UNIQUE NOT NULL COMMENT '组编码',
@@ -345,7 +357,7 @@ CREATE TABLE param_groups (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- 自定义参数定义
-CREATE TABLE dynamic_params (
+CREATE TABLE IF NOT EXISTS dynamic_params (
     id              BIGINT AUTO_INCREMENT PRIMARY KEY,
     group_id        BIGINT NOT NULL COMMENT '所属参数组ID',
     name            VARCHAR(100) NOT NULL COMMENT '参数名',
@@ -367,7 +379,7 @@ CREATE TABLE dynamic_params (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- 关单策略模板
-CREATE TABLE closure_rules (
+CREATE TABLE IF NOT EXISTS closure_rules (
     id              BIGINT AUTO_INCREMENT PRIMARY KEY,
     name            VARCHAR(100) NOT NULL COMMENT '规则名称',
     code            VARCHAR(50) UNIQUE NOT NULL COMMENT '规则编码',
@@ -381,7 +393,7 @@ CREATE TABLE closure_rules (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- 实时参数值（高频写入，按参数编码+时间索引）
-CREATE TABLE param_realtime_values (
+CREATE TABLE IF NOT EXISTS param_realtime_values (
     id              BIGINT AUTO_INCREMENT PRIMARY KEY,
     param_code      VARCHAR(50) NOT NULL COMMENT '参数编码',
     equipment_id    BIGINT COMMENT '设备ID',
@@ -397,7 +409,7 @@ CREATE TABLE param_realtime_values (
 -- M03 – IQC (Incoming Quality Control)
 -- ============================================================================
 
-CREATE TABLE iqc_receipts (
+CREATE TABLE IF NOT EXISTS iqc_receipts (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     receipt_no VARCHAR(50) UNIQUE NOT NULL,
     supplier_id BIGINT,
@@ -416,7 +428,7 @@ CREATE TABLE iqc_receipts (
     INDEX idx_iqc_receipts_org (org_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE iqc_inspections (
+CREATE TABLE IF NOT EXISTS iqc_inspections (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     inspection_no VARCHAR(50) UNIQUE NOT NULL,
     receipt_id BIGINT,
@@ -437,7 +449,7 @@ CREATE TABLE iqc_inspections (
     FOREIGN KEY (standard_id) REFERENCES inspection_standards(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE iqc_inspection_items (
+CREATE TABLE IF NOT EXISTS iqc_inspection_items (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     inspection_id BIGINT,
     param_id BIGINT COMMENT '关联 dynamic_params.id',
@@ -458,7 +470,7 @@ CREATE TABLE iqc_inspection_items (
     INDEX idx_iqc_items_inspection_item (inspection_item_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE iqc_anomalies (
+CREATE TABLE IF NOT EXISTS iqc_anomalies (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     anomaly_no VARCHAR(50) UNIQUE NOT NULL,
     receipt_id BIGINT,
@@ -494,7 +506,7 @@ CREATE TABLE iqc_anomalies (
     INDEX idx_anomalies_disposition (disposition)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE supplier_scores (
+CREATE TABLE IF NOT EXISTS supplier_scores (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     supplier_id BIGINT,
     assessment_date DATE COMMENT '评分日期',
@@ -510,13 +522,14 @@ CREATE TABLE supplier_scores (
 -- M04 – IPQC (In-Process Quality Control)
 -- ============================================================================
 
-CREATE TABLE ipqc_first_pieces (
+CREATE TABLE IF NOT EXISTS ipqc_first_pieces (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     fp_no VARCHAR(50) UNIQUE NOT NULL,
     product_id BIGINT,
     process_id BIGINT,
     equipment_id BIGINT,
     work_order VARCHAR(100),
+    work_order_id BIGINT,
     batch_no VARCHAR(100),
     org_id BIGINT COMMENT '所属组织',
     inspector VARCHAR(100),
@@ -533,7 +546,7 @@ CREATE TABLE ipqc_first_pieces (
     INDEX idx_ipqc_fp_result (conclusion)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE ipqc_first_piece_items (
+CREATE TABLE IF NOT EXISTS ipqc_first_piece_items (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     first_piece_id BIGINT NOT NULL,
     inspection_item_id BIGINT COMMENT '关联检验项目主数据',
@@ -551,7 +564,7 @@ CREATE TABLE ipqc_first_piece_items (
     INDEX idx_fp_items_inspection_item (inspection_item_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE ipqc_patrol_plans (
+CREATE TABLE IF NOT EXISTS ipqc_patrol_plans (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     plan_no VARCHAR(50) UNIQUE NOT NULL,
     equipment_id BIGINT,
@@ -564,7 +577,7 @@ CREATE TABLE ipqc_patrol_plans (
     FOREIGN KEY (process_id) REFERENCES processes(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE ipqc_patrols (
+CREATE TABLE IF NOT EXISTS ipqc_patrols (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     patrol_no VARCHAR(50) UNIQUE NOT NULL,
     plan_id BIGINT,
@@ -581,9 +594,10 @@ CREATE TABLE ipqc_patrols (
     FOREIGN KEY (process_id) REFERENCES processes(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE ipqc_closure_status (
+CREATE TABLE IF NOT EXISTS ipqc_closure_status (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     work_order VARCHAR(100),
+    work_order_id BIGINT,
     status ENUM('open','closed') DEFAULT 'open',
     closed_at DATETIME,
     rule_id BIGINT,
@@ -592,7 +606,7 @@ CREATE TABLE ipqc_closure_status (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- IPQC 巡检明细项
-CREATE TABLE ipqc_patrol_items (
+CREATE TABLE IF NOT EXISTS ipqc_patrol_items (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     patrol_id BIGINT NOT NULL COMMENT '关联巡检记录',
     inspection_item_id BIGINT COMMENT '关联检验项目主数据',
@@ -613,7 +627,7 @@ CREATE TABLE ipqc_patrol_items (
 -- M05 – FQC (Final Quality Control) & OQC (Outgoing Quality Control)
 -- ============================================================================
 
-CREATE TABLE fqc_inspections (
+CREATE TABLE IF NOT EXISTS fqc_inspections (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     inspection_no VARCHAR(50) UNIQUE NOT NULL,
     batch_id BIGINT COMMENT '关联批次',
@@ -637,7 +651,7 @@ CREATE TABLE fqc_inspections (
     INDEX idx_fqc_conclusion (conclusion)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE fqc_inspection_items (
+CREATE TABLE IF NOT EXISTS fqc_inspection_items (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     inspection_id BIGINT,
     param_id BIGINT,
@@ -656,7 +670,23 @@ CREATE TABLE fqc_inspection_items (
     INDEX idx_fqc_items_inspection_item (inspection_item_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE oqc_releases (
+CREATE TABLE IF NOT EXISTS product_batches (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    batch_code VARCHAR(50) UNIQUE NOT NULL COMMENT '批次编号（LOT-YYYYMMDD-X）',
+    source VARCHAR(20) DEFAULT 'manual' COMMENT '来源：manual / ipqc-auto / work-order',
+    product_id BIGINT NOT NULL COMMENT '关联产品',
+    work_order_id BIGINT COMMENT '关联工单',
+    quantity DECIMAL(18,4) NOT NULL DEFAULT 0 COMMENT '数量',
+    status VARCHAR(20) DEFAULT 'in_progress' COMMENT 'in_progress/inspected/released/quarantined',
+    created_at DATETIME NOT NULL DEFAULT NOW(),
+    updated_at DATETIME NOT NULL DEFAULT NOW(),
+    FOREIGN KEY (product_id) REFERENCES products(id),
+    UNIQUE KEY `uk_product_batches_batch_code` (`batch_code`),
+    KEY `idx_product_batches_status` (`status`),
+    KEY `idx_product_batches_product` (`product_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS oqc_releases (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     batch_id BIGINT COMMENT '关联批次',
     customer_id BIGINT COMMENT '关联客户',
@@ -676,27 +706,11 @@ CREATE TABLE oqc_releases (
     KEY `idx_oqc_releases_customer` (`customer_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE product_batches (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    batch_code VARCHAR(50) UNIQUE NOT NULL COMMENT '批次编号（LOT-YYYYMMDD-X）',
-    source VARCHAR(20) DEFAULT 'manual' COMMENT '来源：manual / ipqc-auto / work-order',
-    product_id BIGINT NOT NULL COMMENT '关联产品',
-    work_order_id BIGINT COMMENT '关联工单',
-    quantity DECIMAL(18,4) NOT NULL DEFAULT 0 COMMENT '数量',
-    status VARCHAR(20) DEFAULT 'in_progress' COMMENT 'in_progress/inspected/released/quarantined',
-    created_at DATETIME NOT NULL DEFAULT NOW(),
-    updated_at DATETIME NOT NULL DEFAULT NOW(),
-    FOREIGN KEY (product_id) REFERENCES products(id),
-    UNIQUE KEY `uk_product_batches_batch_code` (`batch_code`),
-    KEY `idx_product_batches_status` (`status`),
-    KEY `idx_product_batches_product` (`product_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
 -- ============================================================================
 -- M06 – SPC (Statistical Process Control)
 -- ============================================================================
 
-CREATE TABLE spc_control_charts (
+CREATE TABLE IF NOT EXISTS spc_control_charts (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(200) NOT NULL,
     process_id BIGINT NOT NULL,
@@ -717,7 +731,7 @@ CREATE TABLE spc_control_charts (
     FOREIGN KEY (process_id) REFERENCES processes(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE spc_data_points (
+CREATE TABLE IF NOT EXISTS spc_data_points (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     chart_id BIGINT NOT NULL,
     subgroup_index INT NOT NULL COMMENT '子组编号',
@@ -730,7 +744,7 @@ CREATE TABLE spc_data_points (
     FOREIGN KEY (chart_id) REFERENCES spc_control_charts(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE spc_analysis_results (
+CREATE TABLE IF NOT EXISTS spc_analysis_results (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     chart_id BIGINT NOT NULL,
     analysis_type ENUM('cpk','ppk','capability') NOT NULL,
@@ -748,7 +762,7 @@ CREATE TABLE spc_analysis_results (
     FOREIGN KEY (chart_id) REFERENCES spc_control_charts(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE spc_alert_rules (
+CREATE TABLE IF NOT EXISTS spc_alert_rules (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     chart_id BIGINT NOT NULL,
     rule_number INT NOT NULL COMMENT '1-8',
@@ -762,7 +776,7 @@ CREATE TABLE spc_alert_rules (
     FOREIGN KEY (chart_id) REFERENCES spc_control_charts(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE spc_alert_triggers (
+CREATE TABLE IF NOT EXISTS spc_alert_triggers (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     chart_id BIGINT NOT NULL,
     rule_id BIGINT NOT NULL,
@@ -777,7 +791,7 @@ CREATE TABLE spc_alert_triggers (
     FOREIGN KEY (rule_id) REFERENCES spc_alert_rules(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE spc_anova_results (
+CREATE TABLE IF NOT EXISTS spc_anova_results (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     chart_id BIGINT NOT NULL,
     source VARCHAR(20) NOT NULL COMMENT 'operator/machine/material/method/environment',
@@ -793,7 +807,7 @@ CREATE TABLE spc_anova_results (
 
 -- SPC 数据源配置（贯通S3/S4/S5业务数据到SPC的关键桥梁）
 -- 定义SPC控制图从哪个业务模块、哪个检验项目取数
-CREATE TABLE spc_data_sources (
+CREATE TABLE IF NOT EXISTS spc_data_sources (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     chart_id BIGINT NOT NULL COMMENT '关联控制图',
     source_type VARCHAR(10) NOT NULL COMMENT '数据源类型: IQC/IPQC/FQC',
@@ -813,7 +827,7 @@ CREATE TABLE spc_data_sources (
 -- M07 – Defects & CAPA (Corrective and Preventive Action)
 -- ============================================================================
 
-CREATE TABLE defects (
+CREATE TABLE IF NOT EXISTS defects (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     defect_code VARCHAR(50) NOT NULL UNIQUE COMMENT '缺陷编码',
     severity VARCHAR(10) NOT NULL DEFAULT 'major' COMMENT 'critical/major/minor',
@@ -838,7 +852,7 @@ CREATE TABLE defects (
     FOREIGN KEY (product_id) REFERENCES products(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE capa (
+CREATE TABLE IF NOT EXISTS capa (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     capa_code VARCHAR(50) NOT NULL UNIQUE,
     defect_id BIGINT,
@@ -863,7 +877,7 @@ CREATE TABLE capa (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- CAPA 临时措施（围堵）
-CREATE TABLE capa_temporary_measures (
+CREATE TABLE IF NOT EXISTS capa_temporary_measures (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     capa_id BIGINT NOT NULL,
     description TEXT NOT NULL,
@@ -874,7 +888,7 @@ CREATE TABLE capa_temporary_measures (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- CAPA 原因分析
-CREATE TABLE capa_root_causes (
+CREATE TABLE IF NOT EXISTS capa_root_causes (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     capa_id BIGINT NOT NULL,
     analysis_method VARCHAR(20) NOT NULL DEFAULT 'five_whys',
@@ -886,7 +900,7 @@ CREATE TABLE capa_root_causes (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- CAPA 纠正措施
-CREATE TABLE capa_corrective_actions (
+CREATE TABLE IF NOT EXISTS capa_corrective_actions (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     capa_id BIGINT NOT NULL,
     action_description TEXT NOT NULL,
@@ -901,7 +915,7 @@ CREATE TABLE capa_corrective_actions (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- CAPA 预防措施
-CREATE TABLE capa_preventive_actions (
+CREATE TABLE IF NOT EXISTS capa_preventive_actions (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     capa_id BIGINT NOT NULL,
     action_description TEXT NOT NULL,
@@ -916,7 +930,7 @@ CREATE TABLE capa_preventive_actions (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- CAPA 验证记录
-CREATE TABLE capa_verifications (
+CREATE TABLE IF NOT EXISTS capa_verifications (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     capa_id BIGINT NOT NULL,
     verifier_id BIGINT NOT NULL,
@@ -930,7 +944,7 @@ CREATE TABLE capa_verifications (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- 报废/返工记录
-CREATE TABLE scrap_rework_records (
+CREATE TABLE IF NOT EXISTS scrap_rework_records (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     type VARCHAR(10) NOT NULL COMMENT 'scrap/rework',
     defect_id BIGINT,
@@ -951,7 +965,7 @@ CREATE TABLE scrap_rework_records (
 -- M08 – Trace (Product Traceability)
 -- ============================================================================
 
-CREATE TABLE trace_records (
+CREATE TABLE IF NOT EXISTS trace_records (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     trace_no VARCHAR(50),
     product_id BIGINT,
@@ -967,7 +981,7 @@ CREATE TABLE trace_records (
 -- M09 – Complaints & 8D Reports
 -- ============================================================================
 
-CREATE TABLE complaints (
+CREATE TABLE IF NOT EXISTS complaints (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     complaint_code VARCHAR(50) NOT NULL UNIQUE,
     customer_id BIGINT,
@@ -994,7 +1008,7 @@ CREATE TABLE complaints (
     INDEX idx_complaints_status (status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE d8_reports (
+CREATE TABLE IF NOT EXISTS d8_reports (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     complaint_id BIGINT NOT NULL UNIQUE,
     status VARCHAR(20) DEFAULT 'd0' COMMENT 'd0/d1/d2/d3/d4/d5/d6/d7/d8',
@@ -1007,7 +1021,7 @@ CREATE TABLE d8_reports (
 -- M11 – Equipment
 -- ============================================================================
 
-CREATE TABLE equipment_param_mappings (
+CREATE TABLE IF NOT EXISTS equipment_param_mappings (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     equipment_id BIGINT NOT NULL,
     mqtt_topic VARCHAR(500) NOT NULL,
@@ -1023,7 +1037,7 @@ CREATE TABLE equipment_param_mappings (
     FOREIGN KEY (param_group_id) REFERENCES param_groups(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE equipment_status_history (
+CREATE TABLE IF NOT EXISTS equipment_status_history (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     equipment_id BIGINT,
     status VARCHAR(20),
@@ -1032,7 +1046,7 @@ CREATE TABLE equipment_status_history (
     FOREIGN KEY (equipment_id) REFERENCES equipment(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE equipment_quality_correlation (
+CREATE TABLE IF NOT EXISTS equipment_quality_correlation (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     equipment_id BIGINT,
     analysis_date DATE,
@@ -1045,7 +1059,7 @@ CREATE TABLE equipment_quality_correlation (
 -- M10 – AI (Artificial Intelligence)
 -- ============================================================================
 
-CREATE TABLE ai_warnings (
+CREATE TABLE IF NOT EXISTS ai_warnings (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     warning_type VARCHAR(50),
     severity ENUM('info','warning','critical'),
@@ -1057,7 +1071,7 @@ CREATE TABLE ai_warnings (
     created_at DATETIME
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE ai_models (
+CREATE TABLE IF NOT EXISTS ai_models (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     model_name VARCHAR(200),
     model_type VARCHAR(50),
@@ -1069,7 +1083,7 @@ CREATE TABLE ai_models (
     deployed_at DATETIME
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE ai_analysis_results (
+CREATE TABLE IF NOT EXISTS ai_analysis_results (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     analysis_type ENUM('risk','detection','prediction','root_cause','optimization'),
     source_module VARCHAR(50),
@@ -1083,7 +1097,7 @@ CREATE TABLE ai_analysis_results (
 -- M12–M14 – Documents, Audits & Knowledge
 -- ============================================================================
 
-CREATE TABLE documents (
+CREATE TABLE IF NOT EXISTS documents (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     title VARCHAR(500) NOT NULL,
     doc_type VARCHAR(20) NOT NULL COMMENT 'sop/work_instruction/inspection_standard/8d_report/audit_report/other',
@@ -1103,7 +1117,7 @@ CREATE TABLE documents (
     INDEX idx_documents_type (doc_type)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE document_versions (
+CREATE TABLE IF NOT EXISTS document_versions (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     document_id BIGINT NOT NULL,
     version INT NOT NULL,
@@ -1115,7 +1129,7 @@ CREATE TABLE document_versions (
     FOREIGN KEY (document_id) REFERENCES documents(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE audits (
+CREATE TABLE IF NOT EXISTS audits (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     audit_no VARCHAR(50) UNIQUE NOT NULL,
     audit_type VARCHAR(10) NOT NULL COMMENT 'internal/process/product',
@@ -1139,7 +1153,7 @@ CREATE TABLE audits (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- 审核发现项
-CREATE TABLE audit_findings (
+CREATE TABLE IF NOT EXISTS audit_findings (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     audit_id BIGINT NOT NULL COMMENT '关联审核',
     finding_type VARCHAR(20) NOT NULL COMMENT 'conformity/non_conformity/opportunity',
@@ -1165,8 +1179,6 @@ CREATE TABLE audit_findings (
 -- ============================================================================
 
 -- Users & Auth
-CREATE INDEX idx_users_role_id ON users(role_id);
-CREATE INDEX idx_users_is_active ON users(is_active);
 CREATE INDEX idx_role_permissions_role_id ON role_permissions(role_id);
 CREATE INDEX idx_role_permissions_permission_id ON role_permissions(permission_id);
 CREATE INDEX idx_permissions_module ON permissions(module);
@@ -1177,17 +1189,13 @@ CREATE INDEX idx_products_active ON products(is_active);
 CREATE INDEX idx_boms_product_id ON boms(product_id);
 CREATE INDEX idx_processes_type ON processes(process_type);
 CREATE INDEX idx_routings_product_id ON routings(product_id);
-CREATE INDEX idx_routing_steps_routing_id ON routing_steps(routing_id);
+CREATE INDEX idx_routing_steps_header ON routing_steps(routing_header_id);
 CREATE INDEX idx_routing_steps_process_id ON routing_steps(process_id);
 CREATE INDEX idx_standards_product_id ON inspection_standards(product_id);
 CREATE INDEX idx_standards_process_id ON inspection_standards(process_id);
 CREATE INDEX idx_standards_type ON inspection_standards(inspection_type);
-CREATE INDEX idx_defect_codes_category ON defect_codes(defect_category);
-CREATE INDEX idx_defect_codes_severity ON defect_codes(defect_severity);
 CREATE INDEX idx_equipment_code ON equipment(equipment_code);
 CREATE INDEX idx_tools_equipment_id ON tools(equipment_id);
-CREATE INDEX idx_tools_status ON tools(status);
-CREATE INDEX idx_suppliers_status ON suppliers(status);
 CREATE INDEX idx_customers_active ON customers(is_active);
 
 -- Dynamic Parameters
@@ -1206,39 +1214,30 @@ CREATE INDEX idx_iqc_inspections_receipt ON iqc_inspections(receipt_id);
 CREATE INDEX idx_iqc_inspections_result ON iqc_inspections(result);
 CREATE INDEX idx_iqc_inspection_items_inspection ON iqc_inspection_items(inspection_id);
 CREATE INDEX idx_iqc_anomalies_status ON iqc_anomalies(status);
-CREATE INDEX idx_supplier_scores_supplier ON supplier_scores(supplier_id);
 
 -- IPQC
 CREATE INDEX idx_ipqc_fp_product ON ipqc_first_pieces(product_id);
 CREATE INDEX idx_ipqc_fp_process ON ipqc_first_pieces(process_id);
-CREATE INDEX idx_ipqc_fp_result ON ipqc_first_pieces(result);
 CREATE INDEX idx_ipqc_patrols_plan ON ipqc_patrols(plan_id);
 CREATE INDEX idx_ipqc_patrols_time ON ipqc_patrols(patrol_time);
-CREATE INDEX idx_ipqc_patrols_result ON ipqc_patrols(result);
 CREATE INDEX idx_ipqc_plans_equipment ON ipqc_patrol_plans(equipment_id);
 CREATE INDEX idx_ipqc_closure_wo ON ipqc_closure_status(work_order);
 
 -- SPC
 -- idx_spc_charts_name and idx_spc_charts_param defined inline in spc_control_charts table
--- CREATE INDEX idx_spc_charts_name ON spc_control_charts(name);
--- CREATE INDEX idx_spc_charts_param ON spc_control_charts(parameter_code);
--- idx_spc_dp_chart_subgroup defined inline in spc_data_points table
--- CREATE INDEX idx_spc_dp_chart_subgroup ON spc_data_points(chart_id, subgroup_index);
-CREATE INDEX idx_spc_triggers_rule ON spc_alert_triggers(rule_id);
+-- -- -- idx_spc_dp_chart_subgroup defined inline in spc_data_points table
+-- CREATE INDEX idx_spc_triggers_rule ON spc_alert_triggers(rule_id);
 CREATE INDEX idx_spc_triggers_chart_time ON spc_alert_triggers(chart_id, triggered_at);
 CREATE INDEX idx_spc_anova_chart ON spc_anova_results(chart_id);
 
 -- FQC/OQC
-CREATE INDEX idx_fqc_inspections_product ON fqc_inspections(product_id);
-CREATE INDEX idx_fqc_inspections_result ON fqc_inspections(result);
+CREATE INDEX idx_fqc_inspections_product ON fqc_inspections(work_order_id);
+CREATE INDEX idx_fqc_inspections_result ON fqc_inspections(conclusion);
 CREATE INDEX idx_fqc_items_inspection ON fqc_inspection_items(inspection_id);
-CREATE INDEX idx_oqc_releases_inspection ON oqc_releases(inspection_id);
 CREATE INDEX idx_oqc_releases_status ON oqc_releases(status);
-CREATE INDEX idx_product_batches_product ON product_batches(product_id);
-CREATE INDEX idx_product_batches_status ON product_batches(status);
 
 -- CAPA
-CREATE INDEX idx_defects_source ON defects(source);
+CREATE INDEX idx_defects_source ON defects(source_type);
 CREATE INDEX idx_defects_product ON defects(product_id);
 CREATE INDEX idx_defects_severity ON defects(severity);
 CREATE INDEX idx_capa_defect ON capa(defect_id);
@@ -1253,14 +1252,10 @@ CREATE INDEX idx_trace_sn ON trace_records(sn);
 CREATE INDEX idx_trace_type ON trace_records(trace_type);
 
 -- Complaints
-CREATE INDEX idx_complaints_customer ON complaints(customer_id);
 CREATE INDEX idx_complaints_product ON complaints(product_id);
-CREATE INDEX idx_complaints_status ON complaints(status);
 CREATE INDEX idx_d8_complaint ON d8_reports(complaint_id);
 
 -- Equipment
-CREATE INDEX idx_equip_param_mapping_equipment ON equipment_param_mappings(equipment_id);
-CREATE INDEX idx_equip_param_mapping_param ON equipment_param_mappings(param_id);
 CREATE INDEX idx_equip_status_history_equipment ON equipment_status_history(equipment_id);
 CREATE INDEX idx_equip_status_history_time ON equipment_status_history(started_at);
 CREATE INDEX idx_equip_correlation_equipment ON equipment_quality_correlation(equipment_id);
@@ -1277,16 +1272,174 @@ CREATE INDEX idx_ai_results_source ON ai_analysis_results(source_module, source_
 CREATE INDEX idx_ai_results_created ON ai_analysis_results(created_at);
 
 -- Documents
-CREATE INDEX idx_documents_status ON documents(status);
-CREATE INDEX idx_documents_type ON documents(doc_type);
-CREATE INDEX idx_doc_versions_document ON document_versions(document_id);
 
 -- Audits
-CREATE INDEX idx_audits_status ON audits(status);
-CREATE INDEX idx_audits_type ON audits(audit_type);
-CREATE INDEX idx_audits_date ON audits(plan_date);
 
 -- ============================================================================
 -- Note: Auth tables (roles, permissions, users, role_permissions) are already
 -- defined above. No duplicate definitions needed.
 -- ============================================================================
+
+-- ============================================================================
+-- 补充表定义（初始化时缺失的表）
+-- ============================================================================
+
+-- M15 - 企业组织层级
+CREATE TABLE IF NOT EXISTS organizations (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    code VARCHAR(50) NOT NULL COMMENT '组织编码',
+    name VARCHAR(200) NOT NULL COMMENT '组织名称',
+    level VARCHAR(20) NOT NULL COMMENT '层级：group/company/workshop/line',
+    parent_id BIGINT COMMENT '父级组织 ID',
+    sort_order INT DEFAULT 0 COMMENT '排序号',
+    is_active TINYINT(1) DEFAULT 1 COMMENT '是否启用',
+    location VARCHAR(500) COMMENT '位置/地址',
+    contact TEXT COMMENT '联系人信息 (JSON)',
+    description TEXT COMMENT '描述',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    created_by BIGINT COMMENT '创建人',
+    FOREIGN KEY (parent_id) REFERENCES organizations(id),
+    UNIQUE KEY uk_organizations_code (code),
+    INDEX idx_organizations_parent (parent_id),
+    INDEX idx_organizations_level (level)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- M05 - 包装确认
+CREATE TABLE IF NOT EXISTS packaging_confirmations (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    batch_id BIGINT NOT NULL COMMENT '关联批次',
+    packaging_method VARCHAR(200) NOT NULL COMMENT '包装方式',
+    qty_per_box INT COMMENT '每箱数量',
+    total_boxes INT COMMENT '总箱数',
+    label_printed TINYINT(1) DEFAULT 0 COMMENT '标签是否已打印',
+    confirmed_by INT NOT NULL COMMENT '确认人 ID',
+    confirmed_at DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '确认时间',
+    FOREIGN KEY (batch_id) REFERENCES product_batches(id),
+    INDEX idx_packaging_batch (batch_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- M04 - IPQC AI 风险评分历史
+CREATE TABLE IF NOT EXISTS ipqc_ai_risk_scores (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    equipment_id BIGINT NOT NULL COMMENT '关联设备',
+    process_id BIGINT NOT NULL COMMENT '关联工序',
+    work_order_id BIGINT COMMENT '关联工单',
+    risk_score INT DEFAULT 0 COMMENT '风险评分 0-100',
+    risk_level VARCHAR(20) DEFAULT 'normal' COMMENT '风险等级：normal/warning/critical',
+    factors_json TEXT COMMENT '风险因素分解 (JSON)',
+    trend_direction VARCHAR(10) COMMENT '趋势方向：stable/rising/falling',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (equipment_id) REFERENCES equipment(id),
+    FOREIGN KEY (process_id) REFERENCES processes(id),
+    INDEX idx_risk_equipment (equipment_id),
+    INDEX idx_risk_process (process_id),
+    INDEX idx_risk_created (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- M04 - 巡检计划 - 设备关联表（多对多中间表）
+CREATE TABLE IF NOT EXISTS ipqc_patrol_plan_equipment (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    patrol_plan_id BIGINT NOT NULL COMMENT '关联巡检计划',
+    equipment_id BIGINT NOT NULL COMMENT '关联设备',
+    sort_order INT DEFAULT 0 COMMENT '排序',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (patrol_plan_id) REFERENCES ipqc_patrol_plans(id) ON DELETE CASCADE,
+    FOREIGN KEY (equipment_id) REFERENCES equipment(id),
+    UNIQUE KEY uk_plan_equipment (patrol_plan_id, equipment_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- M09 - 客诉时间线事件
+CREATE TABLE IF NOT EXISTS complaint_events (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    complaint_id BIGINT NOT NULL COMMENT '关联客诉',
+    event_type VARCHAR(20) NOT NULL COMMENT '事件类型',
+    event_data TEXT COMMENT '事件数据（JSON）',
+    created_by BIGINT NOT NULL COMMENT '操作用户',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '发生时间',
+    FOREIGN KEY (complaint_id) REFERENCES complaints(id) ON DELETE CASCADE,
+    INDEX idx_events_complaint (complaint_id),
+    INDEX idx_events_type (event_type),
+    INDEX idx_events_created (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 工艺路线头表
+CREATE TABLE IF NOT EXISTS routing_headers (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    product_id BIGINT NOT NULL COMMENT '关联产品',
+    route_code VARCHAR(50) NOT NULL COMMENT '工艺路线编码',
+    route_name VARCHAR(200) NOT NULL COMMENT '工艺路线名称',
+    route_type VARCHAR(20) DEFAULT 'STD' COMMENT '类型',
+    description TEXT COMMENT '描述',
+    is_default TINYINT(1) DEFAULT 0 COMMENT '是否默认',
+    is_active TINYINT(1) DEFAULT 1 COMMENT '是否启用',
+    sort_order INT DEFAULT 0 COMMENT '排序',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (product_id) REFERENCES products(id),
+    UNIQUE KEY uk_routing_code (product_id, route_code),
+    INDEX idx_routing_product (product_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 系统字典类型
+CREATE TABLE IF NOT EXISTS sys_dict_types (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    type_code VARCHAR(50) NOT NULL COMMENT '字典类型编码',
+    type_name VARCHAR(200) NOT NULL COMMENT '字典类型名称',
+    is_system TINYINT(1) DEFAULT 0 COMMENT '是否系统内置',
+    status TINYINT(1) DEFAULT 1 COMMENT '状态',
+    remark TEXT COMMENT '备注',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uk_dict_type_code (type_code)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 系统字典项
+CREATE TABLE IF NOT EXISTS sys_dict_items (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    type_code VARCHAR(50) NOT NULL COMMENT '字典类型编码',
+    item_label VARCHAR(200) NOT NULL COMMENT '显示标签',
+    item_value VARCHAR(100) NOT NULL COMMENT '选项值',
+    sort_order INT DEFAULT 0 COMMENT '排序号',
+    color VARCHAR(20) COMMENT '颜色标识',
+    is_default TINYINT(1) DEFAULT 0 COMMENT '是否默认',
+    status TINYINT(1) DEFAULT 1 COMMENT '状态',
+    remark TEXT COMMENT '备注',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (type_code) REFERENCES sys_dict_types(type_code) ON DELETE CASCADE,
+    INDEX idx_dict_type (type_code),
+    UNIQUE KEY uk_dict_item (type_code, item_value)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 字典类型种子数据
+INSERT INTO sys_dict_types (type_code, type_name, is_system, status, remark) VALUES
+('inspection_type', '检验类型', 1, 1, 'IQC/IPQC/FQC/OQC'),
+('defect_severity', '缺陷严重度', 1, 1, 'MA/MI/CR'),
+('status', '状态', 1, 1, '通用状态'),
+('priority', '优先级', 1, 1, 'HIGH/MEDIUM/LOW'),
+('equipment_status', '设备状态', 1, 1, 'RUNNING/STOPPED/MAINTENANCE'),
+('org_level', '组织层级', 1, 1, 'group/company/workshop/line');
+
+-- 字典项种子数据
+INSERT INTO sys_dict_items (type_code, item_label, item_value, sort_order, is_default) VALUES
+('inspection_type', '来料检验', 'IQC', 1, 1),
+('inspection_type', '过程检验', 'IPQC', 2, 0),
+('inspection_type', '成品检验', 'FQC', 3, 0),
+('inspection_type', '出货检验', 'OQC', 4, 0),
+('defect_severity', '严重', 'MA', 1, 1),
+('defect_severity', '轻微', 'MI', 2, 0),
+('defect_severity', '致命', 'CR', 3, 0),
+('status', '启用', 'active', 1, 1),
+('status', '禁用', 'inactive', 2, 0),
+('priority', '高', 'HIGH', 1, 0),
+('priority', '中', 'MEDIUM', 2, 1),
+('priority', '低', 'LOW', 3, 0),
+('equipment_status', '运行中', 'RUNNING', 1, 1),
+('equipment_status', '停机', 'STOPPED', 2, 0),
+('equipment_status', '维护中', 'MAINTENANCE', 3, 0),
+('org_level', '集团', 'group', 1, 1),
+('org_level', '公司', 'company', 2, 0),
+('org_level', '车间', 'workshop', 3, 0),
+('org_level', '产线', 'line', 4, 0);
+
+-- Enable foreign key checks
+SET FOREIGN_KEY_CHECKS=1;

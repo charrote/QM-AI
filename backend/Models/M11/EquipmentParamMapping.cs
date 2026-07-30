@@ -33,6 +33,7 @@ public class EquipmentParamMapping
     public string SystemParamCode { get; set; } = string.Empty;
 
     /// <summary>参数分组</summary>
+    [Column("param_group_id")]
     public long? ParamGroupId { get; set; }
 
     /// <summary>数据类型：numeric / count / status</summary>

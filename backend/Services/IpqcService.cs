@@ -210,23 +210,40 @@ public class IpqcService
             query = query.Where(p => p.Status == req.Status);
 
         var total = await query.CountAsync();
-        var items = await query
+        var plans = await query
             .OrderByDescending(p => p.CreatedAt)
             .Skip((req.Page - 1) * req.PageSize)
             .Take(req.PageSize)
-            .Select(p => new IpqcPatrolPlanListDto
+            .ToListAsync();
+
+        var items = new List<IpqcPatrolPlanListDto>();
+        foreach (var p in plans)
+        {
+            var links = await _db.IpqcPatrolPlanEquipment
+                .Where(e => e.PatrolPlanId == p.Id)
+                .OrderBy(e => e.SortOrder)
+                .ToListAsync();
+
+            var equipmentIds = links.Select(l => l.EquipmentId).ToArray();
+            var equipmentNames = await _db.Equipment
+                .Where(e => equipmentIds.Contains(e.Id))
+                .Select(e => e.Name)
+                .ToListAsync();
+
+            items.Add(new IpqcPatrolPlanListDto
             {
                 Id = p.Id,
                 PlanNo = p.PlanNo,
                 ProcessId = p.ProcessId,
-                EquipmentId = p.EquipmentId,
+                EquipmentIds = equipmentIds,
+                EquipmentNames = equipmentNames.ToArray(),
                 PatrolIntervalMin = p.PatrolIntervalMin,
                 AutoGenerate = p.AutoGenerate,
                 Status = p.Status,
                 Inspector = p.Inspector,
                 CreatedAt = p.CreatedAt
-            })
-            .ToListAsync();
+            });
+        }
 
         return new PagedResult<IpqcPatrolPlanListDto>
         {
@@ -239,21 +256,26 @@ public class IpqcService
 
     public async Task<IpqcPatrolPlanListDto?> GetPatrolPlan(long id)
     {
-        return await _db.IpqcPatrolPlans
-            .Where(p => p.Id == id)
-            .Select(p => new IpqcPatrolPlanListDto
-            {
-                Id = p.Id,
-                PlanNo = p.PlanNo,
-                ProcessId = p.ProcessId,
-                EquipmentId = p.EquipmentId,
-                PatrolIntervalMin = p.PatrolIntervalMin,
-                AutoGenerate = p.AutoGenerate,
-                Status = p.Status,
-                Inspector = p.Inspector,
-                CreatedAt = p.CreatedAt
-            })
-            .FirstOrDefaultAsync();
+        var plan = await _db.IpqcPatrolPlans
+            .Include(p => p.EquipmentLinks)
+            .ThenInclude(el => el.Equipment)
+            .FirstOrDefaultAsync(p => p.Id == id);
+
+        if (plan == null) return null;
+
+        return new IpqcPatrolPlanListDto
+        {
+            Id = plan.Id,
+            PlanNo = plan.PlanNo,
+            ProcessId = plan.ProcessId,
+            EquipmentIds = plan.EquipmentLinks.Select(el => el.EquipmentId).ToArray(),
+            EquipmentNames = plan.EquipmentLinks.Select(el => el.Equipment?.Name ?? string.Empty).ToArray(),
+            PatrolIntervalMin = plan.PatrolIntervalMin,
+            AutoGenerate = plan.AutoGenerate,
+            Status = plan.Status,
+            Inspector = plan.Inspector,
+            CreatedAt = plan.CreatedAt
+        };
     }
 
     public async Task<IpqcPatrolPlanListDto> CreatePatrolPlan(CreateIpqcPatrolPlanDto dto)
@@ -264,7 +286,6 @@ public class IpqcService
         {
             PlanNo = planNo,
             ProcessId = dto.ProcessId,
-            EquipmentId = dto.EquipmentId,
             PatrolIntervalMin = dto.PatrolIntervalMin,
             AutoGenerate = dto.AutoGenerate,
             Inspector = dto.Inspector,
@@ -274,8 +295,28 @@ public class IpqcService
         _db.IpqcPatrolPlans.Add(entity);
         await _db.SaveChangesAsync();
 
-        // 如果启用自动生成，立即生成一批巡检任务
-        if (entity.AutoGenerate)
+        // 保存设备关联
+        if (dto.EquipmentIds != null && dto.EquipmentIds.Length > 0)
+        {
+            var links = dto.EquipmentIds.Select((eqId, idx) => new IpqcPatrolPlanEquipment
+            {
+                PatrolPlanId = entity.Id,
+                EquipmentId = eqId,
+                SortOrder = idx,
+                CreatedAt = DateTime.UtcNow
+            }).ToList();
+            _db.IpqcPatrolPlanEquipment.AddRange(links);
+            await _db.SaveChangesAsync();
+
+            // 同步更新 equipment_ids JSON 缓存
+            var jsonIds = System.Text.Json.JsonSerializer.Serialize(dto.EquipmentIds);
+            entity.EquipmentIds = jsonIds;
+            entity.UpdatedAt = DateTime.UtcNow;
+            await _db.SaveChangesAsync();
+        }
+
+        // 如果启用自动生成，为每个设备生成巡检任务
+        if (entity.AutoGenerate && dto.EquipmentIds != null && dto.EquipmentIds.Length > 0)
         {
             await AutoGeneratePatrols(entity.Id, null, DateTime.UtcNow, 4);
         }
@@ -285,8 +326,33 @@ public class IpqcService
 
     public async Task<IpqcPatrolPlanListDto?> UpdatePatrolPlan(long id, UpdateIpqcPatrolPlanDto dto)
     {
-        var entity = await _db.IpqcPatrolPlans.FindAsync(id);
+        var entity = await _db.IpqcPatrolPlans
+            .Include(p => p.EquipmentLinks)
+            .FirstOrDefaultAsync(p => p.Id == id);
         if (entity == null) return null;
+
+        if (dto.EquipmentIds != null)
+        {
+            // 删除旧的设备关联
+            var oldLinks = _db.IpqcPatrolPlanEquipment.Where(l => l.PatrolPlanId == id);
+            _db.IpqcPatrolPlanEquipment.RemoveRange(oldLinks);
+            await _db.SaveChangesAsync();
+
+            // 添加新的设备关联
+            var links = dto.EquipmentIds.Select((eqId, idx) => new IpqcPatrolPlanEquipment
+            {
+                PatrolPlanId = id,
+                EquipmentId = eqId,
+                SortOrder = idx,
+                CreatedAt = DateTime.UtcNow
+            }).ToList();
+            _db.IpqcPatrolPlanEquipment.AddRange(links);
+            await _db.SaveChangesAsync();
+
+            // 同步更新 equipment_ids JSON 缓存
+            var jsonIds = System.Text.Json.JsonSerializer.Serialize(dto.EquipmentIds);
+            entity.EquipmentIds = jsonIds;
+        }
 
         if (dto.PatrolIntervalMin.HasValue) entity.PatrolIntervalMin = dto.PatrolIntervalMin.Value;
         if (dto.AutoGenerate.HasValue) entity.AutoGenerate = dto.AutoGenerate.Value;
@@ -313,32 +379,43 @@ public class IpqcService
     // ═══════════════════════════════════════════════════════════════
 
     /// <summary>
-    /// 根据巡检计划自动生成一批巡检任务
+    /// 根据巡检计划自动生成一批巡检任务（每个设备独立生成）
     /// </summary>
     public async Task<List<IpqcPatrolListDto>> AutoGeneratePatrols(long planId, long? workOrderId, DateTime startTime, int count)
     {
-        var plan = await _db.IpqcPatrolPlans.FindAsync(planId);
+        var plan = await _db.IpqcPatrolPlans
+            .Include(p => p.EquipmentLinks)
+            .ThenInclude(el => el.Equipment)
+            .FirstOrDefaultAsync(p => p.Id == planId);
         if (plan == null || plan.Status != "active")
             throw new InvalidOperationException("巡检计划不存在或已暂停");
 
         var generated = new List<IpqcPatrol>();
-        for (int i = 0; i < count; i++)
+        int timeStep = 0;
+
+        // 为每个关联设备生成巡检任务
+        foreach (var link in plan.EquipmentLinks ?? Enumerable.Empty<IpqcPatrolPlanEquipment>())
         {
-            var patrolNo = await GeneratePatrolNo();
-            var patrol = new IpqcPatrol
+            var equipmentId = link.EquipmentId;
+            for (int i = 0; i < count; i++)
             {
-                PatrolNo = patrolNo,
-                PatrolPlanId = planId,
-                WorkOrderId = workOrderId,
-                ProcessId = plan.ProcessId,
-                EquipmentId = plan.EquipmentId,
-                InspectorId = 0, // will be assigned later
-                ScheduledTime = startTime.AddMinutes(i * plan.PatrolIntervalMin),
-                Status = "scheduled",
-                Conclusion = "pending"
-            };
-            _db.IpqcPatrols.Add(patrol);
-            generated.Add(patrol);
+                var patrolNo = await GeneratePatrolNo();
+                var patrol = new IpqcPatrol
+                {
+                    PatrolNo = patrolNo,
+                    PatrolPlanId = planId,
+                    WorkOrderId = workOrderId,
+                    ProcessId = plan.ProcessId,
+                    EquipmentId = equipmentId,
+                    InspectorId = 0, // will be assigned later
+                    ScheduledTime = startTime.AddMinutes(timeStep * plan.PatrolIntervalMin),
+                    Status = "scheduled",
+                    Conclusion = "pending"
+                };
+                _db.IpqcPatrols.Add(patrol);
+                generated.Add(patrol);
+                timeStep++;
+            }
         }
 
         await _db.SaveChangesAsync();

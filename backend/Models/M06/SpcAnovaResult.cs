@@ -11,6 +11,7 @@ public class SpcAnovaResult
     [Column("id")]
     public long Id { get; set; }
 
+    [Column("chart_id")]
     public long ChartId { get; set; }
 
     [Required]
@@ -18,18 +19,19 @@ public class SpcAnovaResult
     [Column("source")]
     public string Source { get; set; } = string.Empty; // operator, machine, material, method, environment
 
-    [Column(TypeName = "decimal(20,4)")]
+    [Column("sum_of_squares", TypeName = "decimal(20,4)")]
     public decimal SumOfSquares { get; set; }
 
+    [Column("degrees_freedom")]
     public int DegreesFreedom { get; set; }
 
-    [Column(TypeName = "decimal(20,4)")]
+    [Column("mean_square", TypeName = "decimal(20,4)")]
     public decimal MeanSquare { get; set; }
 
-    [Column(TypeName = "decimal(10,4)")]
+    [Column("f_ratio", TypeName = "decimal(10,4)")]
     public decimal FRatio { get; set; }
 
-    [Column(TypeName = "decimal(10,6)")]
+    [Column("p_value", TypeName = "decimal(10,6)")]
     public decimal PValue { get; set; }
 
     public bool Significant { get; set; } = false;

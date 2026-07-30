@@ -21,6 +21,7 @@ public class Complaint
     public string ComplaintCode { get; set; } = string.Empty;
 
     /// <summary>关联客户</summary>
+    [Column("customer_id")]
     public long CustomerId { get; set; }
 
     /// <summary>严重程度：critical / major / minor</summary>
@@ -47,6 +48,7 @@ public class Complaint
     public string Status { get; set; } = "new";
 
     /// <summary>5W2H 问题描述（JSON）</summary>
+    [Column("five_w2h_json")]
     public string? FiveW2HJson { get; set; }
 
     /// <summary>指派人</summary>

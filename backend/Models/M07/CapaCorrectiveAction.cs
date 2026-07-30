@@ -14,6 +14,7 @@ public class CapaCorrectiveAction
     [Column("id")]
     public long Id { get; set; }
 
+    [Column("capa_id")]
     public long CapaId { get; set; }
 
     /// <summary>措施描述</summary>
@@ -36,6 +37,7 @@ public class CapaCorrectiveAction
     [Column("status")]
     public string Status { get; set; } = "pending";
 
+    [Column("completed_at")]
     public DateTime? CompletedAt { get; set; }
     public string? Remarks { get; set; }
     [Column("created_at")]

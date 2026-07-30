@@ -25,6 +25,7 @@ public class EquipmentQualityCorrelation
     public DateOnly AnalysisDate { get; set; }
 
     /// <summary>关联分析结果（JSON）</summary>
+    [Column("correlation_data")]
     public string CorrelationData { get; set; } = "{}";
 
     [Column("created_at")]

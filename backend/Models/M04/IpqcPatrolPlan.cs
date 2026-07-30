@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace QM_AI.API.Models.M04;
 
 /// <summary>
-/// IPQC 巡检计划（按频次自动生成）
+/// IPQC 巡检计划（支持多设备）
 /// </summary>
 [Table("ipqc_patrol_plans")]
 public class IpqcPatrolPlan
@@ -24,10 +24,6 @@ public class IpqcPatrolPlan
     [Column("process_id")]
     public long ProcessId { get; set; }
 
-    /// <summary>关联设备</summary>
-    [Column("equipment_id")]
-    public long EquipmentId { get; set; }
-
     /// <summary>巡检间隔（分钟）</summary>
     [Column("patrol_interval_min")]
     public int PatrolIntervalMin { get; set; }
@@ -46,6 +42,10 @@ public class IpqcPatrolPlan
     [Column("inspector")]
     public string? Inspector { get; set; }
 
+    /// <summary>设备ID列表（JSON缓存，数据源为中间表 ipqc_patrol_plan_equipment）</summary>
+    [Column("equipment_ids")]
+    public string? EquipmentIds { get; set; }
+
     [Column("created_at")]
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     [Column("updated_at")]
@@ -53,4 +53,5 @@ public class IpqcPatrolPlan
 
     // Navigation
     public ICollection<IpqcPatrol>? Patrols { get; set; }
+    public ICollection<IpqcPatrolPlanEquipment>? EquipmentLinks { get; set; }
 }

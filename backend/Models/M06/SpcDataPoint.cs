@@ -11,6 +11,7 @@ public class SpcDataPoint
     [Column("id")]
     public long Id { get; set; }
 
+    [Column("chart_id")]
     public long ChartId { get; set; }
 
     [Column("subgroup_index")]
@@ -26,6 +27,7 @@ public class SpcDataPoint
     [Column("subgroup_range")]
     public decimal? SubgroupRange { get; set; } // R (or S for Xbar_S)
 
+    [Column("measured_at")]
     public DateTime MeasuredAt { get; set; }
 
     [Column("created_at")]

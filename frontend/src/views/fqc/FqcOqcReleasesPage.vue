@@ -215,7 +215,7 @@ onMounted(fetchList)
 <template>
   <div class="page-container">
     <!-- Page Header -->
-    <div class="page-header-banner page-header-banner--warning">
+    <div class="page-header-banner page-header-banner--primary">
       <div class="page-header-banner-main">
         <div class="page-header-banner-icon">
           <el-icon :size="28"><Document /></el-icon>

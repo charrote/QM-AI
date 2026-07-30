@@ -93,4 +93,144 @@ public class SysDictController : ControllerBase
             .ToDictionary(g => g.Key, g => g.ToList());
         return Ok(result);
     }
+
+    /// <summary>创建字典类型</summary>
+    [HttpPost("types")]
+    public async Task<ActionResult<SysDictTypeDto>> CreateType([FromBody] CreateSysDictTypeDto dto)
+    {
+        if (await _db.SysDictTypes.AnyAsync(t => t.TypeCode == dto.TypeCode))
+            return Conflict(new { message = $"字典类型编码 '{dto.TypeCode}' 已存在" });
+
+        var entity = new SysDictType
+        {
+            TypeCode = dto.TypeCode,
+            TypeName = dto.TypeName,
+            Remark = dto.Remark,
+            IsSystem = false,
+            Status = true,
+        };
+        _db.SysDictTypes.Add(entity);
+        await _db.SaveChangesAsync();
+        return CreatedAtAction(nameof(GetTypes), new { }, new SysDictTypeDto
+        {
+            Id = entity.Id, TypeCode = entity.TypeCode, TypeName = entity.TypeName,
+            IsSystem = entity.IsSystem, Status = entity.Status, Remark = entity.Remark,
+        });
+    }
+
+    /// <summary>更新字典类型</summary>
+    [HttpPut("types/{id:long}")]
+    public async Task<ActionResult<SysDictTypeDto>> UpdateType(long id, [FromBody] UpdateSysDictTypeDto dto)
+    {
+        var entity = await _db.SysDictTypes.FindAsync(id);
+        if (entity == null) return NotFound();
+        entity.TypeName = dto.TypeName ?? entity.TypeName;
+        entity.Remark = dto.Remark ?? entity.Remark;
+        entity.Status = dto.Status ?? entity.Status;
+        await _db.SaveChangesAsync();
+        return Ok(new SysDictTypeDto
+        {
+            Id = entity.Id, TypeCode = entity.TypeCode, TypeName = entity.TypeName,
+            IsSystem = entity.IsSystem, Status = entity.Status, Remark = entity.Remark,
+        });
+    }
+
+    /// <summary>删除字典类型</summary>
+    [HttpDelete("types/{id:long}")]
+    public async Task<IActionResult> DeleteType(long id)
+    {
+        var entity = await _db.SysDictTypes.FindAsync(id);
+        if (entity == null) return NotFound();
+        if (entity.IsSystem) return BadRequest(new { message = "系统内置字典类型不可删除" });
+        _db.SysDictTypes.Remove(entity);
+        await _db.SaveChangesAsync();
+        return NoContent();
+    }
+
+    /// <summary>创建字典项</summary>
+    [HttpPost("items")]
+    public async Task<ActionResult<SysDictItemDto>> CreateItem([FromBody] CreateSysDictItemDto dto)
+    {
+        var entity = new SysDictItem
+        {
+            TypeCode = dto.TypeCode,
+            ItemLabel = dto.ItemLabel,
+            ItemValue = dto.ItemValue,
+            SortOrder = dto.SortOrder,
+            Color = dto.Color,
+            Status = true,
+        };
+        _db.SysDictItems.Add(entity);
+        await _db.SaveChangesAsync();
+        return CreatedAtAction(nameof(GetItems), new { typeCode = entity.TypeCode }, new SysDictItemDto
+        {
+            Id = entity.Id, TypeCode = entity.TypeCode, ItemLabel = entity.ItemLabel,
+            ItemValue = entity.ItemValue, SortOrder = entity.SortOrder,
+            Color = entity.Color, IsDefault = entity.IsDefault, Status = entity.Status,
+        });
+    }
+
+    /// <summary>更新字典项</summary>
+    [HttpPut("items/{id:long}")]
+    public async Task<ActionResult<SysDictItemDto>> UpdateItem(long id, [FromBody] UpdateSysDictItemDto dto)
+    {
+        var entity = await _db.SysDictItems.FindAsync(id);
+        if (entity == null) return NotFound();
+        entity.ItemLabel = dto.ItemLabel ?? entity.ItemLabel;
+        entity.ItemValue = dto.ItemValue ?? entity.ItemValue;
+        entity.SortOrder = dto.SortOrder ?? entity.SortOrder;
+        entity.Color = dto.Color ?? entity.Color;
+        entity.Status = dto.Status ?? entity.Status;
+        await _db.SaveChangesAsync();
+        return Ok(new SysDictItemDto
+        {
+            Id = entity.Id, TypeCode = entity.TypeCode, ItemLabel = entity.ItemLabel,
+            ItemValue = entity.ItemValue, SortOrder = entity.SortOrder,
+            Color = entity.Color, IsDefault = entity.IsDefault, Status = entity.Status,
+        });
+    }
+
+    /// <summary>删除字典项</summary>
+    [HttpDelete("items/{id:long}")]
+    public async Task<IActionResult> DeleteItem(long id)
+    {
+        var entity = await _db.SysDictItems.FindAsync(id);
+        if (entity == null) return NotFound();
+        _db.SysDictItems.Remove(entity);
+        await _db.SaveChangesAsync();
+        return NoContent();
+    }
+
+    // ─── DTOs ─────────────────────────────────────────
+    public class CreateSysDictTypeDto
+    {
+        public string TypeCode { get; set; } = string.Empty;
+        public string TypeName { get; set; } = string.Empty;
+        public string? Remark { get; set; }
+    }
+
+    public class UpdateSysDictTypeDto
+    {
+        public string? TypeName { get; set; }
+        public string? Remark { get; set; }
+        public bool? Status { get; set; }
+    }
+
+    public class CreateSysDictItemDto
+    {
+        public string TypeCode { get; set; } = string.Empty;
+        public string ItemLabel { get; set; } = string.Empty;
+        public string ItemValue { get; set; } = string.Empty;
+        public int SortOrder { get; set; }
+        public string? Color { get; set; }
+    }
+
+    public class UpdateSysDictItemDto
+    {
+        public string? ItemLabel { get; set; }
+        public string? ItemValue { get; set; }
+        public int? SortOrder { get; set; }
+        public string? Color { get; set; }
+        public bool? Status { get; set; }
+    }
 }

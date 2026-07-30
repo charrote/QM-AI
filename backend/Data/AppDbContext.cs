@@ -61,6 +61,7 @@ public class AppDbContext : DbContext
     public DbSet<IpqcFirstPiece> IpqcFirstPieces { get; set; } = null!;
     public DbSet<IpqcFirstPieceItem> IpqcFirstPieceItems { get; set; } = null!;
     public DbSet<IpqcPatrolPlan> IpqcPatrolPlans { get; set; } = null!;
+    public DbSet<IpqcPatrolPlanEquipment> IpqcPatrolPlanEquipment { get; set; } = null!;
     public DbSet<IpqcPatrol> IpqcPatrols { get; set; } = null!;
     public DbSet<IpqcPatrolItem> IpqcPatrolItems { get; set; } = null!;
     public DbSet<IpqcAiRiskScore> IpqcAiRiskScores { get; set; } = null!;
@@ -418,6 +419,20 @@ public class AppDbContext : DbContext
             entity.HasMany(p => p.Patrols)
                   .WithOne(pa => pa.PatrolPlan)
                   .HasForeignKey(pa => pa.PatrolPlanId)
+                  .OnDelete(DeleteBehavior.Cascade);
+            entity.HasMany(p => p.EquipmentLinks)
+                  .WithOne(el => el.PatrolPlan)
+                  .HasForeignKey(el => el.PatrolPlanId)
+                  .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<IpqcPatrolPlanEquipment>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => new { e.PatrolPlanId, e.EquipmentId }).IsUnique();
+            entity.HasOne(e => e.Equipment)
+                  .WithMany()
+                  .HasForeignKey(e => e.EquipmentId)
                   .OnDelete(DeleteBehavior.Cascade);
         });
 

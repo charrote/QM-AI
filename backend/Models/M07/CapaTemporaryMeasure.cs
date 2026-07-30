@@ -14,6 +14,7 @@ public class CapaTemporaryMeasure
     [Column("id")]
     public long Id { get; set; }
 
+    [Column("capa_id")]
     public long CapaId { get; set; }
 
     /// <summary>措施描述</summary>
@@ -22,9 +23,11 @@ public class CapaTemporaryMeasure
     public string Description { get; set; } = string.Empty;
 
     /// <summary>执行人</summary>
+    [Column("executed_by")]
     public long? ExecutedBy { get; set; }
 
     /// <summary>执行时间</summary>
+    [Column("executed_at")]
     public DateTime? ExecutedAt { get; set; }
 
     [Column("created_at")]

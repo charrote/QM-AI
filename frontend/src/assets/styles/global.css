@@ -111,14 +111,16 @@ p {
   color: var(--el-text-color-regular);
   font-size: var(--font-sm);
   letter-spacing: 0.02em;
-  height: 42px;
+  height: 24px;
+  line-height: 24px;
   padding: 0 12px;
   border-bottom: 1px solid var(--el-border-color-light);
 }
 
 .el-table td.el-table__cell {
-  padding: 10px 12px;
-  height: 42px;
+  padding: 2px 12px;
+  height: 24px;
+  line-height: 20px;
   border-bottom: 1px solid var(--el-border-color-lighter);
 }
 

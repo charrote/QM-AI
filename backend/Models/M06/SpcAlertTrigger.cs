@@ -11,14 +11,19 @@ public class SpcAlertTrigger
     [Column("id")]
     public long Id { get; set; }
 
+    [Column("chart_id")]
     public long ChartId { get; set; }
 
+    [Column("rule_id")]
     public long RuleId { get; set; }
 
+    [Column("rule_number")]
     public int RuleNumber { get; set; }
 
+    [Column("triggered_at")]
     public DateTime TriggeredAt { get; set; } = DateTime.UtcNow;
 
+    [Column("violated_point_index")]
     public int ViolatedPointIndex { get; set; }
 
     [Column(TypeName = "json")]
@@ -26,6 +31,7 @@ public class SpcAlertTrigger
 
     public bool Resolved { get; set; } = false;
 
+    [Column("resolved_at")]
     public DateTime? ResolvedAt { get; set; }
 
     // Navigation

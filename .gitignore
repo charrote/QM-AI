@@ -16,15 +16,23 @@ yarn-error.log*
 .DS_Store
 Thumbs.db
 
+# Scripts (excluded from git)
+scripts/
+
 # Temporary scripts
 iqc_*.py
 iqc_*.mjs
 
 # Docker (local environment config, not for version control)
-.docker/
+docker/.env.*
+docker/.env.production
 daemon.json
 build-dev.bat
 build-dev.sh
+
+# Docker (tracked - production configs)
+docker/docker-compose.prod.yml
+docker/.env.example
 
 # IDE
 .idea/
