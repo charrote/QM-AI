@@ -4,6 +4,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Search, Plus, Edit, Delete, DataAnalysis, Refresh, DataLine, HelpFilled, WarningFilled, CircleCheck, CircleCheckFilled, Document, Bell, Connection, TrendCharts, ArrowLeft } from '@element-plus/icons-vue'
 import { spcApi } from '@/api/spc'
+import { processApi } from '@/api/basicData'
 import { inspectionItemApi } from '@/api/inspectionItem'
 import type { SpcControlChart, SpcControlChartDetail, CreateSpcControlChart, UpdateSpcControlChart, SpcDataPoint, SpcAnalysisReport, SpcAlertRule, SpcAlertTrigger, SpcAnovaResult, SpcAnovaRequest, SpcAnovaFactor, SpcDataSource, CreateSpcDataSource, BusinessInspectionData } from '@/types/spc'
 import type { InspectionItem } from '@/types/inspectionItem'
@@ -68,6 +69,29 @@ const dsForm = reactive<CreateSpcDataSource>({
 })
 const inspectionItemOptions = ref<InspectionItem[]>([])
 
+// Chart edit drawer
+const chartDrawerVisible = ref(false)
+const isEdit = ref(false)
+const chartForm = reactive<CreateSpcControlChart>({
+  name: '',
+  processId: undefined as any,
+  parameterCode: '',
+  chartType: 'Xbar_R',
+  subgroupSize: 5,
+  usl: undefined,
+  lsl: undefined,
+  targetValue: undefined,
+})
+
+// 工序列表
+const processOptions = ref<{ id: number; code: string; name: string }[]>([])
+const loadProcessOptions = async () => {
+  try {
+    const res = await processApi.list({ page: 1, pageSize: 999 })
+    processOptions.value = (res.items || []).map((p: any) => ({ id: p.id, code: p.code, name: p.name }))
+  } catch { /* ignore */ }
+}
+
 // Rule config
 const ruleConfigVisible = ref(false)
 
@@ -112,6 +136,7 @@ async function loadAll() {
       fetchDataPoints(),
       runAnalysis(),
       fetchAlertRules(),
+      loadProcessOptions(),
     ])
   } catch (e: any) {
     ElMessage.error('加载控制图详情失败: ' + (e.message || ''))
@@ -247,6 +272,57 @@ function renderLineChart(container: HTMLElement | undefined, title: string, cate
     window.removeEventListener('resize', resizeHandler1)
     window.addEventListener('resize', resizeHandler1)
   })
+}
+
+// ─── Chart Edit / Delete ──────────────────────────────────
+
+function openEditChart() {
+  if (!selectedChart.value) return
+  isEdit.value = true
+  chartForm.name = selectedChart.value.name
+  chartForm.processId = selectedChart.value.processId
+  chartForm.parameterCode = selectedChart.value.parameterCode
+  chartForm.chartType = selectedChart.value.chartType
+  chartForm.subgroupSize = selectedChart.value.subgroupSize
+  chartForm.usl = selectedChart.value.usl
+  chartForm.lsl = selectedChart.value.lsl
+  chartForm.targetValue = selectedChart.value.targetValue
+  chartDrawerVisible.value = true
+}
+
+async function saveChart() {
+  if (!chartForm.name || !chartForm.parameterCode) {
+    ElMessage.warning('请填写控制图名称和参数代码')
+    return
+  }
+  try {
+    if (isEdit.value) {
+      await spcApi.updateChart(chartId.value, chartForm)
+      ElMessage.success('保存成功')
+    } else {
+      await spcApi.createChart(chartForm)
+      ElMessage.success('创建成功')
+    }
+    chartDrawerVisible.value = false
+    await loadAll()
+  } catch (e: any) {
+    ElMessage.error(e?.message || '操作失败')
+  }
+}
+
+async function deleteChart() {
+  try {
+    await ElMessageBox.confirm('确认删除该控制图？删除后所有关联数据将被清除，此操作不可恢复。', '删除确认', {
+      type: 'warning',
+      confirmButtonText: '删除',
+      cancelButtonText: '取消',
+    })
+    await spcApi.deleteChart(chartId.value)
+    ElMessage.success('删除成功')
+    router.push('/spc/charts')
+  } catch (e: any) {
+    if (e !== 'cancel') ElMessage.error(e?.message || '删除失败')
+  }
 }
 
 // ─── Data Point CRUD ───────────────────────────────────
@@ -527,8 +603,10 @@ onMounted(loadAll)
         </div>
         <el-divider direction="vertical" class="header-divider" />
         <div class="header-actions-group">
-          <el-button size="small" @click="openAddDataPoint" type="success" round :icon="Plus">添加数据</el-button>
-          <el-button size="small" @click="runAnalysis" :loading="analysisLoading" type="primary" round :icon="Refresh">重新分析</el-button>
+          <el-button size="small" text @click="openEditChart" :icon="Edit">编辑</el-button>
+          <el-button size="small" text @click="openAddDataPoint" :icon="Plus">添加数据</el-button>
+          <el-button size="small" text @click="runAnalysis" :loading="analysisLoading" :icon="Refresh">重新分析</el-button>
+          <el-button size="small" text type="danger" @click="deleteChart">删除</el-button>
         </div>
       </div>
     </div>
@@ -717,7 +795,7 @@ onMounted(loadAll)
             </div>
             <div class="table-card">
               <el-table :data="dataPoints" stripe class="data-point-table" max-height="200">
-                <el-table-column prop="subgroupIndex" label="子组#" width="70" align="center" />
+                <el-table-column prop="subgroupIndex" label="子组#" width="80" align="center" />
                 <el-table-column label="测量值" min-width="200" show-overflow-tooltip>
                   <template #default="{ row }">
                     <code class="values-cell">{{ row.individualValues }}</code>
@@ -732,7 +810,7 @@ onMounted(loadAll)
                 <el-table-column label="测量时间" width="160">
                   <template #default="{ row }"><span class="time-cell">{{ formatDate(row.measuredAt) }}</span></template>
                 </el-table-column>
-                <el-table-column label="操作" width="70" fixed="right" align="center">
+                <el-table-column label="操作" width="90" fixed="right" align="center">
                   <template #default="{ row }">
                     <el-popconfirm title="确认删除该数据点？" @confirm="spcApi.deleteDataPoint(row.id).then(() => { fetchDataPoints(); runAnalysis() })">
                       <template #reference>
@@ -1027,6 +1105,59 @@ onMounted(loadAll)
       </el-tabs>
     </div>
 
+    <!-- Edit Chart Drawer -->
+    <el-drawer v-model="chartDrawerVisible" :title="isEdit ? '编辑控制图' : '新建控制图'" size="520px" direction="rtl" :close-on-click-modal="false" :show-close="true">
+      <el-form :model="chartForm" label-width="110px" label-position="left">
+        <div class="form-section-title">
+          <el-icon><Document /></el-icon>基本信息
+        </div>
+        <el-form-item label="控制图名称" required>
+          <el-input v-model="chartForm.name" placeholder="如：精加工-CNC-001 Xbar-R图" clearable />
+        </el-form-item>
+        <el-form-item label="参数代码" required>
+          <el-input v-model="chartForm.parameterCode" placeholder="如：DIM_A" clearable />
+        </el-form-item>
+        <el-form-item label="工序">
+          <el-select v-model="chartForm.processId" placeholder="请选择工序" filterable style="width:100%">
+            <el-option v-for="p in processOptions" :key="p.id" :label="`${p.code} - ${p.name}`" :value="p.id" />
+          </el-select>
+        </el-form-item>
+
+        <el-divider />
+        <div class="form-section-title">
+          <el-icon><DataAnalysis /></el-icon>图表配置
+        </div>
+        <el-form-item label="控制图类型">
+          <el-select v-model="chartForm.chartType" style="width:100%">
+            <el-option v-for="opt in CHART_TYPE_OPTIONS" :key="opt.value" :label="opt.label" :value="opt.value" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="子组大小(n)">
+          <el-input-number v-model="chartForm.subgroupSize" :min="2" :max="25" style="width:100%" />
+        </el-form-item>
+
+        <el-divider />
+        <div class="form-section-title">
+          <el-icon><Warning /></el-icon>规格限
+        </div>
+        <el-form-item label="USL(上限)">
+          <el-input-number v-model="chartForm.usl" :min="0" :step="0.001" :precision="6" placeholder="规格上限" style="width:100%" />
+        </el-form-item>
+        <el-form-item label="LSL(下限)">
+          <el-input-number v-model="chartForm.lsl" :min="0" :step="0.001" :precision="6" placeholder="规格下限" style="width:100%" />
+        </el-form-item>
+        <el-form-item label="目标值">
+          <el-input-number v-model="chartForm.targetValue" :min="0" :step="0.001" :precision="6" style="width:100%" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <div class="drawer-footer">
+          <el-button @click="chartDrawerVisible = false">取消</el-button>
+          <el-button type="primary" @click="saveChart">保存</el-button>
+        </div>
+      </template>
+    </el-drawer>
+
     <!-- Add Data Point Dialog -->
     <el-dialog v-model="dpDialogVisible" title="添加数据点" width="480px" :close-on-click-modal="false" class="styled-dialog">
       <el-form :model="dpForm" label-width="96px" label-position="left">
@@ -1228,7 +1359,25 @@ onMounted(loadAll)
 .header-actions-group {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
+}
+
+.header-actions-group .el-button--text {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.header-actions-group .el-button--text:hover {
+  background: var(--el-fill-color-light, #f5f7fa);
+}
+
+.header-actions-group .el-button--danger {
+  color: var(--el-color-danger, #f56c6c);
+}
+
+.header-actions-group .el-button--danger:hover {
+  background: var(--el-color-danger-light-9, #fef0f0);
+  color: var(--el-color-danger, #f56c6c);
 }
 
 /* ─── Body ────────────────────────────────────── */
@@ -1253,7 +1402,7 @@ onMounted(loadAll)
 .spc-tabs :deep(.el-tabs__content) {
   flex: 1;
   overflow-y: auto;
-  padding: 12px;
+  padding: 12px 20px;
 }
 
 .spc-tabs :deep(.el-tabs__item) {
@@ -1421,36 +1570,53 @@ onMounted(loadAll)
 }
 
 :global(.cpk-tooltip) {
-  max-width: 360px;
-  line-height: 1.6;
-  font-size: 12px;
+  max-width: 400px;
+  line-height: 1.75;
+  font-size: 13px;
+  padding: 12px 14px;
+  background: var(--el-bg-color, #ffffff) !important;
+  color: var(--el-text-color-primary, #303133) !important;
+  border: 1px solid var(--el-border-color, #e4e7ed) !important;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15) !important;
+  border-radius: 10px !important;
 }
 
 :global(.cpk-tooltip .tip-title) {
-  font-weight: 600;
-  font-size: 13px;
-  color: #303133;
-  margin-bottom: 4px;
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--el-text-color-primary, #303133) !important;
+  margin-bottom: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--el-border-color-lighter, #ebeef5);
+  letter-spacing: 0.3px;
 }
 
 :global(.cpk-tooltip .tip-desc) {
-  color: #606266;
-  margin-bottom: 4px;
+  color: var(--el-text-color-regular, #606266) !important;
+  margin-bottom: 8px;
+  line-height: 1.8;
 }
 
 :global(.cpk-tooltip .tip-formula) {
-  color: #409eff;
-  font-family: 'Courier New', monospace;
-  background: #ecf5ff;
-  padding: 2px 6px;
-  border-radius: 3px;
-  margin-bottom: 4px;
-  font-size: 12px;
+  color: var(--el-color-primary, #409eff) !important;
+  font-family: 'Courier New', 'SF Mono', monospace;
+  background: var(--el-fill-color-light, #ecf5ff) !important;
+  padding: 6px 10px;
+  border-radius: 6px;
+  margin-bottom: 8px;
+  font-size: 13px;
+  border-left: 3px solid var(--el-color-primary, #409eff);
+  letter-spacing: 0.2px;
 }
 
 :global(.cpk-tooltip .tip-criteria) {
-  color: #909399;
-  font-size: 11px;
+  color: var(--el-text-color-secondary, #909399) !important;
+  font-size: 12px;
+  line-height: 1.7;
+  padding: 6px 10px;
+  background: var(--el-fill-color-lighter, #f2f3f5) !important;
+  border-radius: 6px;
+  letter-spacing: 0.2px;
 }
 
 /* ─── Charts ─────────────────────────────────── */
@@ -1956,6 +2122,15 @@ onMounted(loadAll)
   display: flex;
   justify-content: flex-end;
   gap: 10px;
+}
+
+.drawer-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 12px 20px;
+  border-top: 1px solid var(--el-border-color-lighter, #ebeef5);
+  margin: 0 -20px -20px;
 }
 
 .styled-dialog :deep(.el-dialog__header) {

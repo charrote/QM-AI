@@ -3,6 +3,7 @@ import { ref, onMounted, reactive, computed, nextTick, watch, onUnmounted } from
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Search, MoreFilled, Edit, Delete, Refresh, Setting, Clock, TrendCharts, CircleCheck, Top, Document, Warning, InfoFilled } from '@element-plus/icons-vue'
 import { spcApi } from '@/api/spc'
+import { processApi } from '@/api/basicData'
 import { inspectionItemApi } from '@/api/inspectionItem'
 import type { SpcControlChart, SpcControlChartDetail, CreateSpcControlChart, UpdateSpcControlChart } from '@/types/spc'
 import type { SpcDataPoint, SpcAnalysisReport, SpcRuleViolation, SpcAlertRule, UpdateSpcAlertRule } from '@/types/spc'
@@ -35,9 +36,8 @@ const chartQuery = reactive<PagedRequest>({ page: 1, pageSize: 20, keyword: '' }
 const selectedChartId = ref<number | null>(null)
 const selectedChart = ref<SpcControlChartDetail | null>(null)
 
-// Chart CRUD dialog
-const chartDialogVisible = ref(false)
-const chartDialogTitle = ref('')
+// Chart CRUD drawer
+const chartDrawerVisible = ref(false)
 const isEdit = ref(false)
 const chartForm = reactive<CreateSpcControlChart>({
   name: '',
@@ -77,6 +77,15 @@ const triggerQuery = reactive<PagedRequest>({ page: 1, pageSize: 20 })
 // ANOVA
 const anovaResults = ref<SpcAnovaResult[]>([])
 const anovaLoading = ref(false)
+
+// 工序列表
+const processOptions = ref<{ id: number; code: string; name: string }[]>([])
+const loadProcessOptions = async () => {
+  try {
+    const res = await processApi.list({ page: 1, pageSize: 999 })
+    processOptions.value = (res.items || []).map((p: any) => ({ id: p.id, code: p.code, name: p.name }))
+  } catch { /* ignore */ }
+}
 
 // Data Sources (贯通S3/S4/S5)
 const dataSources = ref<SpcDataSource[]>([])
@@ -194,22 +203,20 @@ async function selectChart(id: number) {
 
 function openCreateChart() {
   isEdit.value = false
-  chartDialogTitle.value = '新建SPC控制图'
   chartForm.name = ''
-  chartForm.processId = 0
+  chartForm.processId = undefined
   chartForm.parameterCode = ''
   chartForm.chartType = 'Xbar_R'
   chartForm.subgroupSize = 5
   chartForm.usl = undefined
   chartForm.lsl = undefined
   chartForm.targetValue = undefined
-  chartDialogVisible.value = true
+  chartDrawerVisible.value = true
 }
 
 function openEditChart() {
   if (!selectedChart.value) return
   isEdit.value = true
-  chartDialogTitle.value = '编辑SPC控制图'
   chartForm.name = selectedChart.value.name
   chartForm.processId = selectedChart.value.processId
   chartForm.parameterCode = selectedChart.value.parameterCode
@@ -218,7 +225,7 @@ function openEditChart() {
   chartForm.usl = selectedChart.value.usl
   chartForm.lsl = selectedChart.value.lsl
   chartForm.targetValue = selectedChart.value.targetValue
-  chartDialogVisible.value = true
+  chartDrawerVisible.value = true
 }
 
 async function saveChart() {
@@ -757,7 +764,7 @@ watch(activeTab, (tab) => {
 // ═════════════════════════════════════════════════════════════════
 
 onMounted(async () => {
-  await fetchCharts()
+  await Promise.all([fetchCharts(), loadProcessOptions()])
 })
 
 onUnmounted(() => {
@@ -885,10 +892,10 @@ onUnmounted(() => {
             </div>
           </div>
           <div class="detail-actions">
-            <el-button size="small" @click="openEditChart" :icon="Edit">编辑</el-button>
-            <el-button size="small" @click="openAddDataPoint" type="success" :icon="Plus">添加数据</el-button>
-            <el-button size="small" @click="runAnalysis" :loading="analysisLoading" type="primary" :icon="Refresh">重新分析</el-button>
-            <el-button size="small" @click="deleteChart(selectedChartId!)" type="danger" plain :icon="Delete">删除</el-button>
+            <el-button size="small" text @click="openEditChart" :icon="Edit">编辑</el-button>
+            <el-button size="small" text @click="openAddDataPoint" :icon="Plus">添加数据</el-button>
+            <el-button size="small" text @click="runAnalysis" :loading="analysisLoading" :icon="Refresh">重新分析</el-button>
+            <el-button size="small" text type="danger" @click="deleteChart(selectedChartId!)">删除</el-button>
           </div>
         </div>
 
@@ -1014,7 +1021,7 @@ onUnmounted(() => {
                 <el-button size="small" text @click="fetchDataPoints">刷新</el-button>
               </div>
               <el-table :data="dataPoints" stripe  max-height="200" v-loading="dataPointsLoading">
-                <el-table-column prop="subgroupIndex" label="子组#" width="70" />
+                <el-table-column prop="subgroupIndex" label="子组#" width="80" />
                 <el-table-column prop="individualValues" label="测量值" min-width="200">
                   <template #default="{ row }">
                     {{ row.individualValues }}
@@ -1029,7 +1036,7 @@ onUnmounted(() => {
                 <el-table-column prop="measuredAt" label="测量时间" width="160">
                   <template #default="{ row }">{{ formatDate(row.measuredAt) }}</template>
                 </el-table-column>
-                <el-table-column label="操作" width="60" fixed="right">
+                <el-table-column label="操作" width="80" fixed="right">
                   <template #default="{ row }">
                     <el-button size="small" text type="danger" @click="spcApi.deleteDataPoint(row.id).then(() => { fetchDataPoints(); runAnalysis() })">删除</el-button>
                   </template>
@@ -1118,37 +1125,40 @@ onUnmounted(() => {
             <template #label>
               <el-icon><Bell /></el-icon><span>报警记录</span>
             </template>
-            <el-table :data="triggers" stripe  v-loading="loading">
-              <el-table-column prop="ruleNumber" label="规则" width="60">
-                <template #default="{ row }">{{ `#${row.ruleNumber}` }}</template>
-              </el-table-column>
-              <el-table-column prop="ruleName" label="规则名称" min-width="160" />
-              <el-table-column prop="violatedPointIndex" label="违规点" width="100">
-                <template #default="{ row }">点 #{{ row.violatedPointIndex + 1 }}</template>
-              </el-table-column>
-              <el-table-column prop="detail" label="详情" min-width="200">
-                <template #default="{ row }">
-                  <template v-if="row.detail">
-                    {{ safeJsonParse(row.detail)?.description || row.detail }}
+            <div class="table-card">
+              <el-table :data="triggers" stripe class="data-card__table" v-loading="loading">
+                <el-table-column prop="ruleNumber" label="规则" width="60">
+                  <template #default="{ row }">{{ `#${row.ruleNumber}` }}</template>
+                </el-table-column>
+                <el-table-column prop="ruleName" label="规则名称" min-width="160" />
+                <el-table-column prop="violatedPointIndex" label="违规点" width="100">
+                  <template #default="{ row }">点 #{{ row.violatedPointIndex + 1 }}</template>
+                </el-table-column>
+                <el-table-column prop="detail" label="详情" min-width="200">
+                  <template #default="{ row }">
+                    <template v-if="row.detail">
+                      {{ safeJsonParse(row.detail)?.description || row.detail }}
+                    </template>
                   </template>
-                </template>
-              </el-table-column>
-              <el-table-column prop="triggeredAt" label="触发时间" width="160">
-                <template #default="{ row }">{{ formatDate(row.triggeredAt) }}</template>
-              </el-table-column>
-              <el-table-column label="状态" width="80">
-                <template #default="{ row }">
-                  <el-tag :type="row.resolved ? 'success' : 'danger'" size="small">
-                    {{ row.resolved ? '已处理' : '待处理' }}
-                  </el-tag>
-                </template>
-              </el-table-column>
-              <el-table-column label="操作" width="100" fixed="right">
-                <template #default="{ row }">
-                  <el-button v-if="!row.resolved" size="small" text type="primary" @click="resolveTrigger(row.id)">标记已处理</el-button>
-                </template>
-              </el-table-column>
-            </el-table>
+                </el-table-column>
+                <el-table-column prop="triggeredAt" label="触发时间" width="160">
+                  <template #default="{ row }">{{ formatDate(row.triggeredAt) }}</template>
+                </el-table-column>
+                <el-table-column label="状态" width="100" align="center">
+                  <template #default="{ row }">
+                    <el-tag :type="row.resolved ? 'success' : 'danger'" size="small" effect="dark" round>
+                      {{ row.resolved ? '已处理' : '待处理' }}
+                    </el-tag>
+                  </template>
+                </el-table-column>
+                <el-table-column label="操作" width="130" fixed="right" align="center">
+                  <template #default="{ row }">
+                    <el-button v-if="!row.resolved" size="small" type="primary" @click="resolveTrigger(row.id)">标记已处理</el-button>
+                    <span v-else class="resolved-text">—</span>
+                  </template>
+                </el-table-column>
+              </el-table>
+            </div>
             <div class="pagination-row">
               <el-pagination
                 v-model:current-page="triggerQuery.page"
@@ -1308,8 +1318,8 @@ onUnmounted(() => {
       </div>
     </div>
 
-    <!-- ── Create/Edit Chart Dialog ── -->
-    <el-dialog v-model="chartDialogVisible" :title="chartDialogTitle" width="560px" :close-on-click-modal="false">
+    <!-- ── Create/Edit Chart Drawer ── -->
+    <el-drawer v-model="chartDrawerVisible" :title="isEdit ? '编辑控制图' : '新建控制图'" size="520px" direction="rtl" :close-on-click-modal="false" :show-close="true">
       <el-form :model="chartForm" label-width="110px" label-position="left">
         <div class="form-section-title">
           <el-icon><Document /></el-icon>基本信息
@@ -1320,8 +1330,10 @@ onUnmounted(() => {
         <el-form-item label="参数代码" required>
           <el-input v-model="chartForm.parameterCode" placeholder="如：DIM_A" clearable />
         </el-form-item>
-        <el-form-item label="工序ID">
-          <el-input-number v-model="chartForm.processId" :min="0" :step="1" style="width:100%" />
+        <el-form-item label="工序">
+          <el-select v-model="chartForm.processId" placeholder="请选择工序" filterable style="width:100%">
+            <el-option v-for="p in processOptions" :key="p.id" :label="`${p.code} - ${p.name}`" :value="p.id" />
+          </el-select>
         </el-form-item>
 
         <el-divider />
@@ -1352,10 +1364,12 @@ onUnmounted(() => {
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="chartDialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="saveChart">保存</el-button>
+        <div class="drawer-footer">
+          <el-button @click="chartDrawerVisible = false">取消</el-button>
+          <el-button type="primary" @click="saveChart">保存</el-button>
+        </div>
       </template>
-    </el-dialog>
+    </el-drawer>
 
     <!-- ── Add Data Point Dialog ── -->
     <el-dialog v-model="dpDialogVisible" title="添加数据点" width="480px" :close-on-click-modal="false">
@@ -1736,8 +1750,27 @@ onUnmounted(() => {
 
 .detail-actions {
   display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: nowrap;
+}
+
+.detail-actions .el-button--text {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.detail-actions .el-button--text:hover {
+  background: var(--el-fill-color-light, #f5f7fa);
+}
+
+.detail-actions .el-button--danger {
+  color: var(--el-color-danger, #f56c6c);
+}
+
+.detail-actions .el-button--danger:hover {
+  background: var(--el-color-danger-light-9, #fef0f0);
+  color: var(--el-color-danger, #f56c6c);
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -1753,7 +1786,7 @@ onUnmounted(() => {
 .spc-tabs :deep(.el-tabs__content) {
   flex: 1;
   overflow-y: auto;
-  padding: 14px 0;
+  padding: 14px 16px;
 }
 
 .spc-tabs :deep(.el-tabs__item) {
@@ -1885,40 +1918,54 @@ onUnmounted(() => {
    ═══════════════════════════════════════════════════════════════ */
 
 :global(.cpk-tooltip) {
-  max-width: 380px;
-  line-height: 1.7;
-  font-size: 12px;
-  padding: 8px;
+  max-width: 400px;
+  line-height: 1.75;
+  font-size: 13px;
+  padding: 12px 14px;
+  background: var(--el-bg-color, #ffffff) !important;
+  color: var(--el-text-color-primary, #303133) !important;
+  border: 1px solid var(--el-border-color, #e4e7ed) !important;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15) !important;
+  border-radius: 10px !important;
 }
 
 :global(.cpk-tooltip .tip-title) {
-  font-weight: 600;
-  font-size: 13px;
-  color: #303133;
-  margin-bottom: 6px;
-  padding-bottom: 4px;
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--el-text-color-primary, #303133) !important;
+  margin-bottom: 8px;
+  padding-bottom: 8px;
   border-bottom: 1px solid var(--el-border-color-lighter, #ebeef5);
+  letter-spacing: 0.3px;
 }
 
 :global(.cpk-tooltip .tip-desc) {
-  color: #606266;
-  margin-bottom: 6px;
+  color: var(--el-text-color-regular, #606266) !important;
+  margin-bottom: 8px;
+  line-height: 1.8;
 }
 
 :global(.cpk-tooltip .tip-formula) {
-  color: #409eff;
-  font-family: 'Courier New', monospace;
-  background: #ecf5ff;
-  padding: 4px 8px;
-  border-radius: 4px;
-  margin-bottom: 6px;
-  font-size: 12px;
+  color: var(--el-color-primary, #409eff) !important;
+  font-family: 'Courier New', 'SF Mono', monospace;
+  background: var(--el-fill-color-light, #ecf5ff) !important;
+  padding: 6px 10px;
+  border-radius: 6px;
+  margin-bottom: 8px;
+  font-size: 13px;
   display: block;
+  border-left: 3px solid var(--el-color-primary, #409eff);
+  letter-spacing: 0.2px;
 }
 
 :global(.cpk-tooltip .tip-criteria) {
-  color: #909399;
-  font-size: 11px;
+  color: var(--el-text-color-secondary, #909399) !important;
+  font-size: 12px;
+  line-height: 1.7;
+  padding: 6px 10px;
+  background: var(--el-fill-color-lighter, #f2f3f5) !important;
+  border-radius: 6px;
+  letter-spacing: 0.2px;
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -2255,9 +2302,23 @@ onUnmounted(() => {
   overflow: hidden;
 }
 
+.resolved-text {
+  color: var(--el-text-color-placeholder, #c0c4cc);
+  font-size: 12px;
+}
+
 .rule-config-table :deep(.el-table th) {
   background: var(--el-fill-color-light, #f5f7fa);
   font-weight: 600;
   font-size: 12px;
+}
+
+.drawer-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 12px 20px;
+  border-top: 1px solid var(--el-border-color-lighter, #ebeef5);
+  margin: 0 -20px -20px;
 }
 </style>
