@@ -49,6 +49,9 @@ dist/
 build/
 *.tsbuildinfo
 
+# Frontend unrelated tests (untracked)
+frontend/tests/
+
 # .NET build artifacts
 backend/bin/
 backend/obj/
