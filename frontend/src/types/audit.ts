@@ -63,7 +63,8 @@ export interface UpdateFindingStatus {
 }
 
 export interface VerifyFinding {
-  verifiedBy: number
+  verifierId: string
+  passed: boolean
 }
 
 // ─── Constants ──────────────────────────────────────────

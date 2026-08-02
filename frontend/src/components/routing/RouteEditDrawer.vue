@@ -1,66 +1,57 @@
 <template>
-  <el-drawer
-    v-model="visible"
-    :title="isEdit ? '编辑工序步骤' : '新增工序步骤'"
-    size="520px"
-    direction="rtl"
-    :close-on-click-modal="false"
-    :show-close="false"
-    :destroy-on-close="false"
-    :append-to-body="true"
-    @keydown.esc.prevent
-  >
-    <el-form
-      ref="formRef"
-      :model="formData"
-      label-width="100px"
-      label-position="top"
-      size="default"
-      :rules="rules"
-      class="edit-form"
-    >
-      <el-form-item label="工序" prop="processId">
-        <el-select
-          v-model="formData.processId"
-          filterable
-          remote
-          :remote-method="searchProcess"
-          :loading="processLoading"
-          placeholder="搜索工序名称或编码"
-          style="width: 100%"
-          @change="onProcessChange"
-        >
-          <el-option
-            v-for="p in processOptions"
-            :key="p.id"
-            :label="`${p.code} - ${p.name}`"
-            :value="p.id"
+  <RightPanel v-model:visible="visible" :title="isEdit ? '编辑工序步骤' : '新增工序步骤'" :width="520">
+    <template #body>
+      <el-form
+        ref="formRef"
+        :model="formData"
+        label-width="100px"
+        label-position="top"
+        size="default"
+        :rules="rules"
+        class="edit-form"
+      >
+        <el-form-item label="工序" prop="processId">
+          <el-select
+            v-model="formData.processId"
+            filterable
+            remote
+            :remote-method="searchProcess"
+            :loading="processLoading"
+            placeholder="搜索工序名称或编码"
+            style="width: 100%"
+            @change="onProcessChange"
+          >
+            <el-option
+              v-for="p in processOptions"
+              :key="p.id"
+              :label="`${p.code} - ${p.name}`"
+              :value="p.id"
+            />
+          </el-select>
+        </el-form-item>
+
+        <el-form-item label="标准工时(min)" prop="standardTimeMinutes">
+          <el-input-number
+            v-model="formData.standardTimeMinutes"
+            :min="0"
+            :max="9999"
+            :step="0.5"
+            :precision="1"
+            style="width: 100%"
+            placeholder="请输入标准工时"
           />
-        </el-select>
-      </el-form-item>
+        </el-form-item>
 
-      <el-form-item label="标准工时(min)" prop="standardTimeMinutes">
-        <el-input-number
-          v-model="formData.standardTimeMinutes"
-          :min="0"
-          :max="9999"
-          :step="0.5"
-          :precision="1"
-          style="width: 100%"
-          placeholder="请输入标准工时"
-        />
-      </el-form-item>
-
-      <el-form-item label="备注" prop="description">
-        <el-input
-          v-model="formData.description"
-          type="textarea"
-          :rows="3"
-          placeholder="请输入备注（可选）"
-        />
-      </el-form-item>
-    </el-form>
-
+        <el-form-item label="备注" prop="description">
+          <el-input
+            v-model="formData.description"
+            type="textarea"
+            :rows="3"
+            placeholder="请输入备注（可选）"
+          />
+        </el-form-item>
+      </el-form>
+    </template>
     <template #footer>
       <div class="drawer-footer">
         <el-button @click="visible = false">取消</el-button>
@@ -69,12 +60,13 @@
         </el-button>
       </div>
     </template>
-  </el-drawer>
+  </RightPanel>
 </template>
 
 <script setup lang="ts">
 import { ref, reactive, watch } from 'vue'
 import { ElMessage } from 'element-plus'
+import RightPanel from '@/components/layout/RightPanel.vue'
 import type { Process } from '@/types/basicData'
 import { processApi } from '@/api/basicData'
 import { updateStep, batchCreateSteps } from '@/api/routing'

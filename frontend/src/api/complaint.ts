@@ -31,6 +31,10 @@ export const complaintApi = {
     return request.get(`${BASE}/${id}/timeline`).then(r => r.data)
   },
 
+  stats(): Promise<any> {
+    return request.get(`${BASE}/stats`).then(r => r.data)
+  },
+
   // ─── D8 Reports ────────────────────────────────────────
   // Note: D8 reports are managed via /api/v1/m09/d8reports controller
 

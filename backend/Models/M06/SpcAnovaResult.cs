@@ -34,6 +34,7 @@ public class SpcAnovaResult
     [Column("p_value", TypeName = "decimal(10,6)")]
     public decimal PValue { get; set; }
 
+    [Column("significant")]
     public bool Significant { get; set; } = false;
 
     [Column("analysis_date")]

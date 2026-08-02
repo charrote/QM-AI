@@ -1,6 +1,7 @@
 import axios, { type AxiosError, type InternalAxiosRequestConfig } from 'axios'
 import { useAuthStore } from '@/stores/authStore'
 import { ElMessage } from 'element-plus'
+import router from '@/router'
 
 function serializeParams(params: Record<string, any>): string {
   const parts: string[] = []
@@ -175,9 +176,10 @@ request.interceptors.response.use(
         return request(originalRequest)
       } catch (refreshError) {
         processQueue(refreshError, null)
-        authStore.logout(() => {
-          window.location.href = '/login'
-        })
+        // 清除认证状态并跳转到登录页
+        authStore.clearAuth()
+        router.push({ name: 'Login', query: { redirect: window.location.pathname } })
+        // 刷新失败时不重复显示错误消息（authStore 已清除状态，路由守卫会处理跳转）
         return Promise.reject(refreshError)
       } finally {
         isRefreshing = false
@@ -189,7 +191,10 @@ request.interceptors.response.use(
     if (!originalRequest._silent) {
       // Use ElMessage.error for 4xx/5xx, silent for 401 (already handled)
       if (error.response?.status && error.response.status >= 400) {
-        ElMessage.error(msg)
+        // 401 已在 token 刷新流程中处理，不重复显示
+        if (error.response.status !== 401) {
+          ElMessage.error(msg)
+        }
       }
     }
     return Promise.reject(error)

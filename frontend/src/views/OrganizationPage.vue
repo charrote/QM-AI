@@ -11,6 +11,8 @@ import { organizationApi } from '@/api/organization'
 import { useOrgStore } from '@/stores/orgStore'
 import type { OrganizationTreeNode, OrganizationDetail, CreateOrganization } from '@/types/organization'
 import { LEVEL_CONFIG, NEXT_LEVEL } from '@/types/organization'
+import RightPanel from '@/components/layout/RightPanel.vue'
+import { useRightPanel } from '@/composables/useRightPanel'
 
 const orgStore = useOrgStore()
 
@@ -22,7 +24,7 @@ const selectedNodeId = ref<number | null>(null)
 const searchKeyword = ref('')
 
 // Dialog
-const dialogVisible = ref(false)
+const { visible: dialogVisible, open: openDialog, close: closeDialog } = useRightPanel()
 const dialogTitle = ref('')
 const isEdit = ref(false)
 const editingId = ref<number | null>(null)
@@ -78,6 +80,13 @@ async function loadTree() {
   loading.value = true
   try {
     treeData.value = await organizationApi.tree()
+    // 自动选中第一个根节点（集团）
+    if (treeData.value.length > 0) {
+      const root = treeData.value[0]
+      if (root.level === 'group') {
+        await loadNodeDetail(root.id)
+      }
+    }
     // orgStore.loadOrgTree() is called separately if needed,
     // as it re-fetches the same API and may not be necessary here
   } finally {
@@ -120,7 +129,7 @@ function openCreateRoot() {
     code: '', name: '', level: 'group', parentId: null,
     sortOrder: 0, location: '', description: '',
   })
-  dialogVisible.value = true
+  openDialog()
 }
 
 function openCreateChild(parent: OrganizationTreeNode) {
@@ -137,7 +146,7 @@ function openCreateChild(parent: OrganizationTreeNode) {
     code: '', name: '', level: nextLevel, parentId: parent.id,
     sortOrder: 0, location: '', description: '',
   })
-  dialogVisible.value = true
+  openDialog()
 }
 
 async function openEdit() {
@@ -154,7 +163,7 @@ async function openEdit() {
     location: selectedNode.value.location || '',
     description: selectedNode.value.description || '',
   })
-  dialogVisible.value = true
+  openDialog()
 }
 
 async function handleSave() {
@@ -184,7 +193,7 @@ async function handleSave() {
       })
       ElMessage.success('创建成功')
     }
-    dialogVisible.value = false
+    closeDialog()
     await loadTree()
     if (selectedNodeId.value) {
       await loadNodeDetail(selectedNodeId.value)
@@ -240,11 +249,16 @@ onMounted(() => {
 
 <template>
   <div class="org-page">
-    <!-- 页面标题 -->
-    <div class="page-header">
-      <div class="page-header-main">
-        <h2>企业组织管理</h2>
-        <p>管理集团、工厂、车间、产线的层级结构</p>
+    <!-- 页面横幅 -->
+    <div class="page-header-banner page-header-banner--primary">
+      <div class="page-header-banner-main">
+        <div class="page-header-banner-icon">
+          <el-icon :size="28"><OfficeBuilding /></el-icon>
+        </div>
+        <div class="page-header-banner-text">
+          <h2 class="page-header-banner-title">企业组织管理</h2>
+          <span class="page-header-banner-subtitle">管理集团、工厂、车间、产线的层级结构</span>
+        </div>
       </div>
     </div>
 
@@ -418,61 +432,56 @@ onMounted(() => {
       </div>
     </div>
 
-    <!-- 新增/编辑 Dialog -->
-    <el-dialog
-      v-model="dialogVisible"
-      :title="dialogTitle"
-      width="560px"
-      :close-on-click-modal="false"
-      destroy-on-close
-    >
-      <el-form
-        ref="formRef"
-        :model="formData"
-        label-width="100px"
-        size="default"
-      >
-        <el-divider content-position="left">基本信息</el-divider>
-        <el-form-item label="层级" prop="level">
-          <el-tag :color="getLevelColor(formData.level)" effect="dark">
-            {{ getLevelTag(formData.level) }}
-          </el-tag>
-          <span class="form-hint" v-if="parentNode">
-            父级: {{ parentNode.name }} ({{ getLevelTag(parentNode.level) }})
-          </span>
-        </el-form-item>
-        <el-form-item
-          label="组织编码"
-          prop="code"
-          :rules="[{ required: true, message: '请输入组织编码' }]"
+    <!-- 新增/编辑面板 -->
+    <RightPanel v-model:visible="dialogVisible" :title="dialogTitle">
+      <template #body>
+        <el-form
+          ref="formRef"
+          :model="formData"
+          label-width="100px"
+          size="default"
         >
-          <el-input v-model="formData.code" placeholder="唯一编码，如 HQ, FACTORY_1" />
-        </el-form-item>
-        <el-form-item
-          label="组织名称"
-          prop="name"
-          :rules="[{ required: true, message: '请输入组织名称' }]"
-        >
-          <el-input v-model="formData.name" placeholder="如 集团总部, 第一工厂" />
-        </el-form-item>
+          <el-divider content-position="left">基本信息</el-divider>
+          <el-form-item label="层级" prop="level">
+            <el-tag :color="getLevelColor(formData.level)" effect="dark">
+              {{ getLevelTag(formData.level) }}
+            </el-tag>
+            <span class="form-hint" v-if="parentNode">
+              父级：{{ parentNode.name }} ({{ getLevelTag(parentNode.level) }})
+            </span>
+          </el-form-item>
+          <el-form-item
+            label="组织编码"
+            prop="code"
+            :rules="[{ required: true, message: '请输入组织编码' }]"
+          >
+            <el-input v-model="formData.code" placeholder="唯一编码，如 HQ, FACTORY_1" />
+          </el-form-item>
+          <el-form-item
+            label="组织名称"
+            prop="name"
+            :rules="[{ required: true, message: '请输入组织名称' }]"
+          >
+            <el-input v-model="formData.name" placeholder="如 集团总部，第一工厂" />
+          </el-form-item>
 
-        <el-divider content-position="left">其他信息</el-divider>
-        <el-form-item label="排序号" prop="sortOrder">
-          <el-input-number v-model="formData.sortOrder" :min="0" style="width: 100%" />
-        </el-form-item>
-        <el-form-item label="位置" prop="location">
-          <el-input v-model="formData.location" placeholder="可选" />
-        </el-form-item>
-        <el-form-item label="描述" prop="description">
-          <el-input v-model="formData.description" type="textarea" :rows="2" placeholder="可选" />
-        </el-form-item>
-      </el-form>
-
+          <el-divider content-position="left">其他信息</el-divider>
+          <el-form-item label="排序号" prop="sortOrder">
+            <el-input-number v-model="formData.sortOrder" :min="0" style="width: 100%" />
+          </el-form-item>
+          <el-form-item label="位置" prop="location">
+            <el-input v-model="formData.location" placeholder="可选" />
+          </el-form-item>
+          <el-form-item label="描述" prop="description">
+            <el-input v-model="formData.description" type="textarea" :rows="2" placeholder="可选" />
+          </el-form-item>
+        </el-form>
+      </template>
       <template #footer>
-        <el-button @click="dialogVisible = false">取消</el-button>
+        <el-button @click="closeDialog">取消</el-button>
         <el-button type="primary" @click="handleSave">保存</el-button>
       </template>
-    </el-dialog>
+    </RightPanel>
   </div>
 </template>
 
@@ -486,23 +495,7 @@ onMounted(() => {
   padding: 4px 0;
 }
 
-/* ── 页面标题 ── */
-.page-header {
-  flex-shrink: 0;
-  padding: 0 4px;
-}
-.page-header-main h2 {
-  margin: 0;
-  font-size: 22px;
-  font-weight: 600;
-  color: #303133;
-  letter-spacing: -0.02em;
-}
-.page-header-main p {
-  margin: 6px 0 0;
-  font-size: 14px;
-  color: #909399;
-}
+/* banner styles handled by global CSS (page-header-banner) */
 
 /* ── 主体区域 ── */
 .org-body {
@@ -792,15 +785,8 @@ onMounted(() => {
   color: #909399;
 }
 
-:deep(.el-dialog) {
+:deep(.rp-panel) {
   border-radius: 12px;
-}
-:deep(.el-dialog__header) {
-  margin-right: 0;
-  padding: 20px 24px 16px;
-}
-:deep(.el-dialog__body) {
-  padding: 16px 24px 24px;
 }
 :deep(.el-divider__text) {
   font-weight: 600;

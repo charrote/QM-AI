@@ -38,6 +38,10 @@ export const auditApi = {
     return request.get(`${BASE}/${auditId}/findings`).then(r => r.data)
   },
 
+  allFindings(params?: { findingType?: string; status?: string }): Promise<AuditFinding[]> {
+    return request.get(`${BASE}/findings`, { params }).then(r => r.data)
+  },
+
   createFinding(auditId: number, data: CreateAuditFinding): Promise<AuditFinding> {
     return request.post(`${BASE}/${auditId}/findings`, data).then(r => r.data)
   },

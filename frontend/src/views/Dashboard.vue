@@ -23,13 +23,13 @@ const currentTime = ref(new Date())
 // Time-based greeting
 const greeting = computed(() => {
   const hour = currentTime.value.getHours()
-  if (hour < 6) return '夜深了'
-  if (hour < 9) return '早上好'
+  if (hour < 6) return '夜间'
+  if (hour < 9) return '上午好'
   if (hour < 12) return '上午好'
   if (hour < 14) return '中午好'
   if (hour < 18) return '下午好'
   if (hour < 22) return '晚上好'
-  return '夜深了'
+  return '夜间'
 })
 
 // Stats data
@@ -39,7 +39,6 @@ const stats = ref([
     value: 0,
     unit: '',
     icon: DataAnalysis,
-    color: '#1677ff',
     trend: '+12%',
     trendType: 'up' as const,
   },
@@ -48,7 +47,6 @@ const stats = ref([
     value: 0,
     unit: '%',
     icon: CircleCheck,
-    color: '#52c41a',
     trend: '+2.1%',
     trendType: 'up' as const,
   },
@@ -57,7 +55,6 @@ const stats = ref([
     value: 0,
     unit: '',
     icon: Warning,
-    color: '#faad14',
     trend: '-3',
     trendType: 'down' as const,
   },
@@ -66,7 +63,6 @@ const stats = ref([
     value: 0,
     unit: '',
     icon: Bell,
-    color: '#ff4d4f',
     trend: '+5',
     trendType: 'up' as const,
   },
@@ -84,14 +80,14 @@ const recentActivities = ref([
 
 // Quick access modules
 const moduleCards = ref([
-  { name: 'IQC来料检验', path: '/iqc/receipts', icon: Box, desc: '供应商来料登记与检验', color: '#1677ff' },
-  { name: 'IPQC过程检验', path: '/ipqc/first-pieces', icon: Monitor, desc: '产线首件与巡检管理', color: '#52c41a' },
-  { name: 'FQC/OQC成品检验', path: '/fqc/inspections', icon: Checked, desc: '成品出厂检验与放行', color: '#faad14' },
-  { name: 'SPC统计分析', path: '/spc', icon: TrendCharts, desc: '统计过程控制与分析', color: '#8c8c8c' },
-  { name: '缺陷与CAPA', path: '/defects', icon: Warning, desc: '缺陷管理与纠正预防', color: '#ff4d4f' },
-  { name: '客诉与8D', path: '/complaints/list', icon: Service, desc: '客户投诉与8D报告', color: '#722ed1' },
-  { name: '追溯查询', path: '/trace', icon: Search, desc: '批次全流程追溯', color: '#13c2c2' },
-  { name: '质量仪表盘', path: '/reports/dashboard', icon: DataAnalysis, desc: '质量数据可视化', color: '#eb2f96' },
+  { name: 'IQC来料检验', path: '/iqc/receipts', icon: Box },
+  { name: 'IPQC过程检验', path: '/ipqc/first-pieces', icon: Monitor },
+  { name: 'FQC/OQC成品检验', path: '/fqc/inspections', icon: Checked },
+  { name: 'SPC统计分析', path: '/spc', icon: TrendCharts },
+  { name: '缺陷与CAPA', path: '/defects', icon: Warning },
+  { name: '客诉与8D', path: '/complaints/list', icon: Service },
+  { name: '追溯查询', path: '/trace', icon: Search },
+  { name: '质量仪表盘', path: '/reports/dashboard', icon: DataAnalysis },
 ])
 
 function getActivityColor(type: string): string {
@@ -142,17 +138,11 @@ function navigateTo(path: string) {
 
 <template>
   <div class="dashboard-page">
-    <!-- Decorative gradient bar -->
-    <div class="dashboard-gradient-bar"></div>
-
     <!-- Welcome Section -->
     <div class="dashboard-header">
-      <div class="header-left">
-        <div class="greeting-group">
-          <span class="greeting-emoji">👋</span>
-          <h2 class="welcome-title">{{ greeting }}</h2>
-        </div>
-        <p class="welcome-subtitle">质量概览 · 实时掌握全厂质量动态</p>
+      <div>
+        <h2 class="welcome-title">{{ greeting }}，质量管理系统</h2>
+        <p class="welcome-subtitle">实时掌握全厂质量动态</p>
       </div>
       <div class="header-right">
         <div class="date-pill">
@@ -165,10 +155,10 @@ function navigateTo(path: string) {
     <!-- Stats Cards -->
     <el-row :gutter="16" class="stats-row">
       <el-col :xs="12" :sm="6" v-for="stat in stats" :key="stat.label">
-        <el-card shadow="never" class="stat-card" :class="'stat-card--' + stat.color.replace('#', '')">
+        <el-card shadow="never" class="stat-card">
           <div class="stat-content">
-            <div class="stat-icon" :style="{ background: stat.color + '15', color: stat.color }">
-              <el-icon :size="22">
+            <div class="stat-icon">
+              <el-icon :size="20">
                 <component :is="stat.icon" />
               </el-icon>
             </div>
@@ -229,8 +219,8 @@ function navigateTo(path: string) {
               class="module-item"
               @click="navigateTo(mod.path)"
             >
-              <div class="module-icon" :style="{ background: mod.color + '15', color: mod.color }">
-                <el-icon :size="18">
+              <div class="module-icon">
+                <el-icon :size="16">
                   <component :is="mod.icon" />
                 </el-icon>
               </div>
@@ -253,14 +243,6 @@ function navigateTo(path: string) {
   overflow: hidden;
 }
 
-/* Decorative gradient bar */
-.dashboard-gradient-bar {
-  height: 4px;
-  background: linear-gradient(90deg, #1677ff 0%, #52c41a 33%, #faad14 66%, #ff4d4f 100%);
-  border-radius: 0 0 8px 8px;
-  margin: -20px -20px 20px;
-}
-
 /* ═══ Header ═══ */
 .dashboard-header {
   display: flex;
@@ -271,29 +253,12 @@ function navigateTo(path: string) {
   gap: var(--space-3);
 }
 
-.header-left {
-  display: flex;
-  align-items: baseline;
-  gap: var(--space-3);
-}
-
-.greeting-group {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-}
-
-.greeting-emoji {
-  font-size: 24px;
-  line-height: 1;
-}
-
 .welcome-title {
-  font-size: var(--font-3xl);
-  font-weight: var(--font-bold);
+  font-size: var(--font-2xl);
+  font-weight: var(--font-semibold);
   color: var(--text-primary, #1a1a1a);
   margin: 0;
-  line-height: 1.2;
+  line-height: 1.3;
 }
 
 .welcome-subtitle {
@@ -317,7 +282,6 @@ function navigateTo(path: string) {
   padding: 8px 14px;
   border-radius: var(--radius-full);
   border: 1px solid var(--el-border-color-lighter);
-  box-shadow: var(--shadow-xs);
 }
 
 /* ═══ Stats Cards ═══ */
@@ -329,34 +293,15 @@ function navigateTo(path: string) {
   margin-bottom: 0;
   border-radius: var(--radius-lg);
   border: 1px solid var(--el-border-color-lighter);
-  transition: all 0.25s ease;
-  position: relative;
-  overflow: hidden;
+  transition: box-shadow var(--duration-normal) var(--ease-out);
 }
-
-.stat-card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 4px;
-  height: 100%;
-  border-radius: 4px 0 0 4px;
-}
-
-.stat-card--1677ff::before { background: #1677ff; }
-.stat-card--52c41a::before { background: #52c41a; }
-.stat-card--faad14::before { background: #faad14; }
-.stat-card--ff4d4f::before { background: #ff4d4f; }
 
 .stat-card:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
-  border-color: transparent;
+  box-shadow: var(--shadow-sm);
 }
 
 .stat-card :deep(.el-card__body) {
-  padding: var(--space-5);
+  padding: var(--space-4) var(--space-5);
 }
 
 .stat-content {
@@ -366,13 +311,15 @@ function navigateTo(path: string) {
 }
 
 .stat-icon {
-  width: 44px;
-  height: 44px;
-  border-radius: var(--radius-lg);
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-md);
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  color: var(--text-secondary, #8c8c8c);
+  background: var(--el-fill-color-light);
 }
 
 .stat-info {
@@ -445,7 +392,6 @@ function navigateTo(path: string) {
   gap: var(--space-3);
   padding: var(--space-3) 0;
   border-bottom: 1px solid var(--el-border-color-lighter);
-  position: relative;
 }
 
 .activity-item:last-child {
@@ -453,12 +399,11 @@ function navigateTo(path: string) {
 }
 
 .activity-dot {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
   margin-top: 6px;
   flex-shrink: 0;
-  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.8);
 }
 
 .activity-content {
@@ -489,28 +434,28 @@ function navigateTo(path: string) {
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  padding: var(--space-4);
-  border-radius: var(--radius-lg);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
   border: 1px solid var(--el-border-color-lighter);
   cursor: pointer;
-  transition: all 0.25s ease;
+  transition: all var(--duration-fast) var(--ease-out);
 }
 
 .module-item:hover {
-  border-color: transparent;
-  background: var(--primary-bg, #f0f7ff);
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
+  border-color: var(--el-color-primary-light-7);
+  background: var(--primary-light, #e6f4ff);
 }
 
 .module-icon {
-  width: 36px;
-  height: 36px;
-  border-radius: var(--radius-md);
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-sm);
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  color: var(--text-secondary, #8c8c8c);
+  background: var(--el-fill-color-light);
 }
 
 .module-info {
@@ -522,6 +467,7 @@ function navigateTo(path: string) {
   font-size: var(--font-sm);
   font-weight: var(--font-medium);
   color: var(--text-primary, #1a1a1a);
+  line-height: 1.3;
 }
 
 .module-desc {
@@ -531,11 +477,6 @@ function navigateTo(path: string) {
 }
 
 /* ═══ Dark mode ═══ */
-html.dark .trend--up,
-html.dark .trend--down {
-  background: rgba(82, 196, 26, 0.15);
-}
-
 html.dark .stat-card {
   border-color: var(--el-border-color);
 }
@@ -549,7 +490,8 @@ html.dark .module-item {
 }
 
 html.dark .module-item:hover {
-  background: rgba(22, 119, 255, 0.1);
+  border-color: rgba(96, 165, 250, 0.3);
+  background: rgba(22, 119, 255, 0.08);
 }
 
 html.dark .date-pill {

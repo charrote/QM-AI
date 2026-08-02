@@ -9,6 +9,8 @@ import type { PackagingConfirmation, CreatePackagingConfirmation } from '@/types
 import type { PagedRequest } from '@/types/basicData'
 import type { ProductBatch } from '@/types/fqc'
 import { useAuthStore } from '@/stores/authStore'
+import RightPanel from '@/components/layout/RightPanel.vue'
+import { useRightPanel } from '@/composables/useRightPanel'
 
 defineOptions({ name: 'FqcPackagingPage' })
 
@@ -18,7 +20,7 @@ const loading = ref(false)
 const list = ref<PackagingConfirmation[]>([])
 const total = ref(0)
 const query = reactive<PagedRequest>({ page: 1, pageSize: 20, keyword: '', status: '' })
-const createVisible = ref(false)
+const { visible: createVisible, open: openCreatePanel, close: closeCreatePanel } = useRightPanel()
 const createForm = reactive<CreatePackagingConfirmation>({
   batchId: 0,
   packagingMethod: '',
@@ -78,7 +80,7 @@ async function handleCreate() {
   try {
     await packagingApi.create(createForm)
     ElMessage.success('包装确认成功')
-    createVisible.value = false
+    closeCreatePanel()
     await fetchList()
   } catch { /* */ }
 }
@@ -86,7 +88,7 @@ async function handleCreate() {
 async function toggleLabelPrinted(row: PackagingConfirmation) {
   try {
     await ElMessageBox.confirm(
-      `确认${row.labelPrinted ? '取消' : '标记'}标签打印？`,
+      `确认${row.labelPrinted ? '重新打印' : '标记'}标签？`,
       '标签打印操作',
       {
         confirmButtonText: '确认',
@@ -96,7 +98,7 @@ async function toggleLabelPrinted(row: PackagingConfirmation) {
     )
     await packagingApi.updateLabelPrinted(row.id, !row.labelPrinted)
     row.labelPrinted = !row.labelPrinted
-    ElMessage.success(row.labelPrinted ? '标签已标记打印' : '标签已取消打印')
+    ElMessage.success(row.labelPrinted ? '标签已打印' : '标签已取消打印')
   } catch { /* */ }
 }
 
@@ -197,13 +199,10 @@ onMounted(() => {
             <div class="label-printed-cell">
               <el-switch
                 :model-value="row.labelPrinted"
-                inline-prompt
-                active-text="已"
-                inactive-text="未"
                 :before-change="async () => {
                   try {
                     await ElMessageBox.confirm(
-                      `确认${row.labelPrinted ? '取消' : '标记'}标签打印？`,
+                      `确认${row.labelPrinted ? '重新打印' : '标记'}标签？`,
                       '标签打印操作',
                       { confirmButtonText: '确认', cancelButtonText: '取消', type: 'warning' }
                     )
@@ -231,7 +230,7 @@ onMounted(() => {
               @click.stop="toggleLabelPrinted(row)"
             >
               <el-icon><PriceTag /></el-icon>
-              {{ row.labelPrinted ? '取消打印' : '打印标签' }}
+              {{ row.labelPrinted ? '重新打印' : '打印标签' }}
             </el-button>
           </template>
         </el-table-column>
@@ -265,12 +264,12 @@ onMounted(() => {
       </div>
     </div>
 
-    <!-- 包装确认对话框 -->
-    <el-dialog v-model="createVisible" title="包装确认" width="540px" :close-on-click-modal="false" top="6vh">
-      <div v-if="createVisible">
-        <div class="dialog-section">
-          <div class="dialog-section-header">
-            <el-icon class="dialog-section-icon"><Box /></el-icon>
+    <!-- 包装确认面板 -->
+    <RightPanel v-model:visible="createVisible" title="包装确认">
+      <template #body>
+        <div class="rp-section">
+          <div class="rp-section-header">
+            <el-icon class="rp-section-icon"><Box /></el-icon>
             <span>包装信息</span>
           </div>
           <el-form :model="createForm" label-width="90px" label-position="left">
@@ -319,9 +318,9 @@ onMounted(() => {
           </el-form>
         </div>
 
-        <div class="dialog-section">
-          <div class="dialog-section-header">
-            <el-icon class="dialog-section-icon"><Setting /></el-icon>
+        <div class="rp-section">
+          <div class="rp-section-header">
+            <el-icon class="rp-section-icon"><Setting /></el-icon>
             <span>包装参数</span>
           </div>
           <el-form :model="createForm" label-width="90px" label-position="left">
@@ -339,16 +338,16 @@ onMounted(() => {
             </el-form-item>
           </el-form>
         </div>
-      </div>
+      </template>
 
       <template #footer>
-        <el-button @click="createVisible = false">取消</el-button>
+        <el-button @click="closeCreatePanel">取消</el-button>
         <el-button type="primary" @click="handleCreate">
           <el-icon><Check /></el-icon>
           确认
         </el-button>
       </template>
-    </el-dialog>
+    </RightPanel>
   </div>
 </template>
 
@@ -388,5 +387,29 @@ onMounted(() => {
   font-weight: 700;
   color: var(--el-color-success, #67c23a);
   line-height: 32px;
+}
+
+/* ── RP Section ─────────────────────── */
+.rp-section {
+  margin-bottom: 20px;
+}
+
+.rp-section:last-of-type {
+  margin-bottom: 0;
+}
+
+.rp-section-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  background: var(--el-fill-color-light);
+  border-radius: 6px;
+  margin-bottom: 12px;
+}
+
+.rp-section-icon {
+  font-size: 15px;
+  color: var(--el-color-primary);
 }
 </style>

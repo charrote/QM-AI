@@ -2,6 +2,8 @@
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Folder, Search, Upload, Refresh, Download, Edit, Delete, Check, Close, Plus } from '@element-plus/icons-vue'
+import RightPanel from '@/components/layout/RightPanel.vue'
+import { useRightPanel } from '@/composables/useRightPanel'
 import { documentApi } from '@/api/document'
 import { DOC_TYPE_OPTIONS, DOC_STATUS_OPTIONS, DOC_STATUS_MAP } from '@/types/document'
 import type { Document } from '@/types/document'
@@ -20,8 +22,8 @@ const total = ref(0)
 const documents = ref<Document[]>([])
 const tableLoading = ref(false)
 
-// ─── Dialog ─────────────────────────────────────────────
-const dialogVisible = ref(false)
+// ─── Dialogs ────────────────────────────────────────────
+const createPanel = useRightPanel()
 const isEditing = ref(false)
 const currentDocId = ref<number | null>(null)
 const docForm = reactive({ title: '', docType: '', minioKey: '' })
@@ -29,11 +31,11 @@ const docForm = reactive({ title: '', docType: '', minioKey: '' })
 // ─── Upload ─────────────────────────────────────────────
 
 // ─── Approve / Reject ──────────────────────────────────
-const approveDialogVisible = ref(false)
+const approvePanel = useRightPanel()
 const approveDocId = ref<number | null>(null)
 const approveForm = reactive({ approvedBy: '' })
 
-const rejectDialogVisible = ref(false)
+const rejectPanel = useRightPanel()
 const rejectDocId = ref<number | null>(null)
 const rejectForm = reactive({ reason: '' })
 
@@ -98,7 +100,7 @@ function openCreate() {
   docForm.title = ''
   docForm.docType = ''
   docForm.minioKey = ''
-  dialogVisible.value = true
+  createPanel.open()
 }
 
 function openEdit(row: Document) {
@@ -107,7 +109,7 @@ function openEdit(row: Document) {
   docForm.title = row.title
   docForm.docType = row.docType
   docForm.minioKey = row.minioKey || ''
-  dialogVisible.value = true
+  createPanel.open()
 }
 
 async function saveDoc() {
@@ -123,7 +125,7 @@ async function saveDoc() {
       await documentApi.create({ title: docForm.title, docType: docForm.docType, minioKey: docForm.minioKey || undefined })
       ElMessage.success('文档已创建')
     }
-    dialogVisible.value = false
+    createPanel.close()
     await loadDocuments()
   } catch (e: any) {
     ElMessage.error(e?.response?.data?.message || '操作失败')
@@ -154,7 +156,7 @@ async function downloadDoc(row: Document) {
 function openApprove(row: Document) {
   approveDocId.value = row.id
   approveForm.approvedBy = ''
-  approveDialogVisible.value = true
+  approvePanel.open()
 }
 
 async function approveDoc() {
@@ -166,7 +168,7 @@ async function approveDoc() {
   try {
     await documentApi.approve(approveDocId.value, { approvedBy: Number(approveForm.approvedBy) })
     ElMessage.success('文档已批准')
-    approveDialogVisible.value = false
+    approvePanel.close()
     await loadDocuments()
   } catch (e: any) {
     ElMessage.error(e?.response?.data?.message || '审批失败')
@@ -176,7 +178,7 @@ async function approveDoc() {
 function openReject(row: Document) {
   rejectDocId.value = row.id
   rejectForm.reason = ''
-  rejectDialogVisible.value = true
+  rejectPanel.open()
 }
 
 async function rejectDoc() {
@@ -188,7 +190,7 @@ async function rejectDoc() {
   try {
     await documentApi.reject(rejectDocId.value, { reason: rejectForm.reason })
     ElMessage.success('文档已驳回')
-    rejectDialogVisible.value = false
+    rejectPanel.close()
     await loadDocuments()
   } catch (e: any) {
     ElMessage.error(e?.response?.data?.message || '驳回失败')
@@ -278,54 +280,58 @@ onMounted(() => {
       </div>
     </div>
 
-    <!-- Dialog: Create/Edit -->
-    <el-dialog v-model="dialogVisible" :title="isEditing ? '编辑文档' : '新建文档'" width="520px" :close-on-click-modal="false">
-      <el-form :model="docForm" label-width="90px">
-        <el-form-item label="标题" required>
-          <el-input v-model="docForm.title" placeholder="请输入文档标题" />
-        </el-form-item>
-        <el-form-item label="文档类型" required>
-          <el-select v-model="docForm.docType" placeholder="选择类型" style="width: 100%">
-            <el-option v-for="opt in DOC_TYPE_OPTIONS" :key="opt.value" :label="opt.label" :value="opt.value" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="MinIO Key">
-          <el-input v-model="docForm.minioKey" placeholder="上传后回写" />
-        </el-form-item>
-      </el-form>
+    <!-- Panel: Create/Edit -->
+    <RightPanel v-model:visible="createPanel.visible" :title="isEditing ? '编辑文档' : '新建文档'" :width="520">
+      <template #body>
+        <el-form :model="docForm" label-width="90px">
+          <el-form-item label="标题" required>
+            <el-input v-model="docForm.title" placeholder="请输入文档标题" />
+          </el-form-item>
+          <el-form-item label="文档类型" required>
+            <el-select v-model="docForm.docType" placeholder="选择类型" style="width: 100%">
+              <el-option v-for="opt in DOC_TYPE_OPTIONS" :key="opt.value" :label="opt.label" :value="opt.value" />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="MinIO Key">
+            <el-input v-model="docForm.minioKey" placeholder="上传后回写" />
+          </el-form-item>
+        </el-form>
+      </template>
       <template #footer>
-        <el-button @click="dialogVisible = false">取消</el-button>
+        <el-button @click="createPanel.close()">取消</el-button>
         <el-button type="primary" @click="saveDoc">保存</el-button>
       </template>
-    </el-dialog>
+    </RightPanel>
 
-    <!-- Dialog: Upload -->
-
-    <!-- Dialog: Approve -->
-    <el-dialog v-model="approveDialogVisible" title="审批文档" width="440px" :close-on-click-modal="false">
-      <el-form :model="approveForm" label-width="90px">
-        <el-form-item label="审批人ID" required>
-          <el-input-number v-model="approveForm.approvedBy" :min="1" placeholder="审批人ID" style="width: 100%" />
-        </el-form-item>
-      </el-form>
+    <!-- Panel: Approve -->
+    <RightPanel v-model:visible="approvePanel.visible" title="审批文档" :width="400">
+      <template #body>
+        <el-form :model="approveForm" label-width="90px">
+          <el-form-item label="审批人ID" required>
+            <el-input-number v-model="approveForm.approvedBy" :min="1" placeholder="审批人ID" style="width: 100%" />
+          </el-form-item>
+        </el-form>
+      </template>
       <template #footer>
-        <el-button @click="approveDialogVisible = false">取消</el-button>
+        <el-button @click="approvePanel.close()">取消</el-button>
         <el-button type="primary" @click="approveDoc">确认批准</el-button>
       </template>
-    </el-dialog>
+    </RightPanel>
 
-    <!-- Dialog: Reject -->
-    <el-dialog v-model="rejectDialogVisible" title="驳回文档" width="440px" :close-on-click-modal="false">
-      <el-form :model="rejectForm" label-width="90px">
-        <el-form-item label="驳回原因" required>
-          <el-input v-model="rejectForm.reason" type="textarea" :rows="4" placeholder="请输入驳回原因" />
-        </el-form-item>
-      </el-form>
+    <!-- Panel: Reject -->
+    <RightPanel v-model:visible="rejectPanel.visible" title="驳回文档" :width="400">
+      <template #body>
+        <el-form :model="rejectForm" label-width="90px">
+          <el-form-item label="驳回原因" required>
+            <el-input v-model="rejectForm.reason" type="textarea" :rows="4" placeholder="请输入驳回原因" />
+          </el-form-item>
+        </el-form>
+      </template>
       <template #footer>
-        <el-button @click="rejectDialogVisible = false">取消</el-button>
+        <el-button @click="rejectPanel.close()">取消</el-button>
         <el-button type="danger" @click="rejectDoc">确认驳回</el-button>
       </template>
-    </el-dialog>
+    </RightPanel>
   </div>
 </template>
 

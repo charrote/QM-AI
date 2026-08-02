@@ -1,5 +1,4 @@
 export { default as DataTable } from './DataTable.vue'
-export { default as FormDialog } from './FormDialog.vue'
 export { default as StatusTag } from './StatusTag.vue'
 export { default as Breadcrumb } from './Breadcrumb.vue'
 export { default as EmptyState } from './EmptyState.vue'

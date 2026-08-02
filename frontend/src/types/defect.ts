@@ -24,18 +24,18 @@ export interface Defect {
 export interface Capa {
   id: number
   capaCode: string
-  defectId: number
-  anomalyId: number
-  complaintId: number
+  defectId?: number
+  anomalyId?: number
+  complaintId?: number
   severity: string
   title: string
   description: string
   currentPhase: number
   status: string
-  createdBy: string
-  assignedTo: string
-  dueDate: string
-  closedAt: string
+  createdBy: number
+  assignedTo?: number
+  dueDate?: string
+  closedAt?: string
   createdAt: string
   updatedAt: string
   defect?: Defect
@@ -278,13 +278,13 @@ export const REWORK_INSPECTION_RESULT_OPTIONS = [
 ]
 
 export const CAPA_STATUS_OPTIONS = [
-  { value: 'active', label: '进行中', type: 'primary' },
-  { value: 'completed', label: '已完成', type: 'success' },
-  { value: 'cancelled', label: '已取消', type: 'info' },
+  { value: 'open', label: '未处理', type: 'danger' },
+  { value: 'in_progress', label: '进行中', type: 'primary' },
+  { value: 'closed', label: '已完成', type: 'success' },
 ]
 
 export const CAPA_STATUS_MAP: Record<string, string> = {
-  active: '进行中',
-  completed: '已完成',
-  cancelled: '已取消',
+  open: '未处理',
+  in_progress: '进行中',
+  closed: '已完成',
 }

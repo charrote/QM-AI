@@ -30,7 +30,9 @@ public class CustomersController : ControllerBase
             .Select(c => new CustomerListDto
             {
                 Id = c.Id, Code = c.Code, Name = c.Name,
+                Address = c.Address,
                 ContactPerson = c.ContactPerson, ContactPhone = c.ContactPhone,
+                Email = c.Email,
                 IsActive = c.IsActive,
             })
             .ToListAsync();

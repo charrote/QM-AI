@@ -13,6 +13,9 @@ public class D8ReportService
     public async Task<D8Report?> GetByComplaintIdAsync(long complaintId) =>
         await _db.D8Reports.FirstOrDefaultAsync(d => d.ComplaintId == complaintId);
 
+    public async Task<List<D8Report>> GetListAsync() =>
+        await _db.D8Reports.ToListAsync();
+
     public async Task<D8Report?> GetByIdAsync(long id) =>
         await _db.D8Reports.FirstOrDefaultAsync(d => d.Id == id);
 

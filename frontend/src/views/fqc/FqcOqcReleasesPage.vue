@@ -11,6 +11,8 @@ import type { OqcRelease, CreateOqcRelease, SignOqcRelease } from '@/types/fqc'
 import type { PagedRequest } from '@/types/basicData'
 import { RELEASE_STATUS_OPTIONS, RELEASE_STATUS_MAP } from '@/types/fqc'
 import { useAuthStore } from '@/stores/authStore'
+import RightPanel from '@/components/layout/RightPanel.vue'
+import { useRightPanel } from '@/composables/useRightPanel'
 
 defineOptions({ name: 'FqcOqcReleasesPage' })
 
@@ -21,8 +23,8 @@ const list = ref<OqcRelease[]>([])
 const total = ref(0)
 const query = reactive<PagedRequest>({ page: 1, pageSize: 20, keyword: '', status: '' })
 
-const createVisible = ref(false)
-const signVisible = ref(false)
+const { visible: createVisible, open: openCreatePanel, close: closeCreatePanel } = useRightPanel()
+const { visible: signVisible, open: openSignPanel, close: closeSignPanel } = useRightPanel()
 const confirmLoading = ref(false)
 const signId = ref(0)
 const activeBatch = ref<OqcRelease | null>(null)
@@ -139,7 +141,7 @@ async function handleCreate() {
   try {
     await releaseApi.create(createForm)
     ElMessage.success('放行单创建成功')
-    createVisible.value = false
+    closeCreatePanel()
     Object.assign(createForm, { batchId: 0, customerId: 0, releaseDate: new Date().toISOString().slice(0, 10), quantity: 0 })
     await fetchList()
   } catch { /* */ }
@@ -151,7 +153,7 @@ function openSign(row: OqcRelease) {
   activeBatch.value = row
   signForm.authorizedBy = authStore.user?.id || 0
   signForm.eSignatureUrl = row.eSignatureUrl || ''
-  signVisible.value = true
+  openSignPanel()
 }
 
 function triggerFileInput() {
@@ -178,7 +180,7 @@ async function handleSign() {
   try {
     await releaseApi.sign(signId.value, signForm)
     ElMessage.success('签名成功')
-    signVisible.value = false
+    closeSignPanel()
     await fetchList()
   } catch { /* */ }
 }
@@ -391,177 +393,169 @@ onMounted(fetchList)
       </div>
     </div>
 
-    <!-- Create Dialog -->
-    <el-dialog
-      v-model="createVisible"
-      title="新建出货放行单"
-      width="560px"
-      :close-on-click-modal="false"
-      top="6vh"
-    >
-      <!-- 放行信息 -->
-      <div class="dialog-section">
-        <div class="dialog-section-header">
-          <el-icon class="dialog-section-icon"><Document /></el-icon>
-          <span>放行信息</span>
-        </div>
-        <el-form :model="createForm" label-width="90px" label-position="left">
-          <el-form-item label="批次" required>
-            <el-select
-              v-model="createForm.batchId"
-              filterable
-              clearable
-              placeholder="搜索或选择批次"
-              style="width: 100%"
-              @change="onBatchSelect"
-              @visible-change="loadBatches"
-              @clear="createForm.batchId = 0"
-            >
-              <el-option
-                v-for="b in batchOptions"
-                :key="b.id"
-                :label="`${b.batchCode}`"
-                :value="b.id"
+    <!-- 新建出货放行单面板 -->
+    <RightPanel v-model:visible="createVisible" title="新建出货放行单">
+      <template #body>
+        <!-- 放行信息 -->
+        <div class="rp-section">
+          <div class="rp-section-header">
+            <el-icon class="rp-section-icon"><Document /></el-icon>
+            <span>放行信息</span>
+          </div>
+          <el-form :model="createForm" label-width="90px" label-position="left">
+            <el-form-item label="批次" required>
+              <el-select
+                v-model="createForm.batchId"
+                filterable
+                clearable
+                placeholder="搜索或选择批次"
+                style="width: 100%"
+                @change="onBatchSelect"
+                @visible-change="loadBatches"
+                @clear="createForm.batchId = 0"
               >
-                <span>{{ b.batchCode }}</span>
-                <span style="float:right;color:#909399;font-size:12px">数量: {{ b.quantity }}</span>
-              </el-option>
-            </el-select>
-          </el-form-item>
-          <el-form-item label="客户" required>
-            <el-select
-              v-model="createForm.customerId"
-              filterable
-              clearable
-              placeholder="搜索或选择客户"
-              style="width: 100%"
-              @change="onCustomerSelect"
-              @visible-change="loadCustomers"
-              @clear="createForm.customerId = 0"
-            >
-              <el-option
-                v-for="c in customerOptions"
-                :key="c.id"
-                :label="c.customerName"
-                :value="c.id"
-              />
-            </el-select>
-          </el-form-item>
-        </el-form>
-      </div>
-
-      <!-- 放行参数 -->
-      <div class="dialog-section">
-        <div class="dialog-section-header">
-          <el-icon class="dialog-section-icon"><Setting /></el-icon>
-          <span>放行参数</span>
+                <el-option
+                  v-for="b in batchOptions"
+                  :key="b.id"
+                  :label="`${b.batchCode}`"
+                  :value="b.id"
+                >
+                  <span>{{ b.batchCode }}</span>
+                  <span style="float:right;color:#909399;font-size:12px">数量: {{ b.quantity }}</span>
+                </el-option>
+              </el-select>
+            </el-form-item>
+            <el-form-item label="客户" required>
+              <el-select
+                v-model="createForm.customerId"
+                filterable
+                clearable
+                placeholder="搜索或选择客户"
+                style="width: 100%"
+                @change="onCustomerSelect"
+                @visible-change="loadCustomers"
+                @clear="createForm.customerId = 0"
+              >
+                <el-option
+                  v-for="c in customerOptions"
+                  :key="c.id"
+                  :label="c.customerName"
+                  :value="c.id"
+                />
+              </el-select>
+            </el-form-item>
+          </el-form>
         </div>
-        <el-form :model="createForm" label-width="90px" label-position="left">
-          <el-form-item label="放行数量">
-            <el-input-number
-              v-model="createForm.quantity"
-              :min="1"
-              style="width: 100%"
-              controls-position="right"
-            />
-          </el-form-item>
-          <el-form-item label="放行日期">
-            <el-date-picker
-              v-model="createForm.releaseDate"
-              type="date"
-              value-format="YYYY-MM-DD"
-              style="width: 100%"
-            />
-          </el-form-item>
-        </el-form>
-      </div>
+
+        <!-- 放行参数 -->
+        <div class="rp-section">
+          <div class="rp-section-header">
+            <el-icon class="rp-section-icon"><Setting /></el-icon>
+            <span>放行参数</span>
+          </div>
+          <el-form :model="createForm" label-width="90px" label-position="left">
+            <el-form-item label="放行数量">
+              <el-input-number
+                v-model="createForm.quantity"
+                :min="1"
+                style="width: 100%"
+                controls-position="right"
+              />
+            </el-form-item>
+            <el-form-item label="放行日期">
+              <el-date-picker
+                v-model="createForm.releaseDate"
+                type="date"
+                value-format="YYYY-MM-DD"
+                style="width: 100%"
+              />
+            </el-form-item>
+          </el-form>
+        </div>
+      </template>
 
       <template #footer>
-        <el-button @click="createVisible = false">取消</el-button>
+        <el-button @click="closeCreatePanel">取消</el-button>
         <el-button type="primary" @click="handleCreate">
           <el-icon><Check /></el-icon>
           创建
         </el-button>
       </template>
-    </el-dialog>
+    </RightPanel>
 
-    <!-- Sign Dialog -->
-    <el-dialog
-      v-model="signVisible"
-      title="电子签名确认"
-      width="540px"
-      :close-on-click-modal="false"
-      top="6vh"
-    >
-      <!-- 放行信息摘要 -->
-      <div class="dialog-section">
-        <div class="dialog-section-header">
-          <el-icon class="dialog-section-icon"><Document /></el-icon>
-          <span>放行信息</span>
-        </div>
-        <div v-if="activeBatch" class="release-summary">
-          <div class="release-summary__row">
-            <span class="release-summary__label">放行单号</span>
-            <span class="release-summary__value">{{ activeBatch.releaseNumber }}</span>
+    <!-- 电子签名确认面板 -->
+    <RightPanel v-model:visible="signVisible" title="电子签名确认">
+      <template #body>
+        <!-- 放行信息摘要 -->
+        <div class="rp-section">
+          <div class="rp-section-header">
+            <el-icon class="rp-section-icon"><Document /></el-icon>
+            <span>放行信息</span>
           </div>
-          <div class="release-summary__row">
-            <span class="release-summary__label">批次号</span>
-            <span class="release-summary__value">{{ activeBatch.batchCode || '—' }}</span>
-          </div>
-          <div class="release-summary__row">
-            <span class="release-summary__label">客户</span>
-            <span class="release-summary__value">{{ activeBatch.customerName || '—' }}</span>
-          </div>
-          <div class="release-summary__row">
-            <span class="release-summary__label">数量</span>
-            <span class="release-summary__value">{{ activeBatch.quantity }}</span>
+          <div v-if="activeBatch" class="release-summary">
+            <div class="release-summary__row">
+              <span class="release-summary__label">放行单号</span>
+              <span class="release-summary__value">{{ activeBatch.releaseNumber }}</span>
+            </div>
+            <div class="release-summary__row">
+              <span class="release-summary__label">批次号</span>
+              <span class="release-summary__value">{{ activeBatch.batchCode || '—' }}</span>
+            </div>
+            <div class="release-summary__row">
+              <span class="release-summary__label">客户</span>
+              <span class="release-summary__value">{{ activeBatch.customerName || '—' }}</span>
+            </div>
+            <div class="release-summary__row">
+              <span class="release-summary__label">数量</span>
+              <span class="release-summary__value">{{ activeBatch.quantity }}</span>
+            </div>
           </div>
         </div>
-      </div>
 
-      <!-- 签名区域 -->
-      <div class="dialog-section">
-        <div class="dialog-section-header">
-          <el-icon class="dialog-section-icon"><EditPen /></el-icon>
-          <span>电子签名</span>
+        <!-- 签名区域 -->
+        <div class="rp-section">
+          <div class="rp-section-header">
+            <el-icon class="rp-section-icon"><EditPen /></el-icon>
+            <span>电子签名</span>
+          </div>
+          <el-form :model="signForm" label-width="90px" label-position="left">
+            <el-form-item label="签名者">
+              <span class="info-primary">
+                <el-icon style="margin-right: 4px"><User /></el-icon>
+                {{ authStore.user?.name || authStore.user?.username || '当前用户' }}
+              </span>
+            </el-form-item>
+            <el-form-item label="签名图片" required>
+              <div class="sig-upload" @click="triggerFileInput">
+                <el-icon :size="32" color="var(--el-color-info)"><Upload /></el-icon>
+                <div class="sig-upload__text">点击或拖拽上传签名图片</div>
+                <div class="sig-upload__hint">支持 JPG、PNG 格式</div>
+                <input
+                  ref="signFileRef"
+                  type="file"
+                  accept="image/jpeg,image/png,image/gif,image/webp"
+                  style="display:none"
+                  @change="handleFileChange"
+                />
+              </div>
+            </el-form-item>
+            <el-form-item label="签名预览" v-if="signForm.eSignatureUrl">
+              <div class="sig-preview">
+                <img :src="signForm.eSignatureUrl" alt="签名预览" />
+              </div>
+            </el-form-item>
+          </el-form>
         </div>
-        <el-form :model="signForm" label-width="90px" label-position="left">
-          <el-form-item label="签名者">
-            <span class="info-primary">
-              <el-icon style="margin-right: 4px"><User /></el-icon>
-              {{ authStore.user?.name || authStore.user?.username || '当前用户' }}
-            </span>
-          </el-form-item>
-          <el-form-item label="签名图片" required>
-            <div class="sig-upload" @click="triggerFileInput">
-              <el-icon :size="32" color="var(--el-color-info)"><Upload /></el-icon>
-              <div class="sig-upload__text">点击或拖拽上传签名图片</div>
-              <div class="sig-upload__hint">支持 JPG、PNG 格式</div>
-              <input
-                ref="signFileRef"
-                type="file"
-                accept="image/jpeg,image/png,image/gif,image/webp"
-                style="display:none"
-                @change="handleFileChange"
-              />
-            </div>
-          </el-form-item>
-          <el-form-item label="签名预览" v-if="signForm.eSignatureUrl">
-            <div class="sig-preview">
-              <img :src="signForm.eSignatureUrl" alt="签名预览" />
-            </div>
-          </el-form-item>
-        </el-form>
-      </div>
+      </template>
 
       <template #footer>
-        <el-button @click="signVisible = false">取消</el-button>
+        <el-button @click="closeSignPanel">取消</el-button>
         <el-button type="primary" @click="handleSign">
           <el-icon><Check /></el-icon>
           确认签名
         </el-button>
       </template>
-    </el-dialog>
+    </RightPanel>
   </div>
   </div>
 </template>
@@ -735,14 +729,16 @@ onMounted(fetchList)
   font-weight: 500;
 }
 
-/* ── 对话框 Sections ── */
-.dialog-section {
-  margin-bottom: 16px;
+/* ── RP Section ─────────────────────── */
+.rp-section {
+  margin-bottom: 20px;
 }
-.dialog-section:last-of-type {
+
+.rp-section:last-of-type {
   margin-bottom: 0;
 }
-.dialog-section-header {
+
+.rp-section-header {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -751,14 +747,10 @@ onMounted(fetchList)
   border-radius: 6px;
   margin-bottom: 12px;
 }
-.dialog-section-icon {
+
+.rp-section-icon {
   font-size: 15px;
-  color: var(--el-color-warning);
-}
-.dialog-section-title {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--el-text-color-regular);
+  color: var(--el-color-primary);
 }
 
 /* ── 签名上传 ─────────────── */

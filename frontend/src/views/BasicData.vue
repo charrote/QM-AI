@@ -9,6 +9,7 @@ import {
   WarningFilled, Tools, Shop, User,
   Search, List, Refresh, Plus, Check,
 } from '@element-plus/icons-vue'
+import RightPanel from '@/components/layout/RightPanel.vue'
 import {
   productApi, bomApi, processApi,
   inspectionStandardApi, defectCodeApi, equipmentApi,
@@ -441,7 +442,7 @@ watch([defectTypeFilters, severityFilters], ([types, sevs]) => {
 
 // ─── 新增/编辑 ─────────────────────────────────────────
 function openCreate() {
-  isEdit.value = true
+  isEdit.value = false
   editingId.value = 0
   dialogTitle.value = `新增${config.value.label}`
   const defaults = config.value.defaultCreate()
@@ -573,13 +574,15 @@ onMounted(() => {
 
 <template>
   <div class="basic-data">
-    <!-- 页面头部 -->
-    <div class="page-header">
-      <div class="page-header__main">
-        <el-icon class="page-header__icon"><Setting /></el-icon>
-        <div class="page-header__text">
-          <h2 class="page-header__title">基础数据管理</h2>
-          <p class="page-header__subtitle">管理产品、工序、供应商等基础数据</p>
+    <!-- 页面横幅 -->
+    <div class="page-header-banner page-header-banner--primary">
+      <div class="page-header-banner-main">
+        <div class="page-header-banner-icon">
+          <el-icon :size="28"><Setting /></el-icon>
+        </div>
+        <div class="page-header-banner-text">
+          <h2 class="page-header-banner-title">基础数据管理</h2>
+          <span class="page-header-banner-subtitle">管理产品、工序、供应商等基础数据</span>
         </div>
       </div>
     </div>
@@ -733,24 +736,22 @@ onMounted(() => {
     </div>
 
     <!-- 新增/编辑 Drawer -->
-    <el-drawer
-      v-model="dialogVisible"
+    <RightPanel
+      v-model:visible="dialogVisible"
       :title="dialogTitle"
-      size="600px"
-      direction="rtl"
-      :close-on-click-modal="true"
-      destroy-on-close
-      class="data-drawer"
+      :width="600"
+      :show-close="true"
     >
-      <div class="dialog-body-wrap">
-        <el-form
-          ref="formRef"
-          :model="formData"
-          label-width="100px"
-          label-position="top"
-          size="default"
-          class="dialog-form"
-        >
+      <template #body>
+        <div class="dialog-body-wrap">
+          <el-form
+            ref="formRef"
+            :model="formData"
+            label-width="100px"
+            label-position="top"
+            size="default"
+            class="dialog-form"
+          >
           <!-- 产品 -->
           <template v-if="activeEntity === 'product'">
             <div class="form-section">
@@ -1360,9 +1361,9 @@ onMounted(() => {
               <el-switch v-model="formData.isActive" :disabled="!isEdit" active-text="启用" inactive-text="停用" />
             </el-form-item>
           </template>
-        </el-form>
-      </div>
-
+          </el-form>
+        </div>
+      </template>
       <template #footer>
         <div class="dialog-footer">
           <el-button v-if="isEdit" @click="dialogVisible = false">取消</el-button>
@@ -1371,7 +1372,7 @@ onMounted(() => {
           </el-button>
         </div>
       </template>
-    </el-drawer>
+    </RightPanel>
   </div>
 </template>
 
@@ -1383,54 +1384,7 @@ onMounted(() => {
   gap: var(--space-4, 16px);
 }
 
-/* ─── Page Header ─────────────────────────── */
-.page-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: var(--space-4, 16px);
-}
-
-.page-header__main {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3, 12px);
-}
-
-.page-header__icon {
-  font-size: 28px;
-  color: var(--primary, #1677ff);
-  background: var(--primary-bg, #f0f7ff);
-  width: 44px;
-  height: 44px;
-  border-radius: var(--radius-lg, 8px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.page-header__title {
-  margin: 0;
-  font-size: 20px;
-  font-weight: 600;
-  color: var(--text-primary, #1a1a1a);
-  line-height: 1.3;
-}
-
-.page-header__subtitle {
-  margin: 2px 0 0;
-  font-size: 13px;
-  color: var(--text-secondary, #8c8c8c);
-}
-
-.header-search {
-  width: 260px;
-}
-
-.header-search :deep(.el-input__wrapper) {
-  border-radius: var(--radius-md, 6px);
-  box-shadow: 0 0 0 1px var(--border-color, #dcdfe6) inset;
-}
+/* banner styles are handled by global CSS (page-header-banner) */
 
 /* ─── Entity Navigation ───────────────────── */
 .entity-nav {
@@ -1542,36 +1496,6 @@ onMounted(() => {
   align-items: center;
 }
 
-/* Drawer styles */
-.data-drawer :deep(.el-drawer) {
-  border-radius: var(--radius-lg, 8px) 0 0 var(--radius-lg, 8px);
-  overflow: hidden;
-}
-
-.data-drawer :deep(.el-drawer__header) {
-  padding: 18px 24px;
-  border-bottom: 1px solid var(--border-color, #e4e7ed);
-  margin: 0;
-  background: var(--bg-white, #fff);
-  margin-bottom: 0;
-}
-
-.data-drawer :deep(.el-drawer__close-btn) {
-  top: 18px;
-  right: 24px;
-}
-
-.data-drawer :deep(.el-drawer__title) {
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--text-primary, #1a1a1a);
-}
-
-.data-drawer :deep(.el-drawer__body) {
-  padding: 0;
-  background: var(--bg-white, #fff);
-}
-
 /* ─── Dialog Footer Buttons ──────────────── */
 .dialog-footer {
   display: flex;
@@ -1579,47 +1503,8 @@ onMounted(() => {
   gap: var(--space-3, 12px);
 }
 
-/* ─── Drawer ──────────────────────────────── */
-.data-drawer :deep(.el-drawer) {
-  border-radius: var(--radius-lg, 8px) 0 0 var(--radius-lg, 8px);
-  overflow: hidden;
-}
-
-.data-drawer :deep(.el-drawer__header) {
-  padding: 18px 24px;
-  border-bottom: 1px solid var(--border-color, #e4e7ed);
-  margin: 0;
-  background: var(--bg-white, #fff);
-  margin-bottom: 0;
-}
-
-.data-drawer :deep(.el-drawer__close-btn) {
-  top: 18px;
-  right: 24px;
-}
-
-.data-drawer :deep(.el-drawer__title) {
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--text-primary, #1a1a1a);
-}
-
-.data-drawer :deep(.el-drawer__body) {
-  padding: 0;
-  background: var(--bg-white, #fff);
-}
-
 /* ─── Responsive ──────────────────────────── */
 @media (max-width: 768px) {
-  .page-header {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .entity-nav {
-    flex-wrap: nowrap;
-  }
-
   .data-card__header {
     flex-direction: column;
     align-items: flex-start;

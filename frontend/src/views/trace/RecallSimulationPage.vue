@@ -39,15 +39,15 @@ onMounted(() => {})
 
 <template>
   <div class="page-container">
-    <!-- Page Header -->
-    <div class="page-header">
-      <div class="page-header-main">
-        <div class="page-header-icon">
-          <el-icon :size="28"><RefreshLeft /></el-icon>
+    <!-- Page Header Banner -->
+    <div class="page-header-banner">
+      <div class="page-header-banner-main">
+        <div class="page-header-banner-icon">
+          <el-icon :size="22"><RefreshLeft /></el-icon>
         </div>
-        <div class="page-header-text">
-          <h2>召回模拟</h2>
-          <p>模拟批次产品召回的影响范围，辅助决策</p>
+        <div class="page-header-banner-text">
+          <span class="page-header-banner-title">召回模拟</span>
+          <span class="page-header-banner-subtitle">模拟批次产品召回的影响范围，辅助决策</span>
         </div>
       </div>
     </div>
@@ -126,27 +126,3 @@ onMounted(() => {})
     </el-card>
   </div>
 </template>
-
-<style scoped>
-.page-container { display: flex; flex-direction: column; height: 100%; overflow-y: auto; gap: 12px; padding: 8px 16px; }
-.page-header { margin-bottom: 4px; }
-.page-header-main { display: flex; align-items: center; gap: 14px; }
-.page-header-icon { width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; background: #fef0f0; border-radius: 10px; }
-.page-header-text h2 { margin: 0; font-size: 20px; font-weight: 600; color: #303133; }
-.page-header-text p { margin: 2px 0 0; font-size: 13px; color: #909399; }
-.search-card { flex-shrink: 0; }
-.search-card-header { display: flex; align-items: center; justify-content: space-between; }
-.search-card-title { font-weight: 600; font-size: 15px; }
-.search-input-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.search-hints { margin-top: 12px; }
-.error-msg { margin-top: 12px; }
-.result-container { display: flex; flex-direction: column; gap: 12px; }
-.info-card { flex-shrink: 0; }
-.info-row { display: flex; flex-wrap: wrap; gap: 24px; }
-.info-item { display: flex; flex-direction: column; gap: 4px; }
-.info-label { font-size: 12px; color: #909399; }
-.info-value { font-size: 14px; font-weight: 600; color: #303133; }
-.risk-cost { color: #f56c6c; font-size: 18px; }
-.loss-value { color: #f56c6c; font-weight: 600; }
-.empty-card { flex: 1; display: flex; align-items: center; justify-content: center; }
-</style>

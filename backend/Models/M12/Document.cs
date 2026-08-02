@@ -56,6 +56,7 @@ public class Document
     public long? ApprovedBy { get; set; }
 
     /// <summary>审批人标识（字符串，供服务层兼容）</summary>
+    [Column("approved_by_str")]
     public string? ApprovedByStr { get; set; }
 
     /// <summary>驳回理由</summary>

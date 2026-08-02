@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { UserInfo } from '@/types/user'
 import { authApi } from '@/api/auth'
+import router from '@/router'
 
 const TOKEN_KEY = 'qm-ai-token'
 const REFRESH_KEY = 'qm-ai-refresh-token'
@@ -72,7 +73,7 @@ export const useAuthStore = defineStore('auth', () => {
     if (onRedirect) {
       onRedirect()
     } else {
-      window.location.href = '/login'
+      router.push({ name: 'Login' })
     }
   }
 

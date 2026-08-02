@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 
 namespace QM_AI.API.Models.M07;
 
@@ -23,7 +24,7 @@ public class CapaRootCause
     [Column("analysis_method")]
     public string AnalysisMethod { get; set; } = "five_whys";
 
-    /// <summary>分析内容（5Why问答/鱼骨图数据 JSON）</summary>
+    /// <summary>分析内容（5Why 问答/鱼骨图数据 JSON）</summary>
     [Required]
     [Column("content")]
     public string Content { get; set; } = "[]";
@@ -39,5 +40,6 @@ public class CapaRootCause
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     [ForeignKey(nameof(CapaId))]
+    [JsonIgnore]
     public Capa? Capa { get; set; }
 }

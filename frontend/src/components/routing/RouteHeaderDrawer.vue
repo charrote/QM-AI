@@ -1,63 +1,55 @@
 <template>
-  <el-drawer
-    v-model="visible"
-    :title="isEdit ? '编辑工艺路线' : '新建工艺路线'"
-    size="520px"
-    direction="rtl"
-    :close-on-click-modal="false"
-    :show-close="false"
-    :destroy-on-close="true"
-    @keydown.esc.prevent
-  >
-    <el-form
-      ref="formRef"
-      :model="formData"
-      :rules="rules"
-      label-width="80px"
-      label-position="top"
-      size="default"
-      class="header-form"
-    >
-      <el-form-item label="路线编号" prop="routeCode">
-        <el-input
-          v-model="formData.routeCode"
-          :disabled="isEdit"
-          placeholder="如 STD-001"
-          maxlength="50"
-        />
-      </el-form-item>
+  <RightPanel v-model:visible="visible" :title="isEdit ? '编辑工艺路线' : '新建工艺路线'" :width="520">
+    <template #body>
+      <el-form
+        ref="formRef"
+        :model="formData"
+        :rules="rules"
+        label-width="80px"
+        label-position="top"
+        size="default"
+        class="header-form"
+      >
+        <el-form-item label="路线编号" prop="routeCode">
+          <el-input
+            v-model="formData.routeCode"
+            :disabled="isEdit"
+            placeholder="如 STD-001"
+            maxlength="50"
+          />
+        </el-form-item>
 
-      <el-form-item label="路线名称" prop="routeName">
-        <el-input v-model="formData.routeName" placeholder="如 标准路线" maxlength="200" />
-      </el-form-item>
+        <el-form-item label="路线名称" prop="routeName">
+          <el-input v-model="formData.routeName" placeholder="如 标准路线" maxlength="200" />
+        </el-form-item>
 
-      <el-form-item label="路线类型" prop="routeType">
-        <el-radio-group v-model="formData.routeType">
-          <el-radio
-            v-for="opt in routeTypeOptions"
-            :key="opt.value"
-            :value="opt.value"
-          >
-            {{ opt.label }}
-          </el-radio>
-        </el-radio-group>
-      </el-form-item>
+        <el-form-item label="路线类型" prop="routeType">
+          <el-radio-group v-model="formData.routeType">
+            <el-radio
+              v-for="opt in routeTypeOptions"
+              :key="opt.value"
+              :value="opt.value"
+            >
+              {{ opt.label }}
+            </el-radio>
+          </el-radio-group>
+        </el-form-item>
 
-      <el-form-item label="描述">
-        <el-input
-          v-model="formData.description"
-          type="textarea"
-          :rows="3"
-          placeholder="工艺路线描述（可选）"
-          maxlength="500"
-        />
-      </el-form-item>
+        <el-form-item label="描述">
+          <el-input
+            v-model="formData.description"
+            type="textarea"
+            :rows="3"
+            placeholder="工艺路线描述（可选）"
+            maxlength="500"
+          />
+        </el-form-item>
 
-      <el-form-item label="设为默认">
-        <el-switch v-model="formData.isDefault" />
-      </el-form-item>
-    </el-form>
-
+        <el-form-item label="设为默认">
+          <el-switch v-model="formData.isDefault" />
+        </el-form-item>
+      </el-form>
+    </template>
     <template #footer>
       <div class="drawer-footer">
         <el-button @click="visible = false">取消</el-button>
@@ -66,12 +58,13 @@
         </el-button>
       </div>
     </template>
-  </el-drawer>
+  </RightPanel>
 </template>
 
 <script setup lang="ts">
 import { ref, reactive, computed, watch } from 'vue'
 import { ElMessage } from 'element-plus'
+import RightPanel from '@/components/layout/RightPanel.vue'
 import type { RouteHeaderDto, CreateRouteHeaderDto, RouteType } from '@/types/routing'
 import { ROUTE_TYPE_OPTIONS } from '@/types/routing'
 import { createRouteHeader, updateRouteHeader } from '@/api/routing'

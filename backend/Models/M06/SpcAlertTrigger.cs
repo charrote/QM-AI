@@ -26,9 +26,10 @@ public class SpcAlertTrigger
     [Column("violated_point_index")]
     public int ViolatedPointIndex { get; set; }
 
-    [Column(TypeName = "json")]
+    [Column("detail", TypeName = "json")]
     public string? Detail { get; set; }
 
+    [Column("resolved")]
     public bool Resolved { get; set; } = false;
 
     [Column("resolved_at")]

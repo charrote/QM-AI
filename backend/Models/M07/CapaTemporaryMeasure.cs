@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 
 namespace QM_AI.API.Models.M07;
 
@@ -34,5 +35,6 @@ public class CapaTemporaryMeasure
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     [ForeignKey(nameof(CapaId))]
+    [JsonIgnore]
     public Capa? Capa { get; set; }
 }

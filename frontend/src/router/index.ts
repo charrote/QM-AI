@@ -218,6 +218,18 @@ const routes: RouteRecordRaw[] = [
         meta: { title: 'CAPA 流程', keepAlive: true, requiresAuth: true },
       },
       {
+        path: 'defects/capa/new',
+        name: 'CapaNew',
+        component: () => import('@/views/defects/CapaPage.vue'),
+        meta: { title: '新建 CAPA', keepAlive: false, requiresAuth: true },
+      },
+      {
+        path: 'defects/capa/:id',
+        name: 'CapaDetail',
+        component: () => import('@/views/defects/CapaDetailPage.vue'),
+        meta: { title: 'CAPA 详情', keepAlive: false, requiresAuth: true },
+      },
+      {
         path: 'defects/scrap-rework',
         name: 'ScrapRework',
         component: () => import('@/views/defects/ScrapReworkPage.vue'),
@@ -337,12 +349,6 @@ const routes: RouteRecordRaw[] = [
         name: 'AuditList',
         component: () => import('@/views/audits/AuditListPage.vue'),
         meta: { title: '审核列表', keepAlive: true, requiresAuth: true },
-      },
-      {
-        path: 'audits/detail',
-        name: 'AuditDetail',
-        component: () => import('@/views/audits/AuditDetailPage.vue'),
-        meta: { title: '审核详情', keepAlive: true, requiresAuth: true },
       },
       {
         path: 'audits/finding',

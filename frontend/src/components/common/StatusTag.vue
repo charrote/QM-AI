@@ -1,6 +1,6 @@
 <script setup lang="ts">
 interface Props {
-  status: string
+  status?: string
   type?: 'success' | 'warning' | 'danger' | 'info'
   text?: string
   size?: 'small' | 'default' | 'large'

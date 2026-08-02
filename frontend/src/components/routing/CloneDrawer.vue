@@ -1,136 +1,128 @@
 <template>
-  <el-drawer
-    v-model="visible"
-    title="克隆工艺路线"
-    size="600px"
-    direction="rtl"
-    :close-on-click-modal="false"
-    :show-close="false"
-    :destroy-on-close="true"
-    @keydown.esc.prevent
-  >
-    <div class="clone-drawer">
-      <!-- 源路线 -->
-      <div class="clone-section">
-        <div class="clone-section__title">
-          <el-icon><CopyDocument /></el-icon>
-          <span>源路线</span>
-        </div>
-        <div class="clone-source-row">
-          <el-select
-            v-model="sourceProductId"
-            filterable
-            placeholder="选择源产品"
-            style="flex: 1"
-            @change="onSourceProductChange"
-          >
-            <el-option
-              v-for="p in products"
-              :key="p.id"
-              :label="`${p.code} - ${p.name}`"
-              :value="p.id"
-            />
-          </el-select>
-          <el-select
-            v-model="sourceHeaderId"
-            filterable
-            placeholder="选择源路线"
-            style="flex: 1; margin-left: 10px"
-            :disabled="!sourceProductId"
-            @change="onSourceHeaderChange"
-          >
-            <el-option
-              v-for="route in sourceRoutes"
-              :key="route.id"
-              :label="`${route.routeCode} - ${route.routeName}`"
-              :value="route.id"
-            />
-          </el-select>
-        </div>
-      </div>
-
-      <!-- 源路线步骤预览 -->
-      <div v-if="sourceSteps.length > 0" class="clone-preview">
-        <div class="clone-preview__header">
-          <el-icon><List /></el-icon>
-          <span>源路线包含 {{ sourceSteps.length }} 个工序步骤</span>
-        </div>
-        <div class="clone-preview__list">
-          <div
-            v-for="(step, idx) in sourceSteps"
-            :key="step.id"
-            class="clone-preview__item"
-          >
-            <span class="clone-preview__step-num">{{ idx + 1 }}</span>
-            <span class="clone-preview__step-name">{{ step.processName }}</span>
-            <span class="clone-preview__step-code">{{ step.processCode }}</span>
-            <span v-if="step.standardTimeMinutes" class="clone-preview__step-time">
-              {{ step.standardTimeMinutes }} min
-            </span>
+  <RightPanel v-model:visible="visible" title="克隆工艺路线" :width="600">
+    <template #body>
+      <div class="clone-drawer">
+        <!-- 源路线 -->
+        <div class="clone-section">
+          <div class="clone-section__title">
+            <el-icon><CopyDocument /></el-icon>
+            <span>源路线</span>
+          </div>
+          <div class="clone-source-row">
+            <el-select
+              v-model="sourceProductId"
+              filterable
+              placeholder="选择源产品"
+              style="flex: 1"
+              @change="onSourceProductChange"
+            >
+              <el-option
+                v-for="p in products"
+                :key="p.id"
+                :label="`${p.code} - ${p.name}`"
+                :value="p.id"
+              />
+            </el-select>
+            <el-select
+              v-model="sourceHeaderId"
+              filterable
+              placeholder="选择源路线"
+              style="flex: 1; margin-left: 10px"
+              :disabled="!sourceProductId"
+              @change="onSourceHeaderChange"
+            >
+              <el-option
+                v-for="route in sourceRoutes"
+                :key="route.id"
+                :label="`${route.routeCode} - ${route.routeName}`"
+                :value="route.id"
+              />
+            </el-select>
           </div>
         </div>
-      </div>
 
-      <el-divider v-if="sourceSteps.length > 0" />
-
-      <!-- 目标路线信息 -->
-      <div class="clone-section">
-        <div class="clone-section__title">
-          <el-icon><DocumentChecked /></el-icon>
-          <span>目标路线信息</span>
-        </div>
-        <el-form label-width="80px" size="default">
-          <el-form-item label="目标产品">
-            <el-input
-              :value="defaultProductName"
-              readonly
-              placeholder="默认当前选中产品"
-              style="width: 100%"
+        <!-- 源路线步骤预览 -->
+        <div v-if="sourceSteps.length > 0" class="clone-preview">
+          <div class="clone-preview__header">
+            <el-icon><List /></el-icon>
+            <span>源路线包含 {{ sourceSteps.length }} 个工序步骤</span>
+          </div>
+          <div class="clone-preview__list">
+            <div
+              v-for="(step, idx) in sourceSteps"
+              :key="step.id"
+              class="clone-preview__item"
             >
-              <template #prefix>
-                <el-icon><Goods /></el-icon>
-              </template>
-            </el-input>
-          </el-form-item>
-          <el-form-item label="路线编号">
-            <el-input
-              v-model="targetRouteCode"
-              placeholder="如 ALT-001"
-              maxlength="50"
-            />
-          </el-form-item>
-          <el-form-item label="路线名称">
-            <el-input
-              v-model="targetRouteName"
-              placeholder="如 替代路线"
-              maxlength="200"
-            />
-          </el-form-item>
-          <el-form-item label="路线类型">
-            <el-radio-group v-model="targetRouteType">
-              <el-radio
-                v-for="opt in routeTypeOptions"
-                :key="opt.value"
-                :value="opt.value"
+              <span class="clone-preview__step-num">{{ idx + 1 }}</span>
+              <span class="clone-preview__step-name">{{ step.processName }}</span>
+              <span class="clone-preview__step-code">{{ step.processCode }}</span>
+              <span v-if="step.standardTimeMinutes" class="clone-preview__step-time">
+                {{ step.standardTimeMinutes }} min
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <el-divider v-if="sourceSteps.length > 0" />
+
+        <!-- 目标路线信息 -->
+        <div class="clone-section">
+          <div class="clone-section__title">
+            <el-icon><DocumentChecked /></el-icon>
+            <span>目标路线信息</span>
+          </div>
+          <el-form label-width="80px" size="default">
+            <el-form-item label="目标产品">
+              <el-input
+                :value="defaultProductName"
+                readonly
+                placeholder="默认当前选中产品"
+                style="width: 100%"
               >
-                {{ opt.label }}
-              </el-radio>
-            </el-radio-group>
-          </el-form-item>
-        </el-form>
+                <template #prefix>
+                  <el-icon><Goods /></el-icon>
+                </template>
+              </el-input>
+            </el-form-item>
+            <el-form-item label="路线编号">
+              <el-input
+                v-model="targetRouteCode"
+                placeholder="如 ALT-001"
+                maxlength="50"
+              />
+            </el-form-item>
+            <el-form-item label="路线名称">
+              <el-input
+                v-model="targetRouteName"
+                placeholder="如 替代路线"
+                maxlength="200"
+              />
+            </el-form-item>
+            <el-form-item label="路线类型">
+              <el-radio-group v-model="targetRouteType">
+                <el-radio
+                  v-for="opt in routeTypeOptions"
+                  :key="opt.value"
+                  :value="opt.value"
+                >
+                  {{ opt.label }}
+                </el-radio>
+              </el-radio-group>
+            </el-form-item>
+          </el-form>
+        </div>
+
+        <!-- 风险提示 -->
+        <el-alert
+          v-if="sourceSteps.length > 0 && targetProductId && targetRouteCode"
+          title="确认克隆"
+          :description="`将新建一条「${targetRouteName || targetRouteCode}」路线（含 ${sourceSteps.length} 个工序步骤）至「${targetProduct?.name}」。`"
+          type="warning"
+          :closable="false"
+          show-icon
+        />
       </div>
-
-      <!-- 风险提示 -->
-      <el-alert
-        v-if="sourceSteps.length > 0 && targetProductId && targetRouteCode"
-        title="确认克隆"
-        :description="`将新建一条「${targetRouteName || targetRouteCode}」路线（含 ${sourceSteps.length} 个工序步骤）至「${targetProduct?.name}」。`"
-        type="warning"
-        :closable="false"
-        show-icon
-      />
-    </div>
-
+    </template>
     <template #footer>
       <div class="drawer-footer">
         <el-button @click="visible = false">取消</el-button>
@@ -144,13 +136,14 @@
         </el-button>
       </div>
     </template>
-  </el-drawer>
+  </RightPanel>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Goods } from '@element-plus/icons-vue'
+import RightPanel from '@/components/layout/RightPanel.vue'
 import type { Product } from '@/types/basicData'
 import type { RouteHeaderDto, ProductRouteStepDto, RouteType, RouteDetailDto } from '@/types/routing'
 import { ROUTE_TYPE_OPTIONS } from '@/types/routing'

@@ -10,6 +10,7 @@ import { inspectionPlanApi } from '@/api/inspectionPlan'
 import type { FqcInspection, FqcInspectionDetail, CreateFqcInspection, SubmitFqcInspection, FqcInspectionItemSubmit } from '@/types/fqc'
 import type { ProductBatch } from '@/types/fqc'
 import type { PagedRequest, PagedResult } from '@/types/basicData'
+import RightPanel from '@/components/layout/RightPanel.vue'
 import { FQC_CONCLUSION_OPTIONS, FQC_INSPECTION_TYPE_OPTIONS, FQC_CONCLUSION_MAP } from '@/types/fqc'
 
 defineOptions({ name: 'FqcInspectionsPage' })
@@ -351,7 +352,7 @@ onMounted(fetchList)
           border
           stripe
           v-loading="loading"
-          @row-click="openDetail"
+          @row-click="row => openDetail(row.id)"
           style="width: 100%"
           size="small"
           class="data-card__table"
@@ -410,103 +411,81 @@ onMounted(fetchList)
     <!-- Drawers -->
     <!-- ================================================================== -->
 
-    <!-- 详情抽屉 -->
-    <el-drawer
-      v-model="detailVisible"
-      size="640px"
-      direction="rtl"
-      :close-on-click-modal="false"
-    >
-      <template #header>
-        <div class="drawer-header">
-          <el-icon class="drawer-header-icon"><DocumentChecked /></el-icon>
-          <div class="drawer-header-text">
-            <span class="drawer-title">检验详情</span>
-            <span class="drawer-subtitle">{{ detail?.inspectionNo }}</span>
+    <!-- RightPanel: 检验详情 -->
+    <RightPanel v-model:visible="detailVisible" title="检验详情" :width="640" :show-close="true">
+      <template #body>
+        <template v-if="detail">
+          <!-- 基本信息 -->
+          <div class="drawer-section">
+            <div class="drawer-section-header">
+              <el-icon class="drawer-section-icon"><DocumentChecked /></el-icon>
+              <span>基本信息</span>
+            </div>
+            <el-descriptions :column="2" border size="default">
+              <el-descriptions-item label="批次号">{{ detail.batchCode }}</el-descriptions-item>
+              <el-descriptions-item label="产品名称">
+                <span class="desc-highlight">{{ detail.productName }}</span>
+              </el-descriptions-item>
+              <el-descriptions-item label="检验方式">
+                <el-tag size="small" effect="plain">{{ inspectionTypeLabel(detail.inspectionType) }}</el-tag>
+              </el-descriptions-item>
+              <el-descriptions-item label="样本量/总数量">
+                {{ detail.sampleSize }} / {{ detail.batchQuantity }}
+              </el-descriptions-item>
+              <el-descriptions-item label="合格/不合格">
+                {{ detail.totalPass }} / {{ detail.totalFail }}
+              </el-descriptions-item>
+              <el-descriptions-item label="检验时间">
+                {{ detail.checkedAt || '-' }}
+              </el-descriptions-item>
+            </el-descriptions>
           </div>
-          <el-tag v-if="detail" :type="conclusionTag(detail.conclusion)" effect="dark" round>
-            {{ conclusionLabel(detail.conclusion) }}
-          </el-tag>
-        </div>
+
+          <!-- 进度条 -->
+          <div v-if="detail.totalChecked > 0 || detail.sampleSize > 0" class="drawer-section">
+            <div class="drawer-section-header">
+              <el-icon class="drawer-section-icon"><Check /></el-icon>
+              <span>检验进度</span>
+            </div>
+            <el-progress
+              :percentage="detail.sampleSize > 0 ? Math.round((detail.totalChecked / detail.sampleSize) * 100) : 0"
+              :stroke-width="16"
+              :text-inside="true"
+              :format="() => `${detail.totalChecked} / ${detail.sampleSize}`"
+            />
+          </div>
+
+          <!-- 检验明细 -->
+          <div class="drawer-section">
+            <div class="drawer-section-header">
+              <el-icon class="drawer-section-icon"><Box /></el-icon>
+              <span>检验明细</span>
+              <el-tag type="info" size="small" effect="plain">{{ (detail.items || []).length }} 项</el-tag>
+            </div>
+            <el-table :data="detail.items || []" stripe size="small">
+              <el-table-column prop="itemName" label="项目名称" min-width="120" show-overflow-tooltip />
+              <el-table-column label="规格" width="160" align="center">
+                <template #default="{ row }">
+                  {{ row.usl ?? '-' }} ~ {{ row.lsl ?? '-' }}
+                </template>
+              </el-table-column>
+              <el-table-column prop="actualValue" label="实测值" width="100" align="center" />
+              <el-table-column label="结果" width="90" align="center">
+                <template #default="{ row }">
+                  <el-tag :type="conclusionResultType(row.result)" size="small" round>
+                    {{ conclusionResultLabel(row.result) }}
+                  </el-tag>
+                </template>
+              </el-table-column>
+            </el-table>
+          </div>
+        </template>
       </template>
+    </RightPanel>
 
-      <template v-if="detail">
-        <!-- 基本信息 -->
-        <div class="drawer-section">
-          <div class="drawer-section-header">
-            <el-icon class="drawer-section-icon"><DocumentChecked /></el-icon>
-            <span>基本信息</span>
-          </div>
-          <el-descriptions :column="2" border size="default">
-            <el-descriptions-item label="批次号">{{ detail.batchCode }}</el-descriptions-item>
-            <el-descriptions-item label="产品名称">
-              <span class="desc-highlight">{{ detail.productName }}</span>
-            </el-descriptions-item>
-            <el-descriptions-item label="检验方式">
-              <el-tag size="small" effect="plain">{{ inspectionTypeLabel(detail.inspectionType) }}</el-tag>
-            </el-descriptions-item>
-            <el-descriptions-item label="样本量/总数量">
-              {{ detail.sampleSize }} / {{ detail.batchQuantity }}
-            </el-descriptions-item>
-            <el-descriptions-item label="合格/不合格">
-              {{ detail.totalPass }} / {{ detail.totalFail }}
-            </el-descriptions-item>
-            <el-descriptions-item label="检验时间">
-              {{ detail.checkedAt || '-' }}
-            </el-descriptions-item>
-          </el-descriptions>
-        </div>
-
-        <!-- 进度条 -->
-        <div v-if="detail.totalChecked > 0 || detail.sampleSize > 0" class="drawer-section">
-          <div class="drawer-section-header">
-            <el-icon class="drawer-section-icon"><Check /></el-icon>
-            <span>检验进度</span>
-          </div>
-          <el-progress
-            :percentage="detail.sampleSize > 0 ? Math.round((detail.totalChecked / detail.sampleSize) * 100) : 0"
-            :stroke-width="16"
-            :text-inside="true"
-            :format="() => `${detail.totalChecked} / ${detail.sampleSize}`"
-          />
-        </div>
-
-        <!-- 检验明细 -->
-        <div class="drawer-section">
-          <div class="drawer-section-header">
-            <el-icon class="drawer-section-icon"><Box /></el-icon>
-            <span>检验明细</span>
-            <el-tag type="info" size="small" effect="plain">{{ (detail.items || []).length }} 项</el-tag>
-          </div>
-          <el-table :data="detail.items || []" stripe size="small">
-            <el-table-column prop="itemName" label="项目名称" min-width="120" show-overflow-tooltip />
-            <el-table-column label="规格" width="160" align="center">
-              <template #default="{ row }">
-                {{ row.usl ?? '-' }} ~ {{ row.lsl ?? '-' }}
-              </template>
-            </el-table-column>
-            <el-table-column prop="actualValue" label="实测值" width="100" align="center" />
-            <el-table-column label="结果" width="70" align="center">
-              <template #default="{ row }">
-                <el-tag :type="conclusionResultType(row.result)" size="small" round>
-                  {{ conclusionResultLabel(row.result) }}
-                </el-tag>
-              </template>
-            </el-table-column>
-          </el-table>
-        </div>
-      </template>
-    </el-drawer>
-
-    <!-- 新建检验单抽屉 -->
-    <el-drawer
-      v-model="createVisible"
-      title="新建成品检验单"
-      size="560px"
-      direction="rtl"
-      :close-on-click-modal="false"
-    >
-      <div>
+    <!-- RightPanel: 新建检验单 -->
+    <RightPanel v-model:visible="createVisible" title="新建成品检验单" :width="560">
+      <template #body>
         <!-- 批次信息 -->
         <div class="dialog-section">
           <div class="dialog-section-header">
@@ -572,8 +551,7 @@ onMounted(fetchList)
             </template>
           </el-form>
         </div>
-      </div>
-
+      </template>
       <template #footer>
         <div style="display: flex; gap: 8px; justify-content: flex-end;">
           <el-button size="small" @click="createVisible = false">取消</el-button>
@@ -583,28 +561,11 @@ onMounted(fetchList)
           </el-button>
         </div>
       </template>
-    </el-drawer>
+    </RightPanel>
 
-    <!-- 提交检验结果抽屉 -->
-    <el-drawer
-      v-model="submitVisible"
-      size="720px"
-      direction="rtl"
-      :close-on-click-modal="false"
-    >
-      <template #header>
-        <div class="drawer-header">
-          <div class="drawer-header-icon">
-            <el-icon :size="18"><Edit /></el-icon>
-          </div>
-          <div class="drawer-header-text">
-            <span class="drawer-title">提交检验结果</span>
-            <span class="drawer-subtitle">填写检验项目实测值与判定</span>
-          </div>
-        </div>
-      </template>
-
-      <div>
+    <!-- RightPanel: 提交检验结果 -->
+    <RightPanel v-model:visible="submitVisible" title="提交检验结果" :width="720">
+      <template #body>
         <!-- 汇总统计 -->
         <div class="dialog-section">
           <div class="drawer-section-header">
@@ -699,8 +660,7 @@ onMounted(fetchList)
             <el-icon><Plus /></el-icon>添加项目
           </el-button>
         </div>
-      </div>
-
+      </template>
       <template #footer>
         <div style="display: flex; gap: 8px; justify-content: flex-end;">
           <el-button size="small" @click="submitVisible = false">取消</el-button>
@@ -710,7 +670,7 @@ onMounted(fetchList)
           </el-button>
         </div>
       </template>
-    </el-drawer>
+    </RightPanel>
   </div>
 </template>
 

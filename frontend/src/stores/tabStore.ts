@@ -128,6 +128,14 @@ export const useTabStore = defineStore('tab', () => {
 
   let saveTimer: ReturnType<typeof setTimeout> | null = null
 
+  function clearTabs() {
+    tabs.value = []
+    activeTabId.value = ''
+    nextOrder.value = 0
+    localStorage.removeItem(STORAGE_KEY)
+    localStorage.removeItem(STORAGE_ACTIVE_KEY)
+  }
+
   function saveTabs() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(tabs.value))
     localStorage.setItem(STORAGE_ACTIVE_KEY, activeTabId.value)
@@ -152,6 +160,7 @@ export const useTabStore = defineStore('tab', () => {
     closeTab,
     closeOtherTabs,
     closeAllTabs,
+    clearTabs,
     refreshTab,
     saveTabs,
   }

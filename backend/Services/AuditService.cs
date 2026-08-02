@@ -10,11 +10,20 @@ public class AuditService
 
     public AuditService(AppDbContext db) => _db = db;
 
-    public async Task<(List<Audit> Items, int Total)> GetAllAsync(string? auditType, string? status, int page = 1, int pageSize = 20)
+    public async Task<(List<Audit> Items, int Total)> GetAllAsync(string? auditType, string? status, string? keyword, int page = 1, int pageSize = 20)
     {
         var query = _db.Audits.AsQueryable();
         if (!string.IsNullOrEmpty(auditType)) query = query.Where(a => a.AuditType == auditType);
         if (!string.IsNullOrEmpty(status)) query = query.Where(a => a.Status == status);
+        if (!string.IsNullOrEmpty(keyword))
+        {
+            var kw = keyword.ToLower();
+            query = query.Where(a =>
+                a.AuditCode.ToLower().Contains(kw) ||
+                a.Title.ToLower().Contains(kw) ||
+                (a.Scope != null && a.Scope.ToLower().Contains(kw))
+            );
+        }
         var total = await query.CountAsync();
         var items = await query.OrderByDescending(a => a.StartDate)
             .Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
@@ -22,7 +31,7 @@ public class AuditService
     }
 
     public async Task<Audit?> GetByIdAsync(long id) =>
-        await _db.Audits.Include(a => a.Findings).FirstOrDefaultAsync(a => a.Id == id);
+        await _db.Audits.FirstOrDefaultAsync(a => a.Id == id);
 
     public async Task<Audit> CreateAsync(Audit audit)
     {
@@ -138,7 +147,30 @@ public class AuditService
         return f;
     }
 
-    public async Task<List<AuditFinding>> GetFindingsAsync(long auditId) => await _db.AuditFindings.Where(f => f.AuditId == auditId).OrderByDescending(f => f.CreatedAt).ToListAsync();
+    public async Task<List<AuditFinding>> GetFindingsAsync(long auditId, string? findingType = null, string? status = null)
+    {
+        var query = _db.AuditFindings.Where(f => f.AuditId == auditId);
+        if (!string.IsNullOrEmpty(findingType)) query = query.Where(f => f.FindingType == findingType);
+        if (!string.IsNullOrEmpty(status)) query = query.Where(f => f.Status == status);
+        return await query.OrderByDescending(f => f.CreatedAt).ToListAsync();
+    }
+
+    public async Task<List<AuditFinding>> GetAllFindingsAsync(string? findingType = null, string? status = null)
+    {
+        var query = _db.AuditFindings.AsQueryable();
+        if (!string.IsNullOrEmpty(findingType)) query = query.Where(f => f.FindingType == findingType);
+        if (!string.IsNullOrEmpty(status)) query = query.Where(f => f.Status == status);
+        return await query.OrderByDescending(f => f.CreatedAt).ToListAsync();
+    }
+
+    public async Task<bool> DeleteFindingAsync(long findingId)
+    {
+        var f = await _db.AuditFindings.FindAsync(findingId);
+        if (f == null) return false;
+        _db.AuditFindings.Remove(f);
+        await _db.SaveChangesAsync();
+        return true;
+    }
 
     public async Task<int> GetCountAsync() => await _db.Audits.CountAsync();
 }

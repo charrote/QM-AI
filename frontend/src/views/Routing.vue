@@ -413,19 +413,16 @@ onMounted(async () => {
 
 <template>
   <div class="routing-page">
-    <!-- 页面头部 -->
-    <div class="page-header">
-      <div class="page-header__main">
-        <el-icon class="page-header__icon"><Document /></el-icon>
-        <div class="page-header__text">
-          <h2 class="page-header__title">产品工艺路线</h2>
-          <p class="page-header__subtitle">管理产品的工序流程与步骤排序</p>
+    <!-- 页面横幅 -->
+    <div class="page-header-banner page-header-banner--primary">
+      <div class="page-header-banner-main">
+        <div class="page-header-banner-icon">
+          <el-icon :size="28"><Document /></el-icon>
         </div>
-      </div>
-      <div class="page-header__actions">
-        <el-button @click="refreshRoute" text>
-          <el-icon><Refresh /></el-icon>刷新
-        </el-button>
+        <div class="page-header-banner-text">
+          <h2 class="page-header-banner-title">产品工艺路线</h2>
+          <span class="page-header-banner-subtitle">管理产品的工序流程与步骤排序</span>
+        </div>
       </div>
     </div>
 
@@ -468,6 +465,9 @@ onMounted(async () => {
           <div class="data-card__header">
             <span class="data-card__title">工艺路线</span>
             <div class="data-card__actions">
+              <el-button @click="refreshRoute">
+                <el-icon><Refresh /></el-icon>刷新
+              </el-button>
               <el-button @click="openCloneCard">
                 <el-icon><CopyDocument /></el-icon>克隆路线
               </el-button>
@@ -644,51 +644,7 @@ onMounted(async () => {
   background: var(--el-bg-color-page);
 }
 
-/* ─── 页面头部 ──────────────────────────────────── */
-.page-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px 24px 4px;
-  background: var(--el-bg-color);
-  border-bottom: 1px solid var(--el-border-color-lighter);
-  flex-shrink: 0;
-}
-
-.page-header__main {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.page-header__icon {
-  font-size: 24px;
-  color: var(--el-color-primary);
-}
-
-.page-header__text {
-  display: flex;
-  flex-direction: column;
-}
-
-.page-header__title {
-  margin: 0;
-  font-size: 18px;
-  font-weight: 600;
-  color: var(--el-text-color-primary);
-}
-
-.page-header__subtitle {
-  margin: 2px 0 0;
-  font-size: 12px;
-  color: var(--el-text-color-secondary);
-}
-
-.page-header__actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
+/* banner styles handled by global CSS (page-header-banner) */
 
 /* ─── 主体布局 ──────────────────────────────────── */
 .routing-body {

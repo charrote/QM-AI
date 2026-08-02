@@ -3,6 +3,7 @@ import { ref, reactive, onMounted, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Document, Plus, Search, Refresh, Setting, Clock, User, Check } from '@element-plus/icons-vue'
 import { patrolPlanApi } from '@/api/ipqc'
+import RightPanel from '@/components/layout/RightPanel.vue'
 import { processApi, equipmentApi } from '@/api/basicData'
 import type { IpqcPatrolPlan, CreateIpqcPatrolPlan, UpdateIpqcPatrolPlan } from '@/types/ipqc'
 import { IPQC_PATROL_PLAN_STATUS_OPTIONS } from '@/types/ipqc'
@@ -371,114 +372,109 @@ onMounted(async () => {
     </div>
 
     <!-- ================================================================== -->
-    <!-- Drawer: 新建/编辑巡检计划 -->
+    <!-- RightPanel: 新建/编辑巡检计划 -->
     <!-- ================================================================== -->
-    <el-drawer
-      v-model="drawerVisible"
-      :title="drawerTitle"
-      size="580px"
-      direction="rtl"
-      :close-on-click-modal="false"
-    >
-      <div class="dialog-section">
-        <div class="dialog-section-header">
-          <el-icon class="dialog-section-icon"><Setting /></el-icon>
-          <span class="dialog-section-title">基础配置</span>
-        </div>
-        <el-form :model="form" label-width="90px">
-          <el-form-item label="工序" required>
-            <el-select v-model="form.processId" filterable placeholder="选择工序" style="width: 100%">
-              <el-option v-for="p in processes" :key="p.id" :label="p.name" :value="p.id" />
-            </el-select>
-          </el-form-item>
-          <el-form-item label="设备" required>
-            <div style="width: 100%">
-              <!-- 按类型筛选 -->
-              <el-select
-                v-model="selectedTypeFilter"
-                clearable
-                placeholder="按设备类型筛选"
-                size="small"
-                style="width: 100%; margin-bottom: 8px"
-              >
-                <el-option
-                  v-for="t in equipmentTypeOptions"
-                  :key="t.value"
-                  :label="t.label"
-                  :value="t.value"
-                />
+    <RightPanel v-model:visible="drawerVisible" :title="drawerTitle" :width="580">
+      <template #body>
+        <div class="dialog-section">
+          <div class="dialog-section-header">
+            <el-icon class="dialog-section-icon"><Setting /></el-icon>
+            <span class="dialog-section-title">基础配置</span>
+          </div>
+          <el-form :model="form" label-width="90px">
+            <el-form-item label="工序" required>
+              <el-select v-model="form.processId" filterable placeholder="选择工序" style="width: 100%">
+                <el-option v-for="p in processes" :key="p.id" :label="p.name" :value="p.id" />
               </el-select>
-              <!-- 多选设备 -->
-              <el-select
-                v-model="form.equipmentIds"
-                multiple
-                filterable
-                collapse-tags
-                collapse-tags-tooltip
-                :max-collapse-tags="3"
-                placeholder="选择设备（可多选）"
-                style="width: 100%"
-              >
-                <template v-if="!selectedTypeFilter">
-                  <!-- 全部设备，按类型分组 -->
-                  <el-option-group
-                    v-for="(devices, type) in equipmentByType"
-                    :key="type"
-                    :label="type"
-                  >
+            </el-form-item>
+            <el-form-item label="设备" required>
+              <div style="width: 100%">
+                <!-- 按类型筛选 -->
+                <el-select
+                  v-model="selectedTypeFilter"
+                  clearable
+                  placeholder="按设备类型筛选"
+                  size="small"
+                  style="width: 100%; margin-bottom: 8px"
+                >
+                  <el-option
+                    v-for="t in equipmentTypeOptions"
+                    :key="t.value"
+                    :label="t.label"
+                    :value="t.value"
+                  />
+                </el-select>
+                <!-- 多选设备 -->
+                <el-select
+                  v-model="form.equipmentIds"
+                  multiple
+                  filterable
+                  collapse-tags
+                  collapse-tags-tooltip
+                  :max-collapse-tags="3"
+                  placeholder="选择设备（可多选）"
+                  style="width: 100%"
+                >
+                  <template v-if="!selectedTypeFilter">
+                    <!-- 全部设备，按类型分组 -->
+                    <el-option-group
+                      v-for="(devices, type) in equipmentByType"
+                      :key="type"
+                      :label="type"
+                    >
+                      <el-option
+                        v-for="e in devices"
+                        :key="e.id"
+                        :label="`${e.name}（${e.code}）`"
+                        :value="e.id"
+                      />
+                    </el-option-group>
+                  </template>
+                  <template v-else>
+                    <!-- 按选中的类型筛选 -->
                     <el-option
-                      v-for="e in devices"
+                      v-for="e in filteredEquipmentByType"
                       :key="e.id"
                       :label="`${e.name}（${e.code}）`"
                       :value="e.id"
                     />
-                  </el-option-group>
-                </template>
-                <template v-else>
-                  <!-- 按选中的类型筛选 -->
-                  <el-option
-                    v-for="e in filteredEquipmentByType"
-                    :key="e.id"
-                    :label="`${e.name}（${e.code}）`"
-                    :value="e.id"
-                  />
-                </template>
-              </el-select>
-              <div style="color: var(--el-text-color-secondary); font-size: 12px; margin-top: 4px;">
-                已选择 {{ form.equipmentIds?.length || 0 }} 台设备
+                  </template>
+                </el-select>
+                <div style="color: var(--el-text-color-secondary); font-size: 12px; margin-top: 4px;">
+                  已选择 {{ form.equipmentIds?.length || 0 }} 台设备
+                </div>
               </div>
-            </div>
-          </el-form-item>
-        </el-form>
-      </div>
-
-      <div class="dialog-section">
-        <div class="dialog-section-header">
-          <el-icon class="dialog-section-icon"><Clock /></el-icon>
-          <span class="dialog-section-title">巡检参数</span>
+            </el-form-item>
+          </el-form>
         </div>
-        <el-form :model="form" label-width="110px">
-          <el-form-item label="巡检间隔 (分钟)" required>
-            <el-input-number v-model="form.patrolIntervalMin" :min="10" :max="1440" style="width: 100%" controls-position="right" />
-          </el-form-item>
-          <el-form-item label="自动生成">
-            <el-switch v-model="form.autoGenerate" active-text="开启" inactive-text="关闭" />
-          </el-form-item>
-        </el-form>
-      </div>
 
-      <div class="dialog-section">
-        <div class="dialog-section-header">
-          <el-icon class="dialog-section-icon"><User /></el-icon>
-          <span class="dialog-section-title">人员信息</span>
+        <div class="dialog-section">
+          <div class="dialog-section-header">
+            <el-icon class="dialog-section-icon"><Clock /></el-icon>
+            <span class="dialog-section-title">巡检参数</span>
+          </div>
+          <el-form :model="form" label-width="110px">
+            <el-form-item label="巡检间隔 (分钟)" required>
+              <el-input-number v-model="form.patrolIntervalMin" :min="10" :max="1440" style="width: 100%" controls-position="right" />
+            </el-form-item>
+            <el-form-item label="自动生成">
+              <el-switch v-model="form.autoGenerate" active-text="开启" inactive-text="关闭" />
+            </el-form-item>
+          </el-form>
         </div>
-        <el-form :model="form" label-width="90px">
-          <el-form-item label="检验员">
-            <el-input v-model="form.inspector" placeholder="输入检验员姓名" clearable style="width: 100%" />
-          </el-form-item>
-        </el-form>
-      </div>
 
+        <div class="dialog-section">
+          <div class="dialog-section-header">
+            <el-icon class="dialog-section-icon"><User /></el-icon>
+            <span class="dialog-section-title">人员信息</span>
+          </div>
+          <el-form :model="form" label-width="90px">
+            <el-form-item label="检验员">
+              <el-input v-model="form.inspector" placeholder="输入检验员姓名" clearable style="width: 100%" />
+            </el-form-item>
+          </el-form>
+        </div>
+      </template>
       <template #footer>
         <div style="display: flex; gap: 8px; justify-content: flex-end;">
           <el-button size="small" @click="drawerVisible = false">取消</el-button>
@@ -487,7 +483,7 @@ onMounted(async () => {
           </el-button>
         </div>
       </template>
-    </el-drawer>
+    </RightPanel>
   </div>
 </template>
 

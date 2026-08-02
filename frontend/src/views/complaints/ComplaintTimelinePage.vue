@@ -58,77 +58,81 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="page-container">
-    <!-- Page Header -->
-    <div class="page-header">
-      <div class="page-header__main">
-        <el-icon class="page-header__icon" :size="28"><List /></el-icon>
-        <div class="page-header__text">
-          <h2 class="page-header__title">投诉时间线</h2>
-          <p class="page-header__subtitle">客户投诉处理全过程追踪</p>
+  <div class="qmc-container">
+    <!-- Page Header Banner -->
+    <div class="page-header-banner page-header-banner--primary">
+      <div class="page-header-banner-main">
+        <div class="page-header-banner-icon">
+          <el-icon :size="28"><Clock /></el-icon>
         </div>
-      </div>
-      <div class="page-header__actions">
-        <el-button :icon="Back" @click="goToList">返回列表</el-button>
+        <div class="page-header-banner-text">
+          <h2 class="page-header-banner-title">投诉时间线</h2>
+          <span class="page-header-banner-subtitle">客户投诉处理全过程事件追踪</span>
+        </div>
       </div>
     </div>
 
     <!-- Timeline Card -->
-    <el-card v-loading="loading" shadow="never" class="timeline-card">
-      <template v-if="events.length === 0 && !loading">
-        <div class="empty-state">
-          <el-icon :size="48" color="#909399"><Clock /></el-icon>
-          <p>暂无事件记录</p>
+    <div class="data-card">
+      <div class="data-card__header">
+        <span class="data-card__title">
+          <el-icon style="color: var(--primary)"><Clock /></el-icon>
+          事件记录
+          <el-tag v-if="events.length" type="info" size="small">{{ events.length }} 条</el-tag>
+        </span>
+        <div class="data-card__toolbar">
+          <el-button size="small" :icon="Back" @click="goToList">返回列表</el-button>
         </div>
-      </template>
-
-      <el-timeline v-else>
-        <el-timeline-item
-          v-for="event in events"
-          :key="event.id"
-          :timestamp="formatDate(event.createdAt)"
-          :type="eventTypeColors[event.eventType] || 'info'"
-          :size="event.eventType === 'created' ? 'large' : 'normal'"
-          :placement="event.eventType === 'created' ? 'top' : 'bottom'"
-        >
-          <el-card shadow="never" class="event-card">
-            <div class="event-header">
-              <el-tag :type="eventTypeColors[event.eventType] || 'info'" size="small" effect="plain">
-                {{ getEventTypeLabel(event.eventType) }}
-              </el-tag>
-              <span class="event-user">操作人: {{ event.createdBy }}</span>
-            </div>
-            <div class="event-body" v-if="event.eventData">
-              {{ event.eventData }}
-            </div>
-          </el-card>
-        </el-timeline-item>
-      </el-timeline>
-    </el-card>
+      </div>
+      <div class="data-card__body">
+        <template v-if="events.length === 0 && !loading">
+          <div class="empty-state">
+            <el-icon :size="48" color="#909399"><Clock /></el-icon>
+            <p>暂无事件记录</p>
+          </div>
+        </template>
+        <el-timeline v-else>
+          <el-timeline-item
+            v-for="event in events"
+            :key="event.id"
+            :timestamp="formatDate(event.createdAt)"
+            :type="eventTypeColors[event.eventType] || 'info'"
+            :size="event.eventType === 'created' ? 'large' : 'normal'"
+            :placement="event.eventType === 'created' ? 'top' : 'bottom'"
+          >
+            <el-card shadow="never" class="event-card">
+              <div class="event-header">
+                <el-tag :type="eventTypeColors[event.eventType] || 'info'" size="small" effect="plain">
+                  {{ getEventTypeLabel(event.eventType) }}
+                </el-tag>
+                <span class="event-user">操作人: {{ event.createdBy }}</span>
+              </div>
+              <div class="event-body" v-if="event.eventData">
+                {{ event.eventData }}
+              </div>
+            </el-card>
+          </el-timeline-item>
+        </el-timeline>
+      </div>
+    </div>
   </div>
 </template>
 
 <style scoped>
-.page-container { display: flex; flex-direction: column; height: 100%; gap: 16px; }
-
-/* Page Header */
-.page-header {
+.qmc-container {
+  height: 100%;
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  background: var(--el-bg-color);
-  border-radius: var(--radius-lg, 8px);
-  padding: 16px 20px;
-  border: 1px solid var(--el-border-color-lighter);
+  flex-direction: column;
+  overflow: hidden;
 }
-.page-header__main { display: flex; align-items: center; gap: 12px; }
-.page-header__icon { color: var(--el-color-primary); flex-shrink: 0; }
-.page-header__title { margin: 0; font-size: 20px; font-weight: 600; color: var(--el-text-color-primary); line-height: 1.2; }
-.page-header__subtitle { margin: 4px 0 0; font-size: 13px; color: var(--el-text-color-secondary); }
-.page-header__actions { display: flex; gap: 8px; }
-
-/* Timeline */
-.timeline-card { margin: 0; }
+.content-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 8px 8px 0;
+  overflow-y: auto;
+}
 .empty-state { text-align: center; padding: 60px 0; color: var(--el-text-color-secondary); }
 .event-card { margin-bottom: 0; }
 .event-header { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }

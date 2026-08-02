@@ -104,15 +104,15 @@ onMounted(() => {})
 
 <template>
   <div class="page-container">
-    <!-- Page Header -->
-    <div class="page-header">
-      <div class="page-header-main">
-        <div class="page-header-icon">
-          <el-icon :size="28"><Search /></el-icon>
+    <!-- Page Header Banner -->
+    <div class="page-header-banner">
+      <div class="page-header-banner-main">
+        <div class="page-header-banner-icon">
+          <el-icon :size="22"><Search /></el-icon>
         </div>
-        <div class="page-header-text">
-          <h2>质量追溯</h2>
-          <p>6 阶段全流程追溯 — 来料 → 领料 → 加工 → 检验 → 批次 → 出货</p>
+        <div class="page-header-banner-text">
+          <span class="page-header-banner-title">质量追溯</span>
+          <span class="page-header-banner-subtitle">6 阶段全流程追溯 — 来料 → 领料 → 加工 → 检验 → 批次 → 出货</span>
         </div>
       </div>
     </div>
@@ -354,56 +354,3 @@ onMounted(() => {})
     </el-card>
   </div>
 </template>
-
-<style scoped>
-.page-container {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  overflow-y: auto;
-  gap: 12px;
-  padding: 8px 16px;
-}
-.page-header { margin-bottom: 4px; }
-.page-header-main { display: flex; align-items: center; gap: 14px; }
-.page-header-icon {
-  width: 44px; height: 44px;
-  display: flex; align-items: center; justify-content: center;
-  background: #ecf5ff; border-radius: 10px;
-}
-.page-header-text h2 { margin: 0; font-size: 20px; font-weight: 600; color: #303133; }
-.page-header-text p { margin: 2px 0 0; font-size: 13px; color: #909399; }
-.search-card { flex-shrink: 0; }
-.search-card-header {
-  display: flex; align-items: center; justify-content: space-between;
-}
-.search-card-title { font-weight: 600; font-size: 15px; }
-.search-methods { margin-bottom: 16px; display: flex; justify-content: center; }
-.search-input-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.search-hints { margin-top: 12px; }
-.error-msg { margin-top: 12px; }
-.trace-tree-container { display: flex; flex-direction: column; gap: 12px; flex: 1; overflow-y: auto; }
-.tree-card { flex-shrink: 0; }
-.tree-header { display: flex; align-items: center; justify-content: space-between; }
-.tree-title { font-weight: 600; font-size: 15px; }
-.trace-tree { padding: 8px 0; }
-.tree-node-label { display: flex; align-items: center; gap: 6px; }
-.tree-node-text { font-size: 14px; color: #303133; }
-.tree-icon-product { color: #409eff; }
-.tree-icon-batch { color: #409eff; }
-.tree-icon-material { color: #409eff; }
-.tree-icon-first { color: #e6a23c; }
-.tree-icon-patrol { color: #e6a23c; }
-.tree-icon-fqc { color: #f56c6c; }
-.tree-icon-oqc { color: #67c23a; }
-.info-card { flex-shrink: 0; }
-.info-row { display: flex; flex-wrap: wrap; gap: 24px; }
-.info-item { display: flex; flex-direction: column; gap: 4px; }
-.info-label { font-size: 12px; color: #909399; }
-.info-value { font-size: 14px; font-weight: 600; color: #303133; }
-.timeline-card { flex-shrink: 0; }
-.item-tag { margin: 2px 4px 2px 0; }
-.actions-card { flex-shrink: 0; }
-.actions-row { display: flex; gap: 12px; }
-.empty-card { flex: 1; display: flex; align-items: center; justify-content: center; }
-</style>

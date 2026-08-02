@@ -21,6 +21,8 @@ import {
   IQC_ANOMALY_STATUS_OPTIONS, IQC_DISPOSITION_OPTIONS, SAMPLING_LEVEL_OPTIONS,
 } from '@/types/iqc'
 import SamplingPlanCalculator from '@/components/SamplingPlanCalculator.vue'
+import RightPanel from '@/components/layout/RightPanel.vue'
+import { useRightPanel } from '@/composables/useRightPanel'
 
 defineOptions({ name: 'IqcTab' })
 
@@ -36,7 +38,7 @@ const total = ref(0)
 
 // ─── 来料登记 ────────────────────────────────────────
 const receipts = ref<IqcReceipt[]>([])
-const receiptDialogVisible = ref(false)
+const { visible: receiptDialogVisible, open: openReceiptDialog, close: closeReceiptDialog } = useRightPanel()
 const isEditingReceipt = ref(false)
 const currentReceiptId = ref<number | null>(null)
 const receiptForm = reactive<CreateIqcReceipt>({
@@ -53,7 +55,7 @@ const inspectionDetailVisible = ref(false)
 const newInspectionForm = reactive<CreateIqcInspection>({
   receiptId: 0, sampleSize: 0, ac: 0, re: 0, samplingLevel: 'II', aqlValue: 1.0
 })
-const newInspectionVisible = ref(false)
+const { visible: newInspectionVisible, open: openNewInspection, close: closeNewInspection } = useRightPanel()
 
 // ─── 异常单 ────────────────────────────────────────
 const anomalies = ref<IqcAnomaly[]>([])
@@ -135,7 +137,7 @@ function openCreateReceipt() {
   receiptForm.unit = ''
   receiptForm.receiptDate = new Date().toISOString().slice(0, 10)
   receiptForm.inspector = ''
-  receiptDialogVisible.value = true
+  openReceiptDialog()
 }
 
 function openEditReceipt(row: IqcReceipt) {
@@ -149,7 +151,7 @@ function openEditReceipt(row: IqcReceipt) {
   receiptForm.unit = row.unit || ''
   receiptForm.receiptDate = row.receiptDate?.slice(0, 10) || ''
   receiptForm.inspector = row.inspector || ''
-  receiptDialogVisible.value = true
+  openReceiptDialog()
 }
 
 async function saveReceipt() {
@@ -165,7 +167,7 @@ async function saveReceipt() {
       await receiptApi.create(receiptForm)
       ElMessage.success('来料登记已创建，检验单自动生成')
     }
-    receiptDialogVisible.value = false
+    closeReceiptDialog()
     await loadReceipts()
   } catch (e: any) {
     ElMessage.error(e?.response?.data?.message || '操作失败')
@@ -235,21 +237,21 @@ async function viewInspectionDetail(row: IqcInspection) {
   }
 }
 
-function openNewInspection(receiptId?: number) {
+function openNewInspectionForm(receiptId?: number) {
   newInspectionForm.receiptId = receiptId || 0
   newInspectionForm.sampleSize = 0
   newInspectionForm.ac = 0
   newInspectionForm.re = 0
   newInspectionForm.samplingLevel = 'II'
   newInspectionForm.aqlValue = 1.0
-  newInspectionVisible.value = true
+  openNewInspection()
 }
 
 async function createInspection() {
   try {
     await inspectionApi.create(newInspectionForm)
     ElMessage.success('检验单已创建')
-    newInspectionVisible.value = false
+    closeNewInspection()
     await loadInspections()
   } catch (e: any) {
     ElMessage.error(e?.response?.data?.message || '创建失败')
@@ -263,7 +265,7 @@ const submitItems = ref<Array<{
 }>>([])
 const submitInspector = ref('')
 const submitInspectionId = ref<number>(0)
-const submitDialogVisible = ref(false)
+const { visible: submitDialogVisible, open: openSubmitDialog, close: closeSubmitDialog } = useRightPanel()
 
 function openSubmitInspection(row: IqcInspection) {
   if (row.result !== 'pending') {
@@ -277,7 +279,7 @@ function openSubmitInspection(row: IqcInspection) {
     itemName: '外观检查', result: 'pending', measuredValue: undefined,
     usl: undefined, lsl: undefined
   }]
-  submitDialogVisible.value = true
+  openSubmitDialog()
 }
 
 async function addSubmitItem() {
@@ -305,7 +307,7 @@ async function submitInspection() {
       inspector: submitInspector.value || undefined,
     })
     ElMessage.success('检验结果已提交')
-    submitDialogVisible.value = false
+    closeSubmitDialog()
     await loadInspections()
     // 刷新来料列表
     if (activeSubTab.value === 'receipts') await loadReceipts()
@@ -533,7 +535,7 @@ async function onSubTabChange(tab: string) {
             <el-button
               v-if="row.status === 'pending' || row.status === 'inspecting'"
               link size="small" type="success"
-              @click="openNewInspection(row.id)"
+              @click="openNewInspectionForm(row.id)"
             >检验</el-button>
             <el-button link size="small" type="danger" @click="deleteReceipt(row)">删除</el-button>
           </template>
@@ -710,368 +712,30 @@ async function onSubTabChange(tab: string) {
     </div>
 
     <!-- ══════════════════════════════════════════════════════════════ -->
-    <!-- DIALOG: 来料登记 -->
+    <!-- PANEL: 来料登记 -->
     <!-- ══════════════════════════════════════════════════════════════ -->
-    <el-dialog
-      v-model="receiptDialogVisible"
+    <RightPanel
+      v-model:visible="receiptDialogVisible"
       :title="isEditingReceipt ? '编辑来料登记' : '新建来料登记'"
-      width="560px"
-      :close-on-click-modal="false"
     >
-      <el-form :model="receiptForm" label-width="100px" >
-        <el-form-item label="收货单号" required>
-          <el-input v-model="receiptForm.receiptNo" placeholder="如: REC-20260620-001" />
-        </el-form-item>
-        <el-row :gutter="16">
-          <el-col :span="12">
-            <el-form-item label="供应商" required>
-              <el-select v-model="receiptForm.supplierId" filterable placeholder="选择供应商" style="width: 100%">
-                <el-option v-for="opt in supplierOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
-              </el-select>
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="物料" required>
-              <el-select v-model="receiptForm.productId" filterable placeholder="选择物料" style="width: 100%">
-                <el-option
-                  v-for="opt in productOptions"
-                  :key="opt.value"
-                  :label="opt.label"
-                  :value="opt.value"
-                />
-              </el-select>
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="16">
-          <el-col :span="12">
-            <el-form-item label="批次号">
-              <el-input v-model="receiptForm.batchNo" placeholder="如: BATCH-001" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="6">
-            <el-form-item label="数量" required>
-              <el-input-number v-model="receiptForm.quantity" :min="1" style="width: 100%" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="6">
-            <el-form-item label="单位">
-              <el-input v-model="receiptForm.unit" placeholder="pcs" />
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="16">
-          <el-col :span="12">
-            <el-form-item label="到货日期">
-              <el-date-picker v-model="receiptForm.receiptDate" type="date" style="width: 100%" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="检验员">
-              <el-input v-model="receiptForm.inspector" />
-            </el-form-item>
-          </el-col>
-        </el-row>
-      </el-form>
-      <template #footer>
-        <el-button @click="receiptDialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="saveReceipt">保存</el-button>
-      </template>
-    </el-dialog>
-
-    <!-- ══════════════════════════════════════════════════════════════ -->
-    <!-- DIALOG: 来料登记详情 + AI 风险面板 -->
-    <!-- ══════════════════════════════════════════════════════════════ -->
-    <el-drawer
-      v-model="receiptDetailVisible"
-      :title="`来料详情: ${receiptDetail?.receiptNo || ''}`"
-      size="600px"
-    >
-      <template v-if="receiptDetail">
-        <el-descriptions :column="2" border style="margin-bottom: 16px">
-          <el-descriptions-item label="供应商">{{ receiptDetail.supplierName }}</el-descriptions-item>
-          <el-descriptions-item label="物料">{{ receiptDetail.productName }}</el-descriptions-item>
-          <el-descriptions-item label="批次号">{{ receiptDetail.batchNo }}</el-descriptions-item>
-          <el-descriptions-item label="数量">{{ receiptDetail.quantity }} {{ receiptDetail.unit }}</el-descriptions-item>
-          <el-descriptions-item label="状态">
-            <el-tag :type="calculateResultColor(receiptDetail.status)" size="small">
-              {{ statusLabel(receiptDetail.status, IQC_RECEIPT_STATUS_OPTIONS) }}
-            </el-tag>
-          </el-descriptions-item>
-          <el-descriptions-item label="到货日期">{{ formatDate(receiptDetail.receiptDate) }}</el-descriptions-item>
-        </el-descriptions>
-
-        <!-- AI Risk Panel -->
-        <el-card class="risk-panel" :class="aiRiskResult?.level || ''">
-          <template #header>
-            <div class="card-header">
-              <span>
-                <el-icon style="vertical-align: middle"><Cpu /></el-icon>
-                <span style="vertical-align: middle">AI 风险分析</span>
-              </span>
-              <el-tag v-if="aiRiskResult" :type="aiRiskResult.level === 'high' ? 'danger' : aiRiskResult.level === 'warning' ? 'warning' : 'success'" size="small">
-                {{ aiRiskResult.level === 'high' ? '高风险' : aiRiskResult.level === 'warning' ? '预警' : '低风险' }}
-              </el-tag>
-            </div>
-          </template>
-          <div v-if="aiRiskLoading" class="risk-loading">
-            <el-skeleton :rows="3" animated />
-          </div>
-          <div v-else-if="aiRiskResult" class="risk-content">
-            <div class="risk-score">
-              <span class="score-label">风险评分</span>
-              <span :class="['score-value', aiRiskResult.level]">{{ aiRiskResult.score }}/100</span>
-            </div>
-            <div v-for="(factor, i) in aiRiskResult.factors" :key="i" class="risk-factor">
-              <span class="factor-name">{{ factor.name }}</span>
-              <span class="factor-desc">{{ factor.description }}</span>
-              <el-progress
-                :percentage="factor.impact * 6.67"
-                :stroke-width="6"
-                :color="factor.impact > 10 ? '#e6a23c' : '#67c23a'"
-              />
-            </div>
-            <div v-if="aiRiskResult.recommendations.length > 0" class="risk-recommendations">
-              <h4>建议措施</h4>
-              <ul>
-                <li v-for="(rec, i) in aiRiskResult.recommendations" :key="i">{{ rec }}</li>
-              </ul>
-            </div>
-          </div>
-          <div v-else class="risk-empty">
-            <p>暂无风险数据</p>
-          </div>
-        </el-card>
-
-        <!-- Inspections summary -->
-        <el-card v-if="receiptDetail.inspections && receiptDetail.inspections.length > 0" class="trace-card">
-          <template #header>检验记录</template>
-          <el-table :data="receiptDetail.inspections"  stripe>
-            <el-table-column prop="inspectionNo" label="检验单号" />
-            <el-table-column prop="sampleSize" label="样本量" width="60" />
-            <el-table-column label="Ac/Re" width="70">
-              <template #default="{ row }">{{ row.ac }}/{{ row.re }}</template>
-            </el-table-column>
-            <el-table-column prop="defectQty" label="不良" width="60" />
-            <el-table-column label="结果" width="70">
-              <template #default="{ row }">
-                <el-tag :type="row.result === 'pass' ? 'success' : 'danger'" size="small">
-                  {{ row.result === 'pass' ? '合格' : '不合格' }}
-                </el-tag>
-              </template>
-            </el-table-column>
-          </el-table>
-        </el-card>
-
-        <!-- Anomalies summary -->
-        <el-card v-if="receiptDetail.anomalies && receiptDetail.anomalies.length > 0" class="trace-card">
-          <template #header>异常记录</template>
-          <el-table :data="receiptDetail.anomalies"  stripe>
-            <el-table-column prop="anomalyNo" label="异常单号" />
-            <el-table-column label="严重程度" width="80">
-              <template #default="{ row }">
-                <el-tag :type="row.severity === 'critical' ? 'danger' : 'warning'" size="small">
-                  {{ statusLabel(row.severity, IQC_SEVERITY_OPTIONS) }}
-                </el-tag>
-              </template>
-            </el-table-column>
-            <el-table-column prop="status" label="状态" width="80">
-              <template #default="{ row }">
-                <el-tag :type="row.status === 'resolved' ? 'success' : 'danger'" size="small">
-                  {{ statusLabel(row.status, IQC_ANOMALY_STATUS_OPTIONS) }}
-                </el-tag>
-              </template>
-            </el-table-column>
-          </el-table>
-        </el-card>
-      </template>
-    </el-drawer>
-
-    <!-- ══════════════════════════════════════════════════════════════ -->
-    <!-- DIALOG: 新建检验单 -->
-    <!-- ══════════════════════════════════════════════════════════════ -->
-    <el-dialog
-      v-model="newInspectionVisible"
-      title="新建检验单"
-      width="500px"
-      :close-on-click-modal="false"
-    >
-      <el-form :model="newInspectionForm" label-width="120px" >
-        <el-form-item label="来料登记ID">
-          <el-input-number v-model="newInspectionForm.receiptId" :min="1" style="width: 100%" />
-        </el-form-item>
-        <el-row :gutter="16">
-          <el-col :span="8">
-            <el-form-item label="样本量" required>
-              <el-input-number v-model="newInspectionForm.sampleSize" :min="1" style="width: 100%" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="8">
-            <el-form-item label="Ac" required>
-              <el-input-number v-model="newInspectionForm.ac" :min="0" style="width: 100%" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="8">
-            <el-form-item label="Re" required>
-              <el-input-number v-model="newInspectionForm.re" :min="1" style="width: 100%" />
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="16">
-          <el-col :span="12">
-            <el-form-item label="检验水平">
-              <el-select v-model="newInspectionForm.samplingLevel" style="width: 100%">
-                <el-option v-for="opt in SAMPLING_LEVEL_OPTIONS" :key="opt.value" :label="opt.label" :value="opt.value" />
-              </el-select>
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="AQL 值">
-              <el-input-number v-model="newInspectionForm.aqlValue" :min="0.01" :step="0.1" :precision="2" style="width: 100%" />
-            </el-form-item>
-          </el-col>
-        </el-row>
-      </el-form>
-      <template #footer>
-        <el-button @click="newInspectionVisible = false">取消</el-button>
-        <el-button type="primary" @click="createInspection">创建</el-button>
-      </template>
-    </el-dialog>
-
-    <!-- ══════════════════════════════════════════════════════════════ -->
-    <!-- DIALOG: 检验单详情 -->
-    <!-- ══════════════════════════════════════════════════════════════ -->
-    <el-drawer
-      v-model="inspectionDetailVisible"
-      :title="`检验单: ${inspectionDetail?.inspectionNo || ''}`"
-      size="500px"
-    >
-      <template v-if="inspectionDetail">
-        <el-descriptions :column="2" border style="margin-bottom: 16px">
-          <el-descriptions-item label="来源">{{ inspectionDetail.receiptNo }}</el-descriptions-item>
-          <el-descriptions-item label="供应商">{{ inspectionDetail.supplierName }}</el-descriptions-item>
-          <el-descriptions-item label="物料">{{ inspectionDetail.productName }}</el-descriptions-item>
-          <el-descriptions-item label="抽样方案">
-            n={{ inspectionDetail.sampleSize }}, Ac={{ inspectionDetail.ac }}, Re={{ inspectionDetail.re }}
-          </el-descriptions-item>
-          <el-descriptions-item label="结果">
-            <el-tag :type="calculateResultColor(inspectionDetail.result)" size="small">
-              {{ statusLabel(inspectionDetail.result, IQC_INSPECTION_RESULT_OPTIONS) }}
-            </el-tag>
-          </el-descriptions-item>
-          <el-descriptions-item label="检验员">{{ inspectionDetail.inspector }}</el-descriptions-item>
-        </el-descriptions>
-
-        <h4 style="margin-bottom: 8px">检验项目</h4>
-        <el-table :data="inspectionDetail.items || []"  stripe>
-          <el-table-column prop="itemName" label="项目" min-width="120" />
-          <el-table-column prop="measuredValue" label="实测值" width="90" />
-          <el-table-column label="规格" width="130">
-            <template #default="{ row }">
-              {{ row.lsl ?? '-' }} ~ {{ row.usl ?? '-' }}
-            </template>
-          </el-table-column>
-          <el-table-column label="结果" width="70">
-            <template #default="{ row }">
-              <el-tag :type="row.result === 'pass' ? 'success' : 'danger'" size="small">
-                {{ row.result === 'pass' ? 'OK' : 'NG' }}
-              </el-tag>
-            </template>
-          </el-table-column>
-          <el-table-column prop="remark" label="备注" show-overflow-tooltip />
-        </el-table>
-      </template>
-    </el-drawer>
-
-    <!-- ══════════════════════════════════════════════════════════════ -->
-    <!-- DIALOG: 提交检验结果 -->
-    <!-- ══════════════════════════════════════════════════════════════ -->
-    <el-dialog
-      v-model="submitDialogVisible"
-      title="提交检验结果"
-      width="600px"
-      :close-on-click-modal="false"
-    >
-      <el-form label-width="100px" >
-        <el-form-item label="检验员">
-          <el-input v-model="submitInspector" placeholder="检验员姓名" style="width: 200px" />
-        </el-form-item>
-        <el-form-item label="检验项目">
-          <div class="submit-items">
-            <div v-for="(item, index) in submitItems" :key="index" class="submit-item-row">
-              <el-input v-model="item.itemName" placeholder="项目名称"  style="width: 150px" />
-              <el-input-number
-                v-model="item.measuredValue"
-                :precision="4"
-                :step="0.1"
-                size="small"
-                style="width: 140px"
-                placeholder="实测值"
-              />
-              <el-select v-model="item.result"  style="width: 100px">
-                <el-option label="合格" value="pass" />
-                <el-option label="不合格" value="fail" />
-                <el-option label="待定" value="pending" />
-              </el-select>
-              <el-input v-model="item.remark" placeholder="备注"  style="width: 120px" />
-              <el-button link size="small" type="danger" @click="removeSubmitItem(index)">删除</el-button>
-            </div>
-          </div>
-          <el-button size="small" @click="addSubmitItem" style="margin-top: 8px">+ 添加项目</el-button>
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="submitDialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="submitInspection">提交判定</el-button>
-      </template>
-    </el-dialog>
-
-    <!-- ══════════════════════════════════════════════════════════════ -->
-    <!-- Drawer: 新建/编辑异常单 -->
-    <!-- ══════════════════════════════════════════════════════════════ -->
-    <el-drawer
-      v-model="anomalyDialogVisible"
-      :title="isEditingAnomaly ? '编辑异常单' : '新建异常单'"
-      size="560px"
-      direction="rtl"
-      :close-on-click-modal="false"
-    >
-      <div class="dialog-section">
-        <div class="dialog-section-header">
-          <el-icon class="dialog-section-icon"><Document /></el-icon>
-          <span class="dialog-section-title">来料信息</span>
-        </div>
-        <el-form :model="anomalyForm" label-width="100px">
-          <el-form-item label="来料登记ID" required>
-            <el-input-number v-model="anomalyForm.receiptId" :min="1" style="width: 100%" />
+      <template #body>
+        <el-form :model="receiptForm" label-width="100px" >
+          <el-form-item label="收货单号" required>
+            <el-input v-model="receiptForm.receiptNo" placeholder="如: REC-20260620-001" />
           </el-form-item>
-        </el-form>
-      </div>
-
-      <div class="dialog-section">
-        <div class="dialog-section-header">
-          <el-icon class="dialog-section-icon"><WarningFilled /></el-icon>
-          <span class="dialog-section-title">异常信息</span>
-        </div>
-        <el-form :model="anomalyForm" label-width="100px">
           <el-row :gutter="16">
             <el-col :span="12">
-              <el-form-item label="异常类型" required>
-                <el-select v-model="anomalyForm.anomalyType" style="width: 100%">
-                  <el-option
-                    v-for="opt in IQC_ANOMALY_TYPE_OPTIONS"
-                    :key="opt.value"
-                    :label="opt.label"
-                    :value="opt.value"
-                  />
+              <el-form-item label="供应商" required>
+                <el-select v-model="receiptForm.supplierId" filterable placeholder="选择供应商" style="width: 100%">
+                  <el-option v-for="opt in supplierOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
                 </el-select>
               </el-form-item>
             </el-col>
             <el-col :span="12">
-              <el-form-item label="严重程度" required>
-                <el-select v-model="anomalyForm.severity" style="width: 100%">
+              <el-form-item label="物料" required>
+                <el-select v-model="receiptForm.productId" filterable placeholder="选择物料" style="width: 100%">
                   <el-option
-                    v-for="opt in IQC_SEVERITY_OPTIONS"
+                    v-for="opt in productOptions"
                     :key="opt.value"
                     :label="opt.label"
                     :value="opt.value"
@@ -1080,15 +744,338 @@ async function onSubTabChange(tab: string) {
               </el-form-item>
             </el-col>
           </el-row>
-          <el-form-item label="描述" required>
-            <el-input v-model="anomalyForm.description" type="textarea" :rows="3" placeholder="请描述异常详情..." />
+          <el-row :gutter="16">
+            <el-col :span="12">
+              <el-form-item label="批次号">
+                <el-input v-model="receiptForm.batchNo" placeholder="如: BATCH-001" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="6">
+              <el-form-item label="数量" required>
+                <el-input-number v-model="receiptForm.quantity" :min="1" style="width: 100%" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="6">
+              <el-form-item label="单位">
+                <el-input v-model="receiptForm.unit" placeholder="pcs" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row :gutter="16">
+            <el-col :span="12">
+              <el-form-item label="到货日期">
+                <el-date-picker v-model="receiptForm.receiptDate" type="date" style="width: 100%" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="检验员">
+                <el-input v-model="receiptForm.inspector" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+        </el-form>
+      </template>
+      <template #footer>
+        <el-button @click="closeReceiptDialog">取消</el-button>
+        <el-button type="primary" @click="saveReceipt">保存</el-button>
+      </template>
+    </RightPanel>
+
+    <!-- ══════════════════════════════════════════════════════════════ -->
+    <!-- PANEL: 来料登记详情 + AI 风险面板 -->
+    <!-- ══════════════════════════════════════════════════════════════ -->
+    <RightPanel v-model:visible="receiptDetailVisible" :title="`来料详情: ${receiptDetail?.receiptNo || ''}`" :width="600" :show-close="true">
+      <template #body>
+        <template v-if="receiptDetail">
+          <el-descriptions :column="2" border style="margin-bottom: 16px">
+            <el-descriptions-item label="供应商">{{ receiptDetail.supplierName }}</el-descriptions-item>
+            <el-descriptions-item label="物料">{{ receiptDetail.productName }}</el-descriptions-item>
+            <el-descriptions-item label="批次号">{{ receiptDetail.batchNo }}</el-descriptions-item>
+            <el-descriptions-item label="数量">{{ receiptDetail.quantity }} {{ receiptDetail.unit }}</el-descriptions-item>
+            <el-descriptions-item label="状态">
+              <el-tag :type="calculateResultColor(receiptDetail.status)" size="small">
+                {{ statusLabel(receiptDetail.status, IQC_RECEIPT_STATUS_OPTIONS) }}
+              </el-tag>
+            </el-descriptions-item>
+            <el-descriptions-item label="到货日期">{{ formatDate(receiptDetail.receiptDate) }}</el-descriptions-item>
+          </el-descriptions>
+
+          <!-- AI Risk Panel -->
+          <el-card class="risk-panel" :class="aiRiskResult?.level || ''">
+            <template #header>
+              <div class="card-header">
+                <span>
+                  <el-icon style="vertical-align: middle"><Cpu /></el-icon>
+                  <span style="vertical-align: middle">AI 风险分析</span>
+                </span>
+                <el-tag v-if="aiRiskResult" :type="aiRiskResult.level === 'high' ? 'danger' : aiRiskResult.level === 'warning' ? 'warning' : 'success'" size="small">
+                  {{ aiRiskResult.level === 'high' ? '高风险' : aiRiskResult.level === 'warning' ? '预警' : '低风险' }}
+                </el-tag>
+              </div>
+            </template>
+            <div v-if="aiRiskLoading" class="risk-loading">
+              <el-skeleton :rows="3" animated />
+            </div>
+            <div v-else-if="aiRiskResult" class="risk-content">
+              <div class="risk-score">
+                <span class="score-label">风险评分</span>
+                <span :class="['score-value', aiRiskResult.level]">{{ aiRiskResult.score }}/100</span>
+              </div>
+              <div v-for="(factor, i) in aiRiskResult.factors" :key="i" class="risk-factor">
+                <span class="factor-name">{{ factor.name }}</span>
+                <span class="factor-desc">{{ factor.description }}</span>
+                <el-progress
+                  :percentage="factor.impact * 6.67"
+                  :stroke-width="6"
+                  :color="factor.impact > 10 ? '#e6a23c' : '#67c23a'"
+                />
+              </div>
+              <div v-if="aiRiskResult.recommendations.length > 0" class="risk-recommendations">
+                <h4>建议措施</h4>
+                <ul>
+                  <li v-for="(rec, i) in aiRiskResult.recommendations" :key="i">{{ rec }}</li>
+                </ul>
+              </div>
+            </div>
+            <div v-else class="risk-empty">
+              <p>暂无风险数据</p>
+            </div>
+          </el-card>
+
+          <!-- Inspections summary -->
+          <el-card v-if="receiptDetail.inspections && receiptDetail.inspections.length > 0" class="trace-card">
+            <template #header>检验记录</template>
+            <el-table :data="receiptDetail.inspections"  stripe>
+              <el-table-column prop="inspectionNo" label="检验单号" />
+              <el-table-column prop="sampleSize" label="样本量" width="60" />
+              <el-table-column label="Ac/Re" width="70">
+                <template #default="{ row }">{{ row.ac }}/{{ row.re }}</template>
+              </el-table-column>
+              <el-table-column prop="defectQty" label="不良" width="60" />
+              <el-table-column label="结果" width="70">
+                <template #default="{ row }">
+                  <el-tag :type="row.result === 'pass' ? 'success' : 'danger'" size="small">
+                    {{ row.result === 'pass' ? '合格' : '不合格' }}
+                  </el-tag>
+                </template>
+              </el-table-column>
+            </el-table>
+          </el-card>
+
+          <!-- Anomalies summary -->
+          <el-card v-if="receiptDetail.anomalies && receiptDetail.anomalies.length > 0" class="trace-card">
+            <template #header>异常记录</template>
+            <el-table :data="receiptDetail.anomalies"  stripe>
+              <el-table-column prop="anomalyNo" label="异常单号" />
+              <el-table-column label="严重程度" width="80">
+                <template #default="{ row }">
+                  <el-tag :type="row.severity === 'critical' ? 'danger' : 'warning'" size="small">
+                    {{ statusLabel(row.severity, IQC_SEVERITY_OPTIONS) }}
+                  </el-tag>
+                </template>
+              </el-table-column>
+              <el-table-column prop="status" label="状态" width="80">
+                <template #default="{ row }">
+                  <el-tag :type="row.status === 'resolved' ? 'success' : 'danger'" size="small">
+                    {{ statusLabel(row.status, IQC_ANOMALY_STATUS_OPTIONS) }}
+                  </el-tag>
+                </template>
+              </el-table-column>
+            </el-table>
+          </el-card>
+        </template>
+      </template>
+    </RightPanel>
+
+    <!-- ══════════════════════════════════════════════════════════════ -->
+    <!-- PANEL: 新建检验单 -->
+    <!-- ══════════════════════════════════════════════════════════════ -->
+    <RightPanel v-model:visible="newInspectionVisible" title="新建检验单">
+      <template #body>
+        <el-form :model="newInspectionForm" label-width="120px" >
+          <el-form-item label="来料登记ID">
+            <el-input-number v-model="newInspectionForm.receiptId" :min="1" style="width: 100%" />
           </el-form-item>
-          <el-form-item label="处理人">
-            <el-input v-model="anomalyForm.handler" placeholder="请输入处理人姓名" />
+          <el-row :gutter="16">
+            <el-col :span="8">
+              <el-form-item label="样本量" required>
+                <el-input-number v-model="newInspectionForm.sampleSize" :min="1" style="width: 100%" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="8">
+              <el-form-item label="Ac" required>
+                <el-input-number v-model="newInspectionForm.ac" :min="0" style="width: 100%" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="8">
+              <el-form-item label="Re" required>
+                <el-input-number v-model="newInspectionForm.re" :min="1" style="width: 100%" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row :gutter="16">
+            <el-col :span="12">
+              <el-form-item label="检验水平">
+                <el-select v-model="newInspectionForm.samplingLevel" style="width: 100%">
+                  <el-option v-for="opt in SAMPLING_LEVEL_OPTIONS" :key="opt.value" :label="opt.label" :value="opt.value" />
+                </el-select>
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="AQL 值">
+                <el-input-number v-model="newInspectionForm.aqlValue" :min="0.01" :step="0.1" :precision="2" style="width: 100%" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+        </el-form>
+      </template>
+      <template #footer>
+        <el-button @click="closeNewInspection">取消</el-button>
+        <el-button type="primary" @click="createInspection">创建</el-button>
+      </template>
+    </RightPanel>
+
+    <!-- ══════════════════════════════════════════════════════════════ -->
+    <!-- PANEL: 检验单详情 -->
+    <!-- ══════════════════════════════════════════════════════════════ -->
+    <RightPanel v-model:visible="inspectionDetailVisible" :title="`检验单: ${inspectionDetail?.inspectionNo || ''}`" :width="500" :show-close="true">
+      <template #body>
+        <template v-if="inspectionDetail">
+          <el-descriptions :column="2" border style="margin-bottom: 16px">
+            <el-descriptions-item label="来源">{{ inspectionDetail.receiptNo }}</el-descriptions-item>
+            <el-descriptions-item label="供应商">{{ inspectionDetail.supplierName }}</el-descriptions-item>
+            <el-descriptions-item label="物料">{{ inspectionDetail.productName }}</el-descriptions-item>
+            <el-descriptions-item label="抽样方案">
+              n={{ inspectionDetail.sampleSize }}, Ac={{ inspectionDetail.ac }}, Re={{ inspectionDetail.re }}
+            </el-descriptions-item>
+            <el-descriptions-item label="结果">
+              <el-tag :type="calculateResultColor(inspectionDetail.result)" size="small">
+                {{ statusLabel(inspectionDetail.result, IQC_INSPECTION_RESULT_OPTIONS) }}
+              </el-tag>
+            </el-descriptions-item>
+            <el-descriptions-item label="检验员">{{ inspectionDetail.inspector }}</el-descriptions-item>
+          </el-descriptions>
+
+          <h4 style="margin-bottom: 8px">检验项目</h4>
+          <el-table :data="inspectionDetail.items || []"  stripe>
+            <el-table-column prop="itemName" label="项目" min-width="120" />
+            <el-table-column prop="measuredValue" label="实测值" width="90" />
+            <el-table-column label="规格" width="130">
+              <template #default="{ row }">
+                {{ row.lsl ?? '-' }} ~ {{ row.usl ?? '-' }}
+              </template>
+            </el-table-column>
+            <el-table-column label="结果" width="70">
+              <template #default="{ row }">
+                <el-tag :type="row.result === 'pass' ? 'success' : 'danger'" size="small">
+                  {{ row.result === 'pass' ? 'OK' : 'NG' }}
+                </el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column prop="remark" label="备注" show-overflow-tooltip />
+          </el-table>
+        </template>
+      </template>
+    </RightPanel>
+
+    <!-- ══════════════════════════════════════════════════════════════ -->
+    <!-- PANEL: 提交检验结果 -->
+    <!-- ══════════════════════════════════════════════════════════════ -->
+    <RightPanel v-model:visible="submitDialogVisible" title="提交检验结果">
+      <template #body>
+        <el-form label-width="100px" >
+          <el-form-item label="检验员">
+            <el-input v-model="submitInspector" placeholder="检验员姓名" style="width: 200px" />
+          </el-form-item>
+          <el-form-item label="检验项目">
+            <div class="submit-items">
+              <div v-for="(item, index) in submitItems" :key="index" class="submit-item-row">
+                <el-input v-model="item.itemName" placeholder="项目名称"  style="width: 150px" />
+                <el-input-number
+                  v-model="item.measuredValue"
+                  :precision="4"
+                  :step="0.1"
+                  size="small"
+                  style="width: 140px"
+                  placeholder="实测值"
+                />
+                <el-select v-model="item.result"  style="width: 100px">
+                  <el-option label="合格" value="pass" />
+                  <el-option label="不合格" value="fail" />
+                  <el-option label="待定" value="pending" />
+                </el-select>
+                <el-input v-model="item.remark" placeholder="备注"  style="width: 120px" />
+                <el-button link size="small" type="danger" @click="removeSubmitItem(index)">删除</el-button>
+              </div>
+            </div>
+            <el-button size="small" @click="addSubmitItem" style="margin-top: 8px">+ 添加项目</el-button>
           </el-form-item>
         </el-form>
-      </div>
+      </template>
+      <template #footer>
+        <el-button @click="closeSubmitDialog">取消</el-button>
+        <el-button type="primary" @click="submitInspection">提交判定</el-button>
+      </template>
+    </RightPanel>
 
+    <!-- ══════════════════════════════════════════════════════════════ -->
+    <!-- PANEL: 新建/编辑异常单 -->
+    <!-- ══════════════════════════════════════════════════════════════ -->
+    <RightPanel v-model:visible="anomalyDialogVisible" :title="isEditingAnomaly ? '编辑异常单' : '新建异常单'" :width="560">
+      <template #body>
+        <div class="dialog-section">
+          <div class="dialog-section-header">
+            <el-icon class="dialog-section-icon"><Document /></el-icon>
+            <span class="dialog-section-title">来料信息</span>
+          </div>
+          <el-form :model="anomalyForm" label-width="100px">
+            <el-form-item label="来料登记ID" required>
+              <el-input-number v-model="anomalyForm.receiptId" :min="1" style="width: 100%" />
+            </el-form-item>
+          </el-form>
+        </div>
+
+        <div class="dialog-section">
+          <div class="dialog-section-header">
+            <el-icon class="dialog-section-icon"><WarningFilled /></el-icon>
+            <span class="dialog-section-title">异常信息</span>
+          </div>
+          <el-form :model="anomalyForm" label-width="100px">
+            <el-row :gutter="16">
+              <el-col :span="12">
+                <el-form-item label="异常类型" required>
+                  <el-select v-model="anomalyForm.anomalyType" style="width: 100%">
+                    <el-option
+                      v-for="opt in IQC_ANOMALY_TYPE_OPTIONS"
+                      :key="opt.value"
+                      :label="opt.label"
+                      :value="opt.value"
+                    />
+                  </el-select>
+                </el-form-item>
+              </el-col>
+              <el-col :span="12">
+                <el-form-item label="严重程度" required>
+                  <el-select v-model="anomalyForm.severity" style="width: 100%">
+                    <el-option
+                      v-for="opt in IQC_SEVERITY_OPTIONS"
+                      :key="opt.value"
+                      :label="opt.label"
+                      :value="opt.value"
+                    />
+                  </el-select>
+                </el-form-item>
+              </el-col>
+            </el-row>
+            <el-form-item label="描述" required>
+              <el-input v-model="anomalyForm.description" type="textarea" :rows="3" placeholder="请描述异常详情..." />
+            </el-form-item>
+            <el-form-item label="处理人">
+              <el-input v-model="anomalyForm.handler" placeholder="请输入处理人姓名" />
+            </el-form-item>
+          </el-form>
+        </div>
+      </template>
       <template #footer>
         <div style="display: flex; gap: 8px; justify-content: flex-end;">
           <el-button size="small" @click="anomalyDialogVisible = false">取消</el-button>
@@ -1097,40 +1084,35 @@ async function onSubTabChange(tab: string) {
           </el-button>
         </div>
       </template>
-    </el-drawer>
+    </RightPanel>
 
     <!-- ══════════════════════════════════════════════════════════════ -->
-    <!-- Drawer: 解决异常单 -->
+    <!-- PANEL: 解决异常单 -->
     <!-- ══════════════════════════════════════════════════════════════ -->
-    <el-drawer
-      v-model="resolveAnomalyVisible"
-      title="解决异常单"
-      size="520px"
-      direction="rtl"
-      :close-on-click-modal="false"
-    >
-      <div class="dialog-section">
-        <div class="dialog-section-header">
-          <el-icon class="dialog-section-icon"><Edit /></el-icon>
-          <span class="dialog-section-title">解决方案</span>
+    <RightPanel v-model:visible="resolveAnomalyVisible" title="解决异常单" :width="520">
+      <template #body>
+        <div class="dialog-section">
+          <div class="dialog-section-header">
+            <el-icon class="dialog-section-icon"><Edit /></el-icon>
+            <span class="dialog-section-title">解决方案</span>
+          </div>
+          <el-form :model="resolveForm" label-width="80px">
+            <el-form-item label="解决方案" required>
+              <el-input v-model="resolveForm.resolution" type="textarea" :rows="5" placeholder="请描述解决方案..." />
+            </el-form-item>
+            <el-form-item label="处理人">
+              <el-input v-model="resolveForm.handler" placeholder="请输入处理人姓名" />
+            </el-form-item>
+          </el-form>
         </div>
-        <el-form :model="resolveForm" label-width="80px">
-          <el-form-item label="解决方案" required>
-            <el-input v-model="resolveForm.resolution" type="textarea" :rows="5" placeholder="请描述解决方案..." />
-          </el-form-item>
-          <el-form-item label="处理人">
-            <el-input v-model="resolveForm.handler" placeholder="请输入处理人姓名" />
-          </el-form-item>
-        </el-form>
-      </div>
-
+      </template>
       <template #footer>
         <div style="display: flex; gap: 8px; justify-content: flex-end;">
           <el-button size="small" @click="resolveAnomalyVisible = false">取消</el-button>
           <el-button size="small" type="primary" @click="resolveAnomaly">确认解决</el-button>
         </div>
       </template>
-    </el-drawer>
+    </RightPanel>
 
     <!-- 抽样方案计算器 (shared) -->
     <SamplingPlanCalculator v-if="activeSubTab === 'receipts' || activeSubTab === 'inspections'" mode="panel" />

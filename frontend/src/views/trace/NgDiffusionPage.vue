@@ -43,15 +43,15 @@ onMounted(() => {})
 
 <template>
   <div class="page-container">
-    <!-- Page Header -->
-    <div class="page-header">
-      <div class="page-header-main">
-        <div class="page-header-icon">
-          <el-icon :size="28"><Connection /></el-icon>
+    <!-- Page Header Banner -->
+    <div class="page-header-banner">
+      <div class="page-header-banner-main">
+        <div class="page-header-banner-icon">
+          <el-icon :size="22"><Connection /></el-icon>
         </div>
-        <div class="page-header-text">
-          <h2>NG 扩散分析</h2>
-          <p>4 维度扩散分析：同设备 / 同刀具 / 同供应商 / 同工艺参数</p>
+        <div class="page-header-banner-text">
+          <span class="page-header-banner-title">NG 扩散分析</span>
+          <span class="page-header-banner-subtitle">4 维度扩散分析：同设备 / 同刀具 / 同供应商 / 同工艺参数</span>
         </div>
       </div>
     </div>
@@ -129,32 +129,3 @@ onMounted(() => {})
     </el-card>
   </div>
 </template>
-
-<style scoped>
-.page-container {
-  display: flex; flex-direction: column; height: 100%; overflow-y: auto;
-  gap: 12px; padding: 8px 16px;
-}
-.page-header { margin-bottom: 4px; }
-.page-header-main { display: flex; align-items: center; gap: 14px; }
-.page-header-icon {
-  width: 44px; height: 44px; display: flex; align-items: center; justify-content: center;
-  background: #fdf6ec; border-radius: 10px;
-}
-.page-header-text h2 { margin: 0; font-size: 20px; font-weight: 600; color: #303133; }
-.page-header-text p { margin: 2px 0 0; font-size: 13px; color: #909399; }
-.search-card { flex-shrink: 0; }
-.search-card-header { display: flex; align-items: center; justify-content: space-between; }
-.search-card-title { font-weight: 600; font-size: 15px; }
-.search-input-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.search-hints { margin-top: 12px; }
-.error-msg { margin-top: 12px; }
-.result-container { display: flex; flex-direction: column; gap: 12px; }
-.info-card { flex-shrink: 0; }
-.risk-summary { display: flex; align-items: center; gap: 32px; flex-wrap: wrap; }
-.risk-item { display: flex; flex-direction: column; gap: 6px; }
-.risk-label { font-size: 13px; color: #909399; }
-.risk-value { font-size: 16px; font-weight: 600; color: #303133; }
-.risk-value.highlight { color: #f56c6c; font-size: 20px; }
-.empty-card { flex: 1; display: flex; align-items: center; justify-content: center; }
-</style>

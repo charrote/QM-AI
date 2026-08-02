@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import RightPanel from '@/components/layout/RightPanel.vue'
 import { Setting, Plus, Search, Refresh } from '@element-plus/icons-vue'
 import { roleApi } from '@/api/system'
 import type { Role as RoleType, CreateRole, UpdateRole } from '@/types/system'
@@ -178,28 +179,29 @@ onMounted(() => { loadData() })
       </div>
     </div>
 
-    <!-- Drawer -->
-    <el-drawer
-      v-model="drawerVisible"
+    <!-- Panel -->
+    <RightPanel
+      v-model:visible="drawerVisible"
       :title="drawerTitle"
-      size="520px"
-      direction="rtl"
-      :close-on-click-modal="false"
+      :width="520"
+      :show-close="true"
     >
-      <div class="dialog-section">
-        <div class="dialog-section-header">
-          <el-icon class="dialog-section-icon"><Setting /></el-icon>
-          <span class="dialog-section-title">角色信息</span>
+      <template #body>
+        <div class="dialog-section">
+          <div class="dialog-section-header">
+            <el-icon class="dialog-section-icon"><Setting /></el-icon>
+            <span class="dialog-section-title">角色信息</span>
+          </div>
+          <el-form :model="form" label-width="80px">
+            <el-form-item label="角色名称" required>
+              <el-input v-model="form.name" placeholder="请输入角色名称" clearable style="width: 100%" />
+            </el-form-item>
+            <el-form-item label="描述">
+              <el-input v-model="form.description" type="textarea" :rows="3" placeholder="请输入角色描述" style="width: 100%" />
+            </el-form-item>
+          </el-form>
         </div>
-        <el-form :model="form" label-width="80px">
-          <el-form-item label="角色名称" required>
-            <el-input v-model="form.name" placeholder="请输入角色名称" clearable style="width: 100%" />
-          </el-form-item>
-          <el-form-item label="描述">
-            <el-input v-model="form.description" type="textarea" :rows="3" placeholder="请输入角色描述" style="width: 100%" />
-          </el-form-item>
-        </el-form>
-      </div>
+      </template>
 
       <template #footer>
         <div style="display: flex; gap: 8px; justify-content: flex-end;">
@@ -207,7 +209,7 @@ onMounted(() => { loadData() })
           <el-button size="small" type="primary" @click="handleSave" :loading="saving">保存</el-button>
         </div>
       </template>
-    </el-drawer>
+    </RightPanel>
   </div>
 </template>
 

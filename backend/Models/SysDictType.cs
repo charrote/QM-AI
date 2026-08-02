@@ -80,6 +80,7 @@ public class SysDictItem
 
     /// <summary>颜色标识</summary>
     [MaxLength(20)]
+    [Column("color")]
     public string? Color { get; set; }
 
     /// <summary>是否默认</summary>

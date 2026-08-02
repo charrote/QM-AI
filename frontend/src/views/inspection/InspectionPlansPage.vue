@@ -4,6 +4,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { List, Search, Plus, Check, Refresh, Close } from '@element-plus/icons-vue'
 import { inspectionPlanApi } from '@/api/inspectionPlan'
 import { inspectionItemApi } from '@/api/inspectionItem'
+import RightPanel from '@/components/layout/RightPanel.vue'
 import type { InspectionPlan, InspectionPlanDetail, InspectionPlanItem, CreateInspectionPlan, CreateInspectionPlanItem, UpdateInspectionPlan } from '@/types/inspectionItem'
 import type { InspectionItem } from '@/types/inspectionItem'
 import type { PagedRequest } from '@/types/basicData'
@@ -259,13 +260,15 @@ onMounted(() => {
 
 <template>
   <div class="inspection-plans-page">
-    <!-- 页面头部 -->
-    <div class="page-header">
-      <div class="page-header__main">
-        <el-icon class="page-header__icon"><List /></el-icon>
-        <div class="page-header__text">
-          <h2 class="page-header__title">检验计划管理</h2>
-          <p class="page-header__subtitle">定义"什么维度组合→检验哪些项目"，贯通检验项目主数据与业务执行</p>
+    <!-- 页面横幅 -->
+    <div class="page-header-banner page-header-banner--primary">
+      <div class="page-header-banner-main">
+        <div class="page-header-banner-icon">
+          <el-icon :size="28"><List /></el-icon>
+        </div>
+        <div class="page-header-banner-text">
+          <h2 class="page-header-banner-title">检验计划管理</h2>
+          <span class="page-header-banner-subtitle">定义"什么维度组合→检验哪些项目"，贯通检验项目主数据与业务执行</span>
         </div>
       </div>
     </div>
@@ -362,142 +365,139 @@ onMounted(() => {
       </div>
     </div>
 
-    <!-- 新增/编辑 Drawer -->
-    <el-drawer
-      v-model="dialogVisible"
+    <!-- 新增/编辑 RightPanel -->
+    <RightPanel
+      v-model:visible="dialogVisible"
       :title="dialogTitle"
-      size="800px"
-      direction="rtl"
-      :close-on-click-modal="true"
-      destroy-on-close
-      class="data-drawer"
+      :width="800"
     >
-      <div class="dialog-body-wrap">
-        <el-form
-          ref="formRef"
-          :model="form"
-          :rules="formRules"
-          label-width="120px"
-          label-position="top"
-          size="default"
-          class="dialog-form"
-        >
-          <!-- 基本信息 -->
-          <div class="form-section">
-            <div class="form-section__title">基本信息</div>
-            <el-row :gutter="16">
-              <el-col :span="8">
-                <el-form-item label="计划编码" prop="planCode">
-                  <el-input v-model="form.planCode" placeholder="如 PLAN-IQC-001" :disabled="isEdit" />
-                </el-form-item>
-              </el-col>
-              <el-col :span="8">
-                <el-form-item label="计划名称" prop="planName">
-                  <el-input v-model="form.planName" />
-                </el-form-item>
-              </el-col>
-              <el-col :span="8">
-                <el-form-item label="检验类型" prop="inspectionType">
-                  <el-select v-model="form.inspectionType" style="width: 100%">
-                    <el-option v-for="o in INSPECTION_TYPE_OPTIONS" :key="o.value" :label="o.label" :value="o.value" />
-                  </el-select>
-                </el-form-item>
-              </el-col>
-            </el-row>
-          </div>
-
-          <!-- 业务维度 -->
-          <div class="form-section">
-            <div class="form-section__title">业务维度（设置后系统自动匹配）</div>
-            <el-row :gutter="16">
-              <el-col :span="8">
-                <el-form-item label="产品">
-                  <el-input v-model="form.productId" placeholder="产品ID" type="number" />
-                </el-form-item>
-              </el-col>
-              <el-col :span="8">
-                <el-form-item label="供应商">
-                  <el-input v-model="form.supplierId" placeholder="供应商ID" type="number" />
-                </el-form-item>
-              </el-col>
-              <el-col :span="8">
-                <el-form-item label="客户">
-                  <el-input v-model="form.customerId" placeholder="客户ID" type="number" />
-                </el-form-item>
-              </el-col>
-            </el-row>
-            <el-row :gutter="16">
-              <el-col :span="8">
-                <el-form-item label="工序">
-                  <el-input v-model="form.processId" placeholder="工序ID" type="number" />
-                </el-form-item>
-              </el-col>
-              <el-col :span="8">
-                <el-form-item label="设备">
-                  <el-input v-model="form.equipmentId" placeholder="设备ID" type="number" />
-                </el-form-item>
-              </el-col>
-              <el-col :span="8">
-                <el-form-item label="材料">
-                  <el-input v-model="form.materialId" placeholder="材料ID" type="number" />
-                </el-form-item>
-              </el-col>
-            </el-row>
-          </div>
-
-          <!-- 检验项目清单 -->
-          <div class="form-section">
-            <div class="form-section__title">检验项目清单</div>
-            <div class="plan-items-section">
-              <div v-for="(pi, idx) in planItems" :key="idx" class="plan-item-row">
-                <div class="plan-item-row__body">
-                  <el-form-item :label="`项目 ${idx + 1}`" :prop="`items.${idx}.inspectionItemId`"
-                    :rules="[{ required: true, message: '请选择检验项目', trigger: 'change' }]">
-                    <el-select v-model="pi.inspectionItemId" filterable style="width: 180px"
-                      @change="onItemSelectChange(idx)">
-                      <el-option v-for="opt in inspectionItemOptions" :key="opt.id"
-                        :label="`${opt.itemCode} - ${opt.itemName}`" :value="opt.id" />
+      <template #body>
+        <div class="dialog-body-wrap">
+          <el-form
+            ref="formRef"
+            :model="form"
+            :rules="formRules"
+            label-width="120px"
+            label-position="top"
+            size="default"
+            class="dialog-form"
+          >
+            <!-- 基本信息 -->
+            <div class="form-section">
+              <div class="form-section__title">基本信息</div>
+              <el-row :gutter="16">
+                <el-col :span="8">
+                  <el-form-item label="计划编码" prop="planCode">
+                    <el-input v-model="form.planCode" placeholder="如 PLAN-IQC-001" :disabled="isEdit" />
+                  </el-form-item>
+                </el-col>
+                <el-col :span="8">
+                  <el-form-item label="计划名称" prop="planName">
+                    <el-input v-model="form.planName" />
+                  </el-form-item>
+                </el-col>
+                <el-col :span="8">
+                  <el-form-item label="检验类型" prop="inspectionType">
+                    <el-select v-model="form.inspectionType" style="width: 100%">
+                      <el-option v-for="o in INSPECTION_TYPE_OPTIONS" :key="o.value" :label="o.label" :value="o.value" />
                     </el-select>
                   </el-form-item>
-                  <el-form-item label="USL">
-                    <el-input-number v-model="pi.usl" :precision="4" controls-position="right" style="width: 100px" />
-                  </el-form-item>
-                  <el-form-item label="LSL">
-                    <el-input-number v-model="pi.lsl" :precision="4" controls-position="right" style="width: 100px" />
-                  </el-form-item>
-                  <el-form-item label="Target">
-                    <el-input-number v-model="pi.targetValue" :precision="4" controls-position="right" style="width: 100px" />
-                  </el-form-item>
-                  <el-form-item label="样本数">
-                    <el-input-number v-model="pi.sampleSize" :min="1" controls-position="right" style="width: 80px" />
-                  </el-form-item>
-                  <el-form-item label="必检">
-                    <el-switch v-model="pi.isRequired" />
-                  </el-form-item>
-                  <span class="plan-item-remove">
-                    <el-button type="danger" plain size="small" @click="removePlanItem(idx)">
-                      <el-icon><Close /></el-icon>删除
-                    </el-button>
-                  </span>
-                </div>
-              </div>
-
-              <el-button type="primary" plain @click="addPlanItem" class="mt-2">
-                <el-icon><Plus /></el-icon>添加检验项目
-              </el-button>
+                </el-col>
+              </el-row>
             </div>
-          </div>
 
-          <!-- 描述 -->
-          <div class="form-section">
-            <div class="form-section__title">其他信息</div>
-            <el-form-item label="描述">
-              <el-input v-model="form.description" type="textarea" :rows="2" />
-            </el-form-item>
-          </div>
-        </el-form>
-      </div>
+            <!-- 业务维度 -->
+            <div class="form-section">
+              <div class="form-section__title">业务维度（设置后系统自动匹配）</div>
+              <el-row :gutter="16">
+                <el-col :span="8">
+                  <el-form-item label="产品">
+                    <el-input v-model="form.productId" placeholder="产品ID" type="number" />
+                  </el-form-item>
+                </el-col>
+                <el-col :span="8">
+                  <el-form-item label="供应商">
+                    <el-input v-model="form.supplierId" placeholder="供应商ID" type="number" />
+                  </el-form-item>
+                </el-col>
+                <el-col :span="8">
+                  <el-form-item label="客户">
+                    <el-input v-model="form.customerId" placeholder="客户ID" type="number" />
+                  </el-form-item>
+                </el-col>
+              </el-row>
+              <el-row :gutter="16">
+                <el-col :span="8">
+                  <el-form-item label="工序">
+                    <el-input v-model="form.processId" placeholder="工序ID" type="number" />
+                  </el-form-item>
+                </el-col>
+                <el-col :span="8">
+                  <el-form-item label="设备">
+                    <el-input v-model="form.equipmentId" placeholder="设备ID" type="number" />
+                  </el-form-item>
+                </el-col>
+                <el-col :span="8">
+                  <el-form-item label="材料">
+                    <el-input v-model="form.materialId" placeholder="材料ID" type="number" />
+                  </el-form-item>
+                </el-col>
+              </el-row>
+            </div>
 
+            <!-- 检验项目清单 -->
+            <div class="form-section">
+              <div class="form-section__title">检验项目清单</div>
+              <div class="plan-items-section">
+                <div v-for="(pi, idx) in planItems" :key="idx" class="plan-item-row">
+                  <div class="plan-item-row__body">
+                    <el-form-item :label="`项目 ${idx + 1}`" :prop="`items.${idx}.inspectionItemId`"
+                      :rules="[{ required: true, message: '请选择检验项目', trigger: 'change' }]">
+                      <el-select v-model="pi.inspectionItemId" filterable style="width: 180px"
+                        @change="onItemSelectChange(idx)">
+                        <el-option v-for="opt in inspectionItemOptions" :key="opt.id"
+                          :label="`${opt.itemCode} - ${opt.itemName}`" :value="opt.id" />
+                      </el-select>
+                    </el-form-item>
+                    <el-form-item label="USL">
+                      <el-input-number v-model="pi.usl" :precision="4" controls-position="right" style="width: 100px" />
+                    </el-form-item>
+                    <el-form-item label="LSL">
+                      <el-input-number v-model="pi.lsl" :precision="4" controls-position="right" style="width: 100px" />
+                    </el-form-item>
+                    <el-form-item label="Target">
+                      <el-input-number v-model="pi.targetValue" :precision="4" controls-position="right" style="width: 100px" />
+                    </el-form-item>
+                    <el-form-item label="样本数">
+                      <el-input-number v-model="pi.sampleSize" :min="1" controls-position="right" style="width: 80px" />
+                    </el-form-item>
+                    <el-form-item label="必检">
+                      <el-switch v-model="pi.isRequired" />
+                    </el-form-item>
+                    <span class="plan-item-remove">
+                      <el-button type="danger" plain size="small" @click="removePlanItem(idx)">
+                        <el-icon><Close /></el-icon>删除
+                      </el-button>
+                    </span>
+                  </div>
+                </div>
+
+                <el-button type="primary" plain @click="addPlanItem" class="mt-2">
+                  <el-icon><Plus /></el-icon>添加检验项目
+                </el-button>
+              </div>
+            </div>
+
+            <!-- 描述 -->
+            <div class="form-section">
+              <div class="form-section__title">其他信息</div>
+              <el-form-item label="描述">
+                <el-input v-model="form.description" type="textarea" :rows="2" />
+              </el-form-item>
+            </div>
+          </el-form>
+        </div>
+      </template>
       <template #footer>
         <div class="dialog-footer">
           <el-button @click="dialogVisible = false">取消</el-button>
@@ -506,7 +506,7 @@ onMounted(() => {
           </el-button>
         </div>
       </template>
-    </el-drawer>
+    </RightPanel>
   </div>
 </template>
 
@@ -518,45 +518,7 @@ onMounted(() => {
   gap: var(--space-4, 16px);
 }
 
-/* ─── Page Header ─────────────────────────── */
-.page-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: var(--space-4, 16px);
-}
-
-.page-header__main {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3, 12px);
-}
-
-.page-header__icon {
-  font-size: 28px;
-  color: var(--primary, #1677ff);
-  background: var(--primary-bg, #f0f7ff);
-  width: 44px;
-  height: 44px;
-  border-radius: var(--radius-lg, 8px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.page-header__title {
-  margin: 0;
-  font-size: 20px;
-  font-weight: 600;
-  color: var(--text-primary, #1a1a1a);
-  line-height: 1.3;
-}
-
-.page-header__subtitle {
-  margin: 2px 0 0;
-  font-size: 13px;
-  color: var(--text-secondary, #8c8c8c);
-}
+/* banner styles handled by global CSS (page-header-banner) */
 
 /* ─── Data Card ───────────────────────────── */
 .data-card {
@@ -784,35 +746,6 @@ onMounted(() => {
   margin-top: 8px;
 }
 
-/* Drawer styles */
-.data-drawer :deep(.el-drawer) {
-  border-radius: var(--radius-lg, 8px) 0 0 var(--radius-lg, 8px);
-  overflow: hidden;
-}
-
-.data-drawer :deep(.el-drawer__header) {
-  padding: 18px 24px;
-  border-bottom: 1px solid var(--border-color, #e4e7ed);
-  margin: 0;
-  background: var(--bg-white, #fff);
-}
-
-.data-drawer :deep(.el-drawer__close-btn) {
-  top: 18px;
-  right: 24px;
-}
-
-.data-drawer :deep(.el-drawer__title) {
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--text-primary, #1a1a1a);
-}
-
-.data-drawer :deep(.el-drawer__body) {
-  padding: 0;
-  background: var(--bg-white, #fff);
-}
-
 /* ─── Dialog Footer Buttons ──────────────── */
 .dialog-footer {
   display: flex;
@@ -822,11 +755,6 @@ onMounted(() => {
 
 /* ─── Responsive ──────────────────────────── */
 @media (max-width: 768px) {
-  .page-header {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
   .data-card__header {
     flex-direction: column;
     align-items: flex-start;

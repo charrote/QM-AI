@@ -11,8 +11,21 @@ using QM_AI.API.Models.M09;
 using QM_AI.API.Models.M11;
 using QM_AI.API.Models.M12;
 using QM_AI.API.Models.M13;
+using System.Text.Json;
 
 namespace QM_AI.API.Data;
+
+// JSON 列值转换器辅助类（避免在 EF Core 表达式树中使用可选参数）
+internal static class JsonColumnConverter
+{
+    private static readonly JsonSerializerOptions s_options = new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
+
+    public static string? ToJsonString(object? value) =>
+        value == null ? null : JsonSerializer.Serialize(value, s_options);
+
+    public static string? FromJsonString(string? value) =>
+        value == null ? null : JsonSerializer.Deserialize<string>(value, s_options);
+}
 
 public class AppDbContext : DbContext
 {
@@ -798,6 +811,15 @@ public class AppDbContext : DbContext
             entity.Property(e => e.AuditType).HasMaxLength(10);
             entity.Property(e => e.Title).HasMaxLength(500);
             entity.Property(e => e.Status).HasMaxLength(10);
+            // JSON 列值转换器：MySQL JSON ↔ C# string
+            entity.Property(e => e.Scope)
+                .HasConversion(
+                    v => v == null ? null : JsonColumnConverter.ToJsonString(v),
+                    v => v == null ? null : JsonColumnConverter.FromJsonString(v));
+            entity.Property(e => e.AuditorIdsJson)
+                .HasConversion(
+                    v => v == null ? null : JsonColumnConverter.ToJsonString(v),
+                    v => v == null ? null : JsonColumnConverter.FromJsonString(v));
             entity.HasMany(e => e.Findings)
                   .WithOne(f => f.Audit)
                   .HasForeignKey(f => f.AuditId)

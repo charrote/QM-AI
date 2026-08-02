@@ -3,6 +3,7 @@ import { ref, reactive, onMounted, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Check, Plus, Refresh, Search, DocumentAdd, Delete } from '@element-plus/icons-vue'
 import { firstPieceApi } from '@/api/ipqc'
+import RightPanel from '@/components/layout/RightPanel.vue'
 import { inspectionPlanApi } from '@/api/inspectionPlan'
 import { processApi, equipmentApi } from '@/api/basicData'
 import type { IpqcFirstPiece, CreateIpqcFirstPiece, CreateIpqcFirstPieceItem, SubmitIpqcFirstPiece } from '@/types/ipqc'
@@ -461,107 +462,102 @@ onMounted(async () => {
     </div>
 
     <!-- ================================================================== -->
-    <!-- Drawer: 新建首件检验 -->
+    <!-- RightPanel: 新建首件检验 -->
     <!-- ================================================================== -->
-    <el-drawer
-      v-model="drawerVisible"
-      :title="drawerTitle"
-      size="580px"
-      direction="rtl"
-      :close-on-click-modal="false"
-    >
-      <!-- Create / Detail Mode -->
-      <template v-if="!isSubmit">
-        <div class="dialog-section">
-          <div class="dialog-section-header">
-            <el-icon class="dialog-section-icon"><DocumentAdd /></el-icon>
-            <span class="dialog-section-title">基本信息</span>
-          </div>
-          <el-form :model="form" label-width="90px">
-            <el-form-item label="工单ID" required>
-              <el-input-number v-model="form.workOrderId" :min="1" style="width: 100%" controls-position="right" />
-            </el-form-item>
-            <el-form-item label="工序" required>
-              <el-select v-model="form.processId" filterable placeholder="选择工序" style="width: 100%">
-                <el-option v-for="p in processes" :key="p.id" :label="p.name" :value="p.id" />
-              </el-select>
-            </el-form-item>
-            <el-form-item label="设备" required>
-              <el-select v-model="form.equipmentId" filterable placeholder="选择设备" style="width: 100%">
-                <el-option v-for="e in equipmentList" :key="e.id" :label="e.name" :value="e.id" />
-              </el-select>
-            </el-form-item>
-          </el-form>
-        </div>
-
-        <div class="dialog-section">
-          <div class="dialog-section-header">
-            <el-icon class="dialog-section-icon"><Plus /></el-icon>
-            <span class="dialog-section-title">检验项目</span>
-          </div>
-          <div v-if="loadingPlanItems" style="padding: 8px 0; font-size: 13px; color: var(--el-text-color-secondary);">
-            ⏳ 正在根据工序加载检验计划...
-          </div>
-          <div class="submit-list">
-            <div v-for="(item, idx) in form.items" :key="idx" class="submit-row">
-              <div class="submit-index">{{ idx + 1 }}</div>
-              <el-input v-model="item.itemName" placeholder="项目名称" :readonly="!!item.inspectionItemId" style="width: 160px" size="default" />
-              <el-select v-model="item.dataType" :disabled="!!item.inspectionItemId" style="width: 100px" size="default">
-                <el-option v-for="o in DATA_TYPE_OPTIONS" :key="o.value" :label="o.label" :value="o.value" />
-              </el-select>
-              <el-input-number v-model="item.usl" placeholder="USL" :precision="4" :step="0.1" controls-position="right" style="width: 120px" size="default" :disabled="!!item.inspectionItemId" />
-              <el-input-number v-model="item.lsl" placeholder="LSL" :precision="4" :step="0.1" controls-position="right" style="width: 120px" size="default" :disabled="!!item.inspectionItemId" />
-              <el-tag v-if="item.inspectionItemId" size="small" type="success" round effect="plain">计划</el-tag>
-              <el-button link type="danger" size="small" :icon="Delete" @click="removeItem(idx)" :disabled="form.items.length <= 1" />
+    <RightPanel v-model:visible="drawerVisible" :title="drawerTitle" :width="580">
+      <template #body>
+        <!-- Create / Detail Mode -->
+        <template v-if="!isSubmit">
+          <div class="dialog-section">
+            <div class="dialog-section-header">
+              <el-icon class="dialog-section-icon"><DocumentAdd /></el-icon>
+              <span class="dialog-section-title">基本信息</span>
             </div>
-            <el-button type="primary" link @click="addItem">
-              <el-icon><Plus /></el-icon> 添加项目
-            </el-button>
+            <el-form :model="form" label-width="90px">
+              <el-form-item label="工单ID" required>
+                <el-input-number v-model="form.workOrderId" :min="1" style="width: 100%" controls-position="right" />
+              </el-form-item>
+              <el-form-item label="工序" required>
+                <el-select v-model="form.processId" filterable placeholder="选择工序" style="width: 100%">
+                  <el-option v-for="p in processes" :key="p.id" :label="p.name" :value="p.id" />
+                </el-select>
+              </el-form-item>
+              <el-form-item label="设备" required>
+                <el-select v-model="form.equipmentId" filterable placeholder="选择设备" style="width: 100%">
+                  <el-option v-for="e in equipmentList" :key="e.id" :label="e.name" :value="e.id" />
+                </el-select>
+              </el-form-item>
+            </el-form>
           </div>
-        </div>
-      </template>
 
-      <!-- Submit Mode -->
-      <template v-else>
-        <div class="dialog-section">
-          <div class="dialog-section-header">
-            <el-icon class="dialog-section-icon"><Check /></el-icon>
-            <span class="dialog-section-title">结论判定</span>
-          </div>
-          <el-form :model="submitForm" label-width="90px">
-            <el-form-item label="检验结论" required>
-              <el-select v-model="submitForm.conclusion" style="width: 100%">
-                <el-option v-for="o in IPQC_FIRST_PIECE_CONCLUSION_OPTIONS" :key="o.value" :label="o.label" :value="o.value" />
-              </el-select>
-            </el-form-item>
-            <el-form-item label="允许量产">
-              <el-switch v-model="submitForm.allowedToProduce" active-text="允许" inactive-text="不允许" />
-            </el-form-item>
-            <el-form-item label="检验员">
-              <el-input v-model="submitForm.inspector" placeholder="检验员姓名" />
-            </el-form-item>
-          </el-form>
-        </div>
-
-        <div class="dialog-section">
-          <div class="dialog-section-header">
-            <el-icon class="dialog-section-icon"><DocumentAdd /></el-icon>
-            <span class="dialog-section-title">检验项结果</span>
-          </div>
-          <div class="submit-list">
-            <div v-for="(item, idx) in submitForm.items" :key="idx" class="submit-row">
-              <div class="submit-index">{{ idx + 1 }}</div>
-              <span style="min-width: 120px; font-weight: 500; color: var(--el-text-color-regular);">{{ item.itemName }}</span>
-              <el-input-number v-model="item.actualValue" :precision="4" :step="0.1" controls-position="right" style="width: 130px" size="default" />
-              <el-select v-model="item.result" style="width: 110px" size="default">
-                <el-option v-for="o in INSPECTION_RESULT_OPTIONS" :key="o.value" :label="o.label" :value="o.value" />
-              </el-select>
-              <span v-if="item.usl != null" style="color: var(--el-text-color-placeholder); font-size: 11px;">({{ item.lsl }} ~ {{ item.usl }})</span>
+          <div class="dialog-section">
+            <div class="dialog-section-header">
+              <el-icon class="dialog-section-icon"><Plus /></el-icon>
+              <span class="dialog-section-title">检验项目</span>
+            </div>
+            <div v-if="loadingPlanItems" style="padding: 8px 0; font-size: 13px; color: var(--el-text-color-secondary);">
+              ⏳ 正在根据工序加载检验计划...
+            </div>
+            <div class="submit-list">
+              <div v-for="(item, idx) in form.items" :key="idx" class="submit-row">
+                <div class="submit-index">{{ idx + 1 }}</div>
+                <el-input v-model="item.itemName" placeholder="项目名称" :readonly="!!item.inspectionItemId" style="width: 160px" size="default" />
+                <el-select v-model="item.dataType" :disabled="!!item.inspectionItemId" style="width: 100px" size="default">
+                  <el-option v-for="o in DATA_TYPE_OPTIONS" :key="o.value" :label="o.label" :value="o.value" />
+                </el-select>
+                <el-input-number v-model="item.usl" placeholder="USL" :precision="4" :step="0.1" controls-position="right" style="width: 120px" size="default" :disabled="!!item.inspectionItemId" />
+                <el-input-number v-model="item.lsl" placeholder="LSL" :precision="4" :step="0.1" controls-position="right" style="width: 120px" size="default" :disabled="!!item.inspectionItemId" />
+                <el-tag v-if="item.inspectionItemId" size="small" type="success" round effect="plain">计划</el-tag>
+                <el-button link type="danger" size="small" :icon="Delete" @click="removeItem(idx)" :disabled="form.items.length <= 1" />
+              </div>
+              <el-button type="primary" link @click="addItem">
+                <el-icon><Plus /></el-icon> 添加项目
+              </el-button>
             </div>
           </div>
-        </div>
-      </template>
+        </template>
 
+        <!-- Submit Mode -->
+        <template v-else>
+          <div class="dialog-section">
+            <div class="dialog-section-header">
+              <el-icon class="dialog-section-icon"><Check /></el-icon>
+              <span class="dialog-section-title">结论判定</span>
+            </div>
+            <el-form :model="submitForm" label-width="90px">
+              <el-form-item label="检验结论" required>
+                <el-select v-model="submitForm.conclusion" style="width: 100%">
+                  <el-option v-for="o in IPQC_FIRST_PIECE_CONCLUSION_OPTIONS" :key="o.value" :label="o.label" :value="o.value" />
+                </el-select>
+              </el-form-item>
+              <el-form-item label="允许量产">
+                <el-switch v-model="submitForm.allowedToProduce" active-text="允许" inactive-text="不允许" />
+              </el-form-item>
+              <el-form-item label="检验员">
+                <el-input v-model="submitForm.inspector" placeholder="检验员姓名" />
+              </el-form-item>
+            </el-form>
+          </div>
+
+          <div class="dialog-section">
+            <div class="dialog-section-header">
+              <el-icon class="dialog-section-icon"><DocumentAdd /></el-icon>
+              <span class="dialog-section-title">检验项结果</span>
+            </div>
+            <div class="submit-list">
+              <div v-for="(item, idx) in submitForm.items" :key="idx" class="submit-row">
+                <div class="submit-index">{{ idx + 1 }}</div>
+                <span style="min-width: 120px; font-weight: 500; color: var(--el-text-color-regular);">{{ item.itemName }}</span>
+                <el-input-number v-model="item.actualValue" :precision="4" :step="0.1" controls-position="right" style="width: 130px" size="default" />
+                <el-select v-model="item.result" style="width: 110px" size="default">
+                  <el-option v-for="o in INSPECTION_RESULT_OPTIONS" :key="o.value" :label="o.label" :value="o.value" />
+                </el-select>
+                <span v-if="item.usl != null" style="color: var(--el-text-color-placeholder); font-size: 11px;">({{ item.lsl }} ~ {{ item.usl }})</span>
+              </div>
+            </div>
+          </div>
+        </template>
+      </template>
       <template #footer>
         <div style="display: flex; gap: 8px; justify-content: flex-end;">
           <el-button size="small" @click="drawerVisible = false">取消</el-button>
@@ -570,7 +566,7 @@ onMounted(async () => {
           </el-button>
         </div>
       </template>
-    </el-drawer>
+    </RightPanel>
   </div>
 </template>
 

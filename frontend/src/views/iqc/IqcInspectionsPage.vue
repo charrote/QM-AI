@@ -11,6 +11,7 @@ import {
   IQC_INSPECTION_RESULT_OPTIONS, SAMPLING_LEVEL_OPTIONS,
 } from '@/types/iqc'
 import SamplingPlanCalculator from '@/components/SamplingPlanCalculator.vue'
+import RightPanel from '@/components/layout/RightPanel.vue'
 
 defineOptions({ name: 'IqcInspectionsPage' })
 
@@ -273,161 +274,127 @@ onMounted(async () => {
     <!-- 抽样计算器抽屉 -->
     <SamplingPlanCalculator mode="drawer" v-model="samplingDrawerVisible" />
 
-    <!-- Drawer: 检验单详情 -->
-    <el-drawer
-      v-model="inspectionDetailVisible"
-      size="560px"
-      direction="rtl"
-      :close-on-click-modal="false"
-    >
-      <template #header>
-        <div class="drawer-header">
-          <div class="drawer-header-icon">
-            <el-icon :size="18"><Document /></el-icon>
+    <!-- RightPanel: 检验单详情 -->
+    <RightPanel v-model:visible="inspectionDetailVisible" title="检验单详情" :width="560" :show-close="true">
+      <template #body>
+        <template v-if="inspectionDetail">
+          <!-- Basic Info -->
+          <div class="drawer-section">
+            <div class="drawer-section-header">
+              <el-icon class="drawer-section-icon"><Document /></el-icon>
+              <span>基本信息</span>
+            </div>
+            <el-descriptions :column="2" border size="default">
+              <el-descriptions-item label="来源">{{ inspectionDetail.receiptNo }}</el-descriptions-item>
+              <el-descriptions-item label="供应商">
+                <span class="desc-highlight">{{ inspectionDetail.supplierName }}</span>
+              </el-descriptions-item>
+              <el-descriptions-item label="物料">
+                <span class="desc-highlight">{{ inspectionDetail.productName }}</span>
+              </el-descriptions-item>
+              <el-descriptions-item label="抽样方案">
+                n={{ inspectionDetail.sampleSize }}, Ac={{ inspectionDetail.ac }}, Re={{ inspectionDetail.re }}
+              </el-descriptions-item>
+              <el-descriptions-item label="结果">
+                <el-tag :type="calculateResultColor(inspectionDetail.result)" size="small" round>
+                  {{ statusLabel(inspectionDetail.result, IQC_INSPECTION_RESULT_OPTIONS) }}
+                </el-tag>
+              </el-descriptions-item>
+              <el-descriptions-item label="检验员">{{ inspectionDetail.inspector }}</el-descriptions-item>
+            </el-descriptions>
           </div>
-          <div class="drawer-header-text">
-            <span class="drawer-title">检验单详情</span>
-            <span class="drawer-subtitle">{{ inspectionDetail?.inspectionNo || '' }}</span>
+
+          <!-- Inspection Items -->
+          <div class="drawer-section">
+            <div class="drawer-section-header">
+              <el-icon class="drawer-section-icon"><DataAnalysis /></el-icon>
+              <span>检验项目</span>
+              <el-tag type="info" size="small" effect="plain">{{ inspectionDetail.items?.length || 0 }} 项</el-tag>
+            </div>
+            <el-table :data="inspectionDetail.items || []" stripe size="small">
+              <el-table-column prop="itemName" label="项目" min-width="120" show-overflow-tooltip />
+              <el-table-column prop="measuredValue" label="实测值" width="90" align="right" />
+              <el-table-column label="规格" width="130">
+                <template #default="{ row }">
+                  {{ row.lsl ?? '-' }} ~ {{ row.usl ?? '-' }}
+                </template>
+              </el-table-column>
+              <el-table-column label="结果" width="70" align="center">
+                <template #default="{ row }">
+                  <el-tag :type="row.result === 'pass' ? 'success' : 'danger'" size="small" round>
+                    {{ row.result === 'pass' ? 'OK' : 'NG' }}
+                  </el-tag>
+                </template>
+              </el-table-column>
+              <el-table-column prop="remark" label="备注" show-overflow-tooltip />
+            </el-table>
           </div>
-          <el-tag v-if="inspectionDetail" :type="calculateResultColor(inspectionDetail.result)" effect="dark" round>
-            {{ statusLabel(inspectionDetail.result, IQC_INSPECTION_RESULT_OPTIONS) }}
-          </el-tag>
-        </div>
+        </template>
       </template>
+    </RightPanel>
 
-      <template v-if="inspectionDetail">
-        <!-- Basic Info -->
-        <div class="drawer-section">
+    <!-- RightPanel: 提交检验结果 -->
+    <RightPanel v-model:visible="submitDrawerVisible" title="提交检验结果" :width="720">
+      <template #body>
+        <div class="dialog-section">
           <div class="drawer-section-header">
-            <el-icon class="drawer-section-icon"><Document /></el-icon>
-            <span>基本信息</span>
+            <el-icon class="drawer-section-icon"><Edit /></el-icon>
+            <span>检验员信息</span>
           </div>
-          <el-descriptions :column="2" border size="default">
-            <el-descriptions-item label="来源">{{ inspectionDetail.receiptNo }}</el-descriptions-item>
-            <el-descriptions-item label="供应商">
-              <span class="desc-highlight">{{ inspectionDetail.supplierName }}</span>
-            </el-descriptions-item>
-            <el-descriptions-item label="物料">
-              <span class="desc-highlight">{{ inspectionDetail.productName }}</span>
-            </el-descriptions-item>
-            <el-descriptions-item label="抽样方案">
-              n={{ inspectionDetail.sampleSize }}, Ac={{ inspectionDetail.ac }}, Re={{ inspectionDetail.re }}
-            </el-descriptions-item>
-            <el-descriptions-item label="结果">
-              <el-tag :type="calculateResultColor(inspectionDetail.result)" size="small" round>
-                {{ statusLabel(inspectionDetail.result, IQC_INSPECTION_RESULT_OPTIONS) }}
-              </el-tag>
-            </el-descriptions-item>
-            <el-descriptions-item label="检验员">{{ inspectionDetail.inspector }}</el-descriptions-item>
-          </el-descriptions>
+          <el-form label-width="80px">
+            <el-form-item label="检验员">
+              <el-input v-model="submitInspector" placeholder="请输入检验员姓名" style="width: 260px" />
+            </el-form-item>
+          </el-form>
         </div>
 
-        <!-- Inspection Items -->
-        <div class="drawer-section">
+        <div class="dialog-section">
           <div class="drawer-section-header">
             <el-icon class="drawer-section-icon"><DataAnalysis /></el-icon>
             <span>检验项目</span>
-            <el-tag type="info" size="small" effect="plain">{{ inspectionDetail.items?.length || 0 }} 项</el-tag>
           </div>
-          <el-table :data="inspectionDetail.items || []" stripe size="small">
-            <el-table-column prop="itemName" label="项目" min-width="120" show-overflow-tooltip />
-            <el-table-column prop="measuredValue" label="实测值" width="90" align="right" />
-            <el-table-column label="规格" width="130">
-              <template #default="{ row }">
-                {{ row.lsl ?? '-' }} ~ {{ row.usl ?? '-' }}
-              </template>
-            </el-table-column>
-            <el-table-column label="结果" width="70" align="center">
-              <template #default="{ row }">
-                <el-tag :type="row.result === 'pass' ? 'success' : 'danger'" size="small" round>
-                  {{ row.result === 'pass' ? 'OK' : 'NG' }}
+          <div v-if="loadingPlanItems" style="text-align: center; padding: 16px 0; color: var(--el-text-color-secondary);">
+            <el-icon class="is-loading" :size="20"><Loading /></el-icon>
+            <span style="margin-left: 8px;">正在根据检验计划加载项目...</span>
+          </div>
+          <div v-else class="submit-list">
+            <div v-for="(item, index) in submitItems" :key="index" class="submit-row">
+              <span class="submit-index">{{ index + 1 }}</span>
+              <el-input v-model="item.itemName" placeholder="项目名称" size="small" style="width: 160px" />
+              <el-tooltip v-if="item.usl != null || item.lsl != null" :content="`规格: [${item.lsl ?? '-'}, ${item.usl ?? '-'}]`">
+                <el-tag size="small" type="info" effect="plain" style="min-width: 80px; text-align: center">
+                  {{ item.lsl ?? '-' }} ~ {{ item.usl ?? '-' }}
                 </el-tag>
-              </template>
-            </el-table-column>
-            <el-table-column prop="remark" label="备注" show-overflow-tooltip />
-          </el-table>
+              </el-tooltip>
+              <el-input-number
+                v-model="item.measuredValue"
+                :precision="4"
+                :step="0.1"
+                size="small"
+                style="width: 130px"
+                placeholder="实测值"
+                controls-position="right"
+              />
+              <el-select v-model="item.result" size="small" style="width: 90px">
+                <el-option label="合格" value="pass" />
+                <el-option label="不合格" value="fail" />
+                <el-option label="待定" value="pending" />
+              </el-select>
+              <el-input v-model="item.remark" placeholder="备注" size="small" style="width: 110px" />
+              <el-button link size="small" type="danger" @click="removeSubmitItem(index)">
+                <el-icon><Delete /></el-icon>
+              </el-button>
+            </div>
+          </div>
+          <el-button size="small" @click="addSubmitItem" style="margin-top: 8px" :disabled="loadingPlanItems">+ 添加项目</el-button>
         </div>
       </template>
-    </el-drawer>
-
-    <!-- Drawer: 提交检验结果 -->
-    <el-drawer
-      v-model="submitDrawerVisible"
-      size="720px"
-      direction="rtl"
-      :close-on-click-modal="false"
-    >
-      <template #header>
-        <div class="drawer-header">
-          <div class="drawer-header-icon">
-            <el-icon :size="18"><Edit /></el-icon>
-          </div>
-          <div class="drawer-header-text">
-            <span class="drawer-title">提交检验结果</span>
-            <span class="drawer-subtitle">填写检验项目实测值与判定</span>
-          </div>
-        </div>
-      </template>
-
-      <div class="dialog-section">
-        <div class="drawer-section-header">
-          <el-icon class="drawer-section-icon"><Edit /></el-icon>
-          <span>检验员信息</span>
-        </div>
-        <el-form label-width="80px">
-          <el-form-item label="检验员">
-            <el-input v-model="submitInspector" placeholder="请输入检验员姓名" style="width: 260px" />
-          </el-form-item>
-        </el-form>
-      </div>
-
-      <div class="dialog-section">
-        <div class="drawer-section-header">
-          <el-icon class="drawer-section-icon"><DataAnalysis /></el-icon>
-          <span>检验项目</span>
-        </div>
-        <div v-if="loadingPlanItems" style="text-align: center; padding: 16px 0; color: var(--el-text-color-secondary);">
-          <el-icon class="is-loading" :size="20"><Loading /></el-icon>
-          <span style="margin-left: 8px;">正在根据检验计划加载项目...</span>
-        </div>
-        <div v-else class="submit-list">
-          <div v-for="(item, index) in submitItems" :key="index" class="submit-row">
-            <span class="submit-index">{{ index + 1 }}</span>
-            <el-input v-model="item.itemName" placeholder="项目名称" size="small" style="width: 160px" />
-            <el-tooltip v-if="item.usl != null || item.lsl != null" :content="`规格: [${item.lsl ?? '-'}, ${item.usl ?? '-'}]`">
-              <el-tag size="small" type="info" effect="plain" style="min-width: 80px; text-align: center">
-                {{ item.lsl ?? '-' }} ~ {{ item.usl ?? '-' }}
-              </el-tag>
-            </el-tooltip>
-            <el-input-number
-              v-model="item.measuredValue"
-              :precision="4"
-              :step="0.1"
-              size="small"
-              style="width: 130px"
-              placeholder="实测值"
-              controls-position="right"
-            />
-            <el-select v-model="item.result" size="small" style="width: 90px">
-              <el-option label="合格" value="pass" />
-              <el-option label="不合格" value="fail" />
-              <el-option label="待定" value="pending" />
-            </el-select>
-            <el-input v-model="item.remark" placeholder="备注" size="small" style="width: 110px" />
-            <el-button link size="small" type="danger" @click="removeSubmitItem(index)">
-              <el-icon><Delete /></el-icon>
-            </el-button>
-          </div>
-        </div>
-        <el-button size="small" @click="addSubmitItem" style="margin-top: 8px" :disabled="loadingPlanItems">+ 添加项目</el-button>
-      </div>
-
       <template #footer>
         <div style="display: flex; gap: 8px; justify-content: flex-end;">
           <el-button size="small" @click="submitDrawerVisible = false">取消</el-button>
           <el-button size="small" type="primary" @click="submitInspection" :loading="loadingPlanItems">提交判定</el-button>
         </div>
       </template>
-    </el-drawer>
+    </RightPanel>
   </div>
 </template>

@@ -1,88 +1,78 @@
 <template>
-  <el-drawer
-    :model-value="modelValue"
-    @update:model-value="handleUpdate"
-    :title="drawerTitle"
-    size="520px"
-    direction="rtl"
-    :close-on-click-modal="false"
-    :show-close="false"
-    :destroy-on-close="true"
-    :append-to-body="true"
-    @keydown.esc.prevent
-  >
-    <el-form
-      ref="formRef"
-      :model="formData"
-      label-width="100px"
-      label-position="top"
-      size="default"
-      :rules="rules"
-      class="edit-form"
-    >
-      <el-form-item label="工序" prop="processId">
-        <el-select
-          v-model="formData.processId"
-          filterable
-          placeholder="请选择工序"
-          style="width: 100%"
-          clearable
-        >
-          <el-option
-            v-for="p in processOptions"
-            :key="p.id"
-            :label="`${p.code} - ${p.name}`"
-            :value="p.id"
+  <RightPanel v-model:visible="visible" :title="drawerTitle" :width="520">
+    <template #body>
+      <el-form
+        ref="formRef"
+        :model="formData"
+        label-width="100px"
+        label-position="top"
+        size="default"
+        :rules="rules"
+        class="edit-form"
+      >
+        <el-form-item label="工序" prop="processId">
+          <el-select
+            v-model="formData.processId"
+            filterable
+            placeholder="请选择工序"
+            style="width: 100%"
+            clearable
+          >
+            <el-option
+              v-for="p in processOptions"
+              :key="p.id"
+              :label="`${p.code} - ${p.name}`"
+              :value="p.id"
+            />
+          </el-select>
+        </el-form-item>
+
+        <el-form-item label="标准工时 (min)" prop="standardTimeMinutes">
+          <el-input-number
+            v-model="formData.standardTimeMinutes"
+            :min="0"
+            :max="9999"
+            :step="0.5"
+            :precision="1"
+            style="width: 100%"
+            placeholder="请输入标准工时"
           />
-        </el-select>
-      </el-form-item>
+        </el-form-item>
 
-      <el-form-item label="标准工时 (min)" prop="standardTimeMinutes">
-        <el-input-number
-          v-model="formData.standardTimeMinutes"
-          :min="0"
-          :max="9999"
-          :step="0.5"
-          :precision="1"
-          style="width: 100%"
-          placeholder="请输入标准工时"
-        />
-      </el-form-item>
+        <el-form-item label="前置等待 (min)" prop="preWaitTimeMinutes">
+          <el-input-number
+            v-model="formData.preWaitTimeMinutes"
+            :min="0"
+            :max="9999"
+            :step="1"
+            :precision="0"
+            style="width: 100%"
+            placeholder="请输入前置等待时间"
+          />
+        </el-form-item>
 
-      <el-form-item label="前置等待 (min)" prop="preWaitTimeMinutes">
-        <el-input-number
-          v-model="formData.preWaitTimeMinutes"
-          :min="0"
-          :max="9999"
-          :step="1"
-          :precision="0"
-          style="width: 100%"
-          placeholder="请输入前置等待时间"
-        />
-      </el-form-item>
+        <el-form-item label="后置等待 (min)" prop="postWaitTimeMinutes">
+          <el-input-number
+            v-model="formData.postWaitTimeMinutes"
+            :min="0"
+            :max="9999"
+            :step="1"
+            :precision="0"
+            style="width: 100%"
+            placeholder="请输入后置等待时间"
+          />
+        </el-form-item>
 
-      <el-form-item label="后置等待 (min)" prop="postWaitTimeMinutes">
-        <el-input-number
-          v-model="formData.postWaitTimeMinutes"
-          :min="0"
-          :max="9999"
-          :step="1"
-          :precision="0"
-          style="width: 100%"
-          placeholder="请输入后置等待时间"
-        />
-      </el-form-item>
-
-      <el-form-item label="备注" prop="description">
-        <el-input
-          v-model="formData.description"
-          type="textarea"
-          :rows="3"
-          placeholder="请输入备注（可选）"
-        />
-      </el-form-item>
-    </el-form>
-
+        <el-form-item label="备注" prop="description">
+          <el-input
+            v-model="formData.description"
+            type="textarea"
+            :rows="3"
+            placeholder="请输入备注（可选）"
+          />
+        </el-form-item>
+      </el-form>
+    </template>
     <template #footer>
       <div class="drawer-footer">
         <el-button @click="handleCancel">取消</el-button>
@@ -91,12 +81,13 @@
         </el-button>
       </div>
     </template>
-  </el-drawer>
+  </RightPanel>
 </template>
 
 <script setup lang="ts">
 import { ref, reactive, computed, watch } from 'vue'
 import { ElMessage } from 'element-plus'
+import RightPanel from '@/components/layout/RightPanel.vue'
 import type { Process } from '@/types/basicData'
 import type { ProductRouteStepDto } from '@/types/routing'
 import { processApi } from '@/api/basicData'
@@ -116,6 +107,7 @@ const props = defineProps<{
   step?: ProductRouteStepDto | null
 }>()
 
+const visible = ref(props.modelValue)
 const saving = ref(false)
 const formRef = ref()
 const processOptions = ref<Process[]>([])
@@ -135,15 +127,17 @@ const rules = {
   processId: [{ required: true, message: '请选择工序', trigger: 'change' }],
 }
 
-// 完全由父组件 modelValue 控制，不再维护内部 visible ref
 watch(() => props.modelValue, (val) => {
+  visible.value = val
   if (val) initForm()
 })
 
-function handleUpdate(val: boolean) {
-  emit('update:modelValue', val)
-  if (!val) emit('saved')
-}
+watch(visible, (val) => {
+  if (!val) {
+    emit('update:modelValue', false)
+    emit('saved')
+  }
+})
 
 async function initForm() {
   try {
@@ -191,7 +185,7 @@ async function handleSave() {
       })
       ElMessage.success('添加成功')
     }
-    handleUpdate(false)
+    visible.value = false
   } catch { /* error handled by interceptor */ }
   finally {
     saving.value = false
@@ -199,7 +193,7 @@ async function handleSave() {
 }
 
 function handleCancel() {
-  handleUpdate(false)
+  visible.value = false
 }
 </script>
 

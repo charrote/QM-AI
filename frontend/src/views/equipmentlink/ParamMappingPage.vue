@@ -2,6 +2,8 @@
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Link, Search } from '@element-plus/icons-vue'
+import RightPanel from '@/components/layout/RightPanel.vue'
+import { useRightPanel } from '@/composables/useRightPanel'
 import { equipmentLinkApi } from '@/api/equipmentLink'
 import { equipmentApi } from '@/api/basicData'
 import type { EquipmentParamMapping, CreateParamMapping } from '@/types/equipmentLink'
@@ -13,11 +15,13 @@ defineOptions({ name: 'ParamMappingPage' })
 const loading = ref(false)
 const mappings = ref<EquipmentParamMapping[]>([])
 const total = ref(0)
-const query = reactive({ page: 1, pageSize: 20, equipmentId: '' as string | '', keyword: '' })
+const page = ref(1)
+const pageSize = ref(20)
 
+const query = reactive({ equipmentId: '' as string | '', keyword: '' })
 const equipments = ref<Equipment[]>([])
 
-const dialogVisible = ref(false)
+const formPanel = useRightPanel()
 const dialogTitle = ref('')
 const isEdit = ref(false)
 const editingId = ref<number | null>(null)
@@ -57,7 +61,7 @@ async function loadEquipments() {
 async function loadData() {
   loading.value = true
   try {
-    const params: any = { page: query.page, pageSize: query.pageSize }
+    const params: any = { page: page.value, pageSize: pageSize.value }
     if (query.equipmentId) params.equipmentId = Number(query.equipmentId)
     if (query.keyword) params.keyword = query.keyword
     const res = await equipmentLinkApi.mappings(params)
@@ -71,12 +75,18 @@ async function loadData() {
 }
 
 function handleSearch() {
-  query.page = 1
+  page.value = 1
   loadData()
 }
 
-function handlePageChange(page: number) {
-  query.page = page
+function handlePageChange(p: number) {
+  page.value = p
+  loadData()
+}
+
+function handleSizeChange(s: number) {
+  pageSize.value = s
+  page.value = 1
   loadData()
 }
 
@@ -87,7 +97,7 @@ function openCreate() {
   Object.assign(form, {
     equipmentId: 0, mqttTopic: '', systemParamCode: '', paramGroupId: undefined, dataType: 'numeric', unit: ''
   })
-  dialogVisible.value = true
+  formPanel.open()
 }
 
 async function openEdit(id: number) {
@@ -102,7 +112,7 @@ async function openEdit(id: number) {
     form.paramGroupId = detail.paramGroupId
     form.dataType = detail.dataType
     form.unit = detail.unit ?? ''
-    dialogVisible.value = true
+    formPanel.open()
   } catch {
     ElMessage.error('加载映射详情失败')
   }
@@ -118,7 +128,7 @@ async function handleSave() {
       await equipmentLinkApi.createMapping(form)
       ElMessage.success('创建成功')
     }
-    dialogVisible.value = false
+    formPanel.close()
     loadData()
   } catch (err: any) {
     if (err?.response?.data?.message) {
@@ -159,40 +169,44 @@ onMounted(() => {
   loadData()
 })
 </script>
+
 <template>
   <div class="page-container">
-    <!-- Page Header -->
-    <div class="page-header">
-      <div class="page-header-main">
-        <div class="page-header-icon"><el-icon :size="28"><Link /></el-icon></div>
-        <div class="page-header-text">
-          <h2>参数映射管理</h2>
-          <p>设备参数与系统参数的关联映射配置</p>
+    <!-- Page Header Banner (Primary) -->
+    <div class="page-header-banner page-header-banner--primary">
+      <div class="page-header-banner-main">
+        <div class="page-header-banner-icon">
+          <el-icon :size="24"><Link /></el-icon>
+        </div>
+        <div class="page-header-banner-text">
+          <div class="page-header-banner-title">参数映射管理</div>
+          <div class="page-header-banner-subtitle">设备参数与系统参数的关联映射配置</div>
         </div>
       </div>
     </div>
 
-    <!-- Toolbar -->
-    <el-card shadow="never" class="search-card">
-      <div class="search-bar">
+    <!-- Filter Card -->
+    <div class="ai-filter-card">
+      <div class="ai-filter-row">
         <el-select v-model="query.equipmentId" placeholder="选择设备" clearable style="width: 200px">
           <el-option v-for="eq in equipments" :key="eq.id" :label="`${eq.name} (${eq.code})`" :value="eq.id" />
         </el-select>
         <el-input v-model="query.keyword" placeholder="搜索设备代码/参数代码" clearable style="width: 220px" @keyup.enter="handleSearch">
           <template #prefix><el-icon><Search /></el-icon></template>
         </el-input>
-        <el-button type="primary" @click="handleSearch">查询</el-button>
-        <el-button @click="loadData">刷新</el-button>
-        <div class="search-spacer" />
-        <el-button type="primary" @click="openCreate">+ 新增映射</el-button>
+        <div class="ai-filter-actions">
+          <el-button type="primary" @click="handleSearch">查询</el-button>
+          <el-button @click="loadData">刷新</el-button>
+          <el-button type="primary" @click="openCreate">+ 新增映射</el-button>
+        </div>
       </div>
-    </el-card>
+    </div>
 
-    <!-- Table -->
-    <el-card shadow="never" class="table-card">
-      <el-table :data="mappings" v-loading="loading" stripe border style="width: 100%">
+    <!-- Data Card -->
+    <div class="data-card">
+      <el-table :data="mappings" v-loading="loading" stripe style="width: 100%">
         <el-table-column label="设备" min-width="160">
-          <template #default="{ row }"><span class="equipment-name">{{ getEquipmentName(row.equipmentId) }}</span></template>
+          <template #default="{ row }"><span class="eq-name">{{ getEquipmentName(row.equipmentId) }}</span></template>
         </el-table-column>
         <el-table-column prop="mqttTopic" label="MQTT Topic" min-width="180" show-overflow-tooltip />
         <el-table-column prop="systemParamCode" label="系统参数代码" width="140" />
@@ -211,68 +225,60 @@ onMounted(() => {
           </template>
         </el-table-column>
       </el-table>
-
-      <div class="pagination-row">
+      <div class="data-card__footer">
         <el-pagination
-          v-model:current-page="query.page"
-          :page-size="query.pageSize"
+          v-model:current-page="page"
+          v-model:page-size="pageSize"
           :total="total"
           :page-sizes="[10, 20, 50, 100]"
           layout="total, sizes, prev, pager, next, jumper"
-          @size-change="loadData"
+          @size-change="handleSizeChange"
           @current-change="handlePageChange"
         />
       </div>
-    </el-card>
+    </div>
 
-    <!-- Dialog -->
-    <el-dialog v-model="dialogVisible" :title="dialogTitle" width="560px" :close-on-click-modal="false">
-      <el-form ref="formRef" :model="form" :rules="formRules" label-width="100px">
-        <el-divider content-position="left">基本信息</el-divider>
-        <el-form-item label="设备" prop="equipmentId">
-          <el-select v-model="form.equipmentId" placeholder="选择设备" style="width: 100%">
-            <el-option v-for="eq in equipments" :key="eq.id" :label="`${eq.name} (${eq.code})`" :value="eq.id" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="MQTT Topic" prop="mqttTopic">
-          <el-input v-model="form.mqttTopic" placeholder="如 machine/001/status" />
-        </el-form-item>
-        <el-form-item label="系统参数代码" prop="systemParamCode">
-          <el-input v-model="form.systemParamCode" placeholder="如 SPEED_SET" />
-        </el-form-item>
-        <el-divider content-position="left">映射配置</el-divider>
-        <el-form-item label="参数组ID">
-          <el-input-number v-model="form.paramGroupId" :min="0" placeholder="可选" style="width: 100%" />
-        </el-form-item>
-        <el-form-item label="数据类型" prop="dataType">
-          <el-select v-model="form.dataType" style="width: 100%">
-            <el-option v-for="o in DATA_TYPE_OPTIONS" :key="o.value" :label="o.label" :value="o.value" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="单位">
-          <el-input v-model="form.unit" placeholder="如 mm, RPM" />
-        </el-form-item>
-      </el-form>
+    <!-- Panel: Create/Edit -->
+    <RightPanel v-model:visible="formPanel.visible" :title="dialogTitle" :width="560">
+      <template #body>
+        <el-form ref="formRef" :model="form" :rules="formRules" label-width="100px">
+          <el-divider content-position="left">基本信息</el-divider>
+          <el-form-item label="设备" prop="equipmentId">
+            <el-select v-model="form.equipmentId" placeholder="选择设备" style="width: 100%">
+              <el-option v-for="eq in equipments" :key="eq.id" :label="`${eq.name} (${eq.code})`" :value="eq.id" />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="MQTT Topic" prop="mqttTopic">
+            <el-input v-model="form.mqttTopic" placeholder="如 machine/001/status" />
+          </el-form-item>
+          <el-form-item label="系统参数代码" prop="systemParamCode">
+            <el-input v-model="form.systemParamCode" placeholder="如 SPEED_SET" />
+          </el-form-item>
+          <el-divider content-position="left">映射配置</el-divider>
+          <el-form-item label="参数组ID">
+            <el-input-number v-model="form.paramGroupId" :min="0" placeholder="可选" style="width: 100%" />
+          </el-form-item>
+          <el-form-item label="数据类型" prop="dataType">
+            <el-select v-model="form.dataType" style="width: 100%">
+              <el-option v-for="o in DATA_TYPE_OPTIONS" :key="o.value" :label="o.label" :value="o.value" />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="单位">
+            <el-input v-model="form.unit" placeholder="如 mm, RPM" />
+          </el-form-item>
+        </el-form>
+      </template>
       <template #footer>
-        <el-button @click="dialogVisible = false">取消</el-button>
+        <el-button @click="formPanel.close()">取消</el-button>
         <el-button type="primary" @click="handleSave">保存</el-button>
       </template>
-    </el-dialog>
+    </RightPanel>
   </div>
 </template>
+
 <style scoped>
-.page-container { display: flex; flex-direction: column; height: 100%; }
-.page-header { margin-bottom: 16px; }
-.page-header-main { display: flex; align-items: center; gap: 14px; }
-.page-header-icon { width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; background: #e6f7ff; border-radius: 10px; }
-.page-header-text h2 { margin: 0; font-size: 20px; font-weight: 600; color: #303133; }
-.page-header-text p { margin: 2px 0 0; font-size: 13px; color: #909399; }
-.search-card { margin-bottom: 12px; }
-.search-bar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.search-spacer { flex: 1; }
-.table-card { flex: 1; display: flex; flex-direction: column; }
-.table-card :deep(.el-card__body) { flex: 1; display: flex; flex-direction: column; padding: 0; }
-.table-card :deep(.el-table) { flex: 1; }
-.pagination-row { display: flex; justify-content: flex-end; padding: 12px 8px; border-top: 1px solid #f0f0f0; }
-.equipment-name { font-weight: 500; color: #303133; }
+.eq-name {
+  font-weight: 500;
+  color: var(--el-text-color-primary);
+}
 </style>

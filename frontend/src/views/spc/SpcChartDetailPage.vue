@@ -11,6 +11,7 @@ import type { InspectionItem } from '@/types/inspectionItem'
 import type { PagedRequest } from '@/types/basicData'
 import { CHART_TYPE_OPTIONS, CHART_TYPE_MAP, CPK_GRADE_TYPE, ANOVA_SOURCE_MAP, SOURCE_TYPE_OPTIONS, WESTERN_ELECTRIC_RULES } from '@/types/spc'
 import { useSpcHelpers } from '@/composables/useSpcHelpers'
+import RightPanel from '@/components/layout/RightPanel.vue'
 
 defineOptions({ name: 'SpcChartDetailPage' })
 
@@ -1105,133 +1106,141 @@ onMounted(loadAll)
       </el-tabs>
     </div>
 
-    <!-- Edit Chart Drawer -->
-    <el-drawer v-model="chartDrawerVisible" :title="isEdit ? '编辑控制图' : '新建控制图'" size="520px" direction="rtl" :close-on-click-modal="false" :show-close="true">
-      <el-form :model="chartForm" label-width="110px" label-position="left">
-        <div class="form-section-title">
-          <el-icon><Document /></el-icon>基本信息
-        </div>
-        <el-form-item label="控制图名称" required>
-          <el-input v-model="chartForm.name" placeholder="如：精加工-CNC-001 Xbar-R图" clearable />
-        </el-form-item>
-        <el-form-item label="参数代码" required>
-          <el-input v-model="chartForm.parameterCode" placeholder="如：DIM_A" clearable />
-        </el-form-item>
-        <el-form-item label="工序">
-          <el-select v-model="chartForm.processId" placeholder="请选择工序" filterable style="width:100%">
-            <el-option v-for="p in processOptions" :key="p.id" :label="`${p.code} - ${p.name}`" :value="p.id" />
-          </el-select>
-        </el-form-item>
+    <!-- Edit Chart RightPanel -->
+    <RightPanel v-model:visible="chartDrawerVisible" :title="isEdit ? '编辑控制图' : '新建控制图'" :width="520" :show-close="true">
+      <template #body>
+        <el-form :model="chartForm" label-width="110px" label-position="left">
+          <div class="form-section-title">
+            <el-icon><Document /></el-icon>基本信息
+          </div>
+          <el-form-item label="控制图名称" required>
+            <el-input v-model="chartForm.name" placeholder="如：精加工-CNC-001 Xbar-R图" clearable />
+          </el-form-item>
+          <el-form-item label="参数代码" required>
+            <el-input v-model="chartForm.parameterCode" placeholder="如：DIM_A" clearable />
+          </el-form-item>
+          <el-form-item label="工序">
+            <el-select v-model="chartForm.processId" placeholder="请选择工序" filterable style="width:100%">
+              <el-option v-for="p in processOptions" :key="p.id" :label="`${p.code} - ${p.name}`" :value="p.id" />
+            </el-select>
+          </el-form-item>
 
-        <el-divider />
-        <div class="form-section-title">
-          <el-icon><DataAnalysis /></el-icon>图表配置
-        </div>
-        <el-form-item label="控制图类型">
-          <el-select v-model="chartForm.chartType" style="width:100%">
-            <el-option v-for="opt in CHART_TYPE_OPTIONS" :key="opt.value" :label="opt.label" :value="opt.value" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="子组大小(n)">
-          <el-input-number v-model="chartForm.subgroupSize" :min="2" :max="25" style="width:100%" />
-        </el-form-item>
+          <el-divider />
+          <div class="form-section-title">
+            <el-icon><DataAnalysis /></el-icon>图表配置
+          </div>
+          <el-form-item label="控制图类型">
+            <el-select v-model="chartForm.chartType" style="width:100%">
+              <el-option v-for="opt in CHART_TYPE_OPTIONS" :key="opt.value" :label="opt.label" :value="opt.value" />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="子组大小(n)">
+            <el-input-number v-model="chartForm.subgroupSize" :min="2" :max="25" style="width:100%" />
+          </el-form-item>
 
-        <el-divider />
-        <div class="form-section-title">
-          <el-icon><Warning /></el-icon>规格限
-        </div>
-        <el-form-item label="USL(上限)">
-          <el-input-number v-model="chartForm.usl" :min="0" :step="0.001" :precision="6" placeholder="规格上限" style="width:100%" />
-        </el-form-item>
-        <el-form-item label="LSL(下限)">
-          <el-input-number v-model="chartForm.lsl" :min="0" :step="0.001" :precision="6" placeholder="规格下限" style="width:100%" />
-        </el-form-item>
-        <el-form-item label="目标值">
-          <el-input-number v-model="chartForm.targetValue" :min="0" :step="0.001" :precision="6" style="width:100%" />
-        </el-form-item>
-      </el-form>
+          <el-divider />
+          <div class="form-section-title">
+            <el-icon><Warning /></el-icon>规格限
+          </div>
+          <el-form-item label="USL(上限)">
+            <el-input-number v-model="chartForm.usl" :min="0" :step="0.001" :precision="6" placeholder="规格上限" style="width:100%" />
+          </el-form-item>
+          <el-form-item label="LSL(下限)">
+            <el-input-number v-model="chartForm.lsl" :min="0" :step="0.001" :precision="6" placeholder="规格下限" style="width:100%" />
+          </el-form-item>
+          <el-form-item label="目标值">
+            <el-input-number v-model="chartForm.targetValue" :min="0" :step="0.001" :precision="6" style="width:100%" />
+          </el-form-item>
+        </el-form>
+      </template>
       <template #footer>
         <div class="drawer-footer">
           <el-button @click="chartDrawerVisible = false">取消</el-button>
           <el-button type="primary" @click="saveChart">保存</el-button>
         </div>
       </template>
-    </el-drawer>
+    </RightPanel>
 
-    <!-- Add Data Point Dialog -->
-    <el-dialog v-model="dpDialogVisible" title="添加数据点" width="480px" :close-on-click-modal="false" class="styled-dialog">
-      <el-form :model="dpForm" label-width="96px" label-position="left">
-        <el-form-item label="测量值" required>
-          <el-input v-model="dpForm.individualValues" placeholder="如: 10.01, 10.02, 9.99, 10.00, 10.01" />
-          <div class="form-tip">逗号分隔的数值，数量应与子组大小 (n={{ selectedChart?.subgroupSize }}) 一致</div>
-        </el-form-item>
-        <el-form-item label="测量时间">
-          <el-date-picker v-model="dpForm.measuredAt" type="datetime" placeholder="选择时间" style="width:100%" />
-        </el-form-item>
-      </el-form>
+    <!-- Add Data Point RightPanel -->
+    <RightPanel v-model:visible="dpDialogVisible" title="添加数据点" :width="480">
+      <template #body>
+        <el-form :model="dpForm" label-width="96px" label-position="left">
+          <el-form-item label="测量值" required>
+            <el-input v-model="dpForm.individualValues" placeholder="如: 10.01, 10.02, 9.99, 10.00, 10.01" />
+            <div class="form-tip">逗号分隔的数值，数量应与子组大小 (n={{ selectedChart?.subgroupSize }}) 一致</div>
+          </el-form-item>
+          <el-form-item label="测量时间">
+            <el-date-picker v-model="dpForm.measuredAt" type="datetime" placeholder="选择时间" style="width:100%" />
+          </el-form-item>
+        </el-form>
+      </template>
       <template #footer>
         <div class="dialog-footer">
           <el-button @click="dpDialogVisible = false">取消</el-button>
           <el-button type="primary" @click="addDataPoint">添加</el-button>
         </div>
       </template>
-    </el-dialog>
+    </RightPanel>
 
-    <!-- Data Source Dialog -->
-    <el-dialog v-model="dsDialogVisible" title="添加数据源" width="500px" class="styled-dialog">
-      <el-form label-width="100px">
-        <el-form-item label="数据源类型">
-          <el-select v-model="dsForm.sourceType" style="width: 100%">
-            <el-option v-for="o in SOURCE_TYPE_OPTIONS" :key="o.value" :label="o.label" :value="o.value" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="检验项目">
-          <el-select v-model="dsForm.inspectionItemId" placeholder="不选则取全部" clearable filterable style="width: 100%">
-            <el-option v-for="item in inspectionItemOptions" :key="item.id" :label="`${item.itemCode} - ${item.itemName}`" :value="item.id" />
-          </el-select>
-        </el-form-item>
-        <p class="text-gray-400 text-sm">提示：不选择检验项目则拉取该业务模块的所有检验数据</p>
-      </el-form>
+    <!-- Data Source RightPanel -->
+    <RightPanel v-model:visible="dsDialogVisible" title="添加数据源" :width="500">
+      <template #body>
+        <el-form label-width="100px">
+          <el-form-item label="数据源类型">
+            <el-select v-model="dsForm.sourceType" style="width: 100%">
+              <el-option v-for="o in SOURCE_TYPE_OPTIONS" :key="o.value" :label="o.label" :value="o.value" />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="检验项目">
+            <el-select v-model="dsForm.inspectionItemId" placeholder="不选则取全部" clearable filterable style="width: 100%">
+              <el-option v-for="item in inspectionItemOptions" :key="item.id" :label="`${item.itemCode} - ${item.itemName}`" :value="item.id" />
+            </el-select>
+          </el-form-item>
+          <p class="text-gray-400 text-sm">提示：不选择检验项目则拉取该业务模块的所有检验数据</p>
+        </el-form>
+      </template>
       <template #footer>
         <div class="dialog-footer">
           <el-button @click="dsDialogVisible = false">取消</el-button>
           <el-button type="primary" @click="addDataSource">添加</el-button>
         </div>
       </template>
-    </el-dialog>
+    </RightPanel>
 
-    <!-- Rule Config Dialog -->
-    <el-dialog v-model="ruleConfigVisible" title="判异规则配置" width="680px" class="styled-dialog">
-      <div class="table-card">
-        <el-table :data="alertRules" stripe class="rule-config-table">
-          <el-table-column label="规则" width="50" align="center">
-            <template #default="{ row }">#{{ row.ruleNumber }}</template>
-          </el-table-column>
-          <el-table-column prop="ruleName" label="规则名称" min-width="160" />
-          <el-table-column label="启用" width="70" align="center">
-            <template #default="{ row }">
-              <el-switch v-model="row.enabled" size="small" />
-            </template>
-          </el-table-column>
-          <el-table-column label="连续点数(N)" width="120" align="center">
-            <template #default="{ row }">
-              <el-input-number v-model="row.triggerThreshold" :min="1" :max="25" controls-position="right" style="width:100px" />
-            </template>
-          </el-table-column>
-          <el-table-column label="σ阈值" width="110" align="center">
-            <template #default="{ row }">
-              <el-input-number v-model="row.sigmaThreshold" :min="0" :max="5" :step="0.5" controls-position="right" style="width:90px" />
-            </template>
-          </el-table-column>
-        </el-table>
-      </div>
+    <!-- Rule Config RightPanel -->
+    <RightPanel v-model:visible="ruleConfigVisible" title="判异规则配置" :width="680">
+      <template #body>
+        <div class="table-card">
+          <el-table :data="alertRules" stripe class="rule-config-table">
+            <el-table-column label="规则" width="50" align="center">
+              <template #default="{ row }">#{{ row.ruleNumber }}</template>
+            </el-table-column>
+            <el-table-column prop="ruleName" label="规则名称" min-width="160" />
+            <el-table-column label="启用" width="70" align="center">
+              <template #default="{ row }">
+                <el-switch v-model="row.enabled" size="small" />
+              </template>
+            </el-table-column>
+            <el-table-column label="连续点数(N)" width="120" align="center">
+              <template #default="{ row }">
+                <el-input-number v-model="row.triggerThreshold" :min="1" :max="25" controls-position="right" style="width:100px" />
+              </template>
+            </el-table-column>
+            <el-table-column label="σ阈值" width="110" align="center">
+              <template #default="{ row }">
+                <el-input-number v-model="row.sigmaThreshold" :min="0" :max="5" :step="0.5" controls-position="right" style="width:90px" />
+              </template>
+            </el-table-column>
+          </el-table>
+        </div>
+      </template>
       <template #footer>
         <div class="dialog-footer">
           <el-button @click="ruleConfigVisible = false">取消</el-button>
           <el-button type="primary" @click="saveRuleConfig">保存配置</el-button>
         </div>
       </template>
-    </el-dialog>
+    </RightPanel>
   </div>
 </template>
 
@@ -2133,20 +2142,7 @@ onMounted(loadAll)
   margin: 0 -20px -20px;
 }
 
-.styled-dialog :deep(.el-dialog__header) {
-  border-bottom: 1px solid var(--el-border-color-lighter, #ebeef5);
-  padding: 14px 20px;
-  margin-right: 0;
-}
-
-.styled-dialog :deep(.el-dialog__body) {
-  padding: 20px;
-}
-
-.styled-dialog :deep(.el-dialog__footer) {
-  border-top: 1px solid var(--el-border-color-lighter, #ebeef5);
-  padding: 12px 20px;
-}
+/* RightPanel styles handled by component */
 
 /* ─── Utilities ──────────────────────────────── */
 

@@ -8,6 +8,7 @@ import {
 } from '@/api/basicData'
 import { supplierScoreApi } from '@/api/iqc'
 import { Shop, Search, Refresh, Edit, DataAnalysis, TrendCharts, Star } from '@element-plus/icons-vue'
+import RightPanel from '@/components/layout/RightPanel.vue'
 
 defineOptions({ name: 'IqcSuppliersPage' })
 
@@ -371,113 +372,88 @@ onMounted(async () => {
     <!-- Drawers -->
     <!-- ================================================================== -->
 
-    <!-- Drawer: 编辑供应商评分 -->
-    <el-drawer
-      v-model="editDrawerVisible"
-      title="编辑供应商评分"
-      size="580px"
-      direction="rtl"
-      :close-on-click-modal="false"
-    >
-      <template #header>
-        <div class="drawer-header">
-          <div class="drawer-header-icon">
-            <el-icon :size="18"><DataAnalysis /></el-icon>
+    <!-- RightPanel: 编辑供应商评分 -->
+    <RightPanel v-model:visible="editDrawerVisible" title="编辑供应商评分" :width="580">
+      <template #body>
+        <template v-if="editingScore">
+          <!-- 基本信息 -->
+          <div class="drawer-section">
+            <div class="drawer-section-header">
+              <el-icon class="drawer-section-icon"><Shop /></el-icon>
+              <span>基本信息</span>
+            </div>
+            <el-descriptions :column="2" border size="default">
+              <el-descriptions-item label="供应商编码">
+                {{ suppliers.find(s => s.id === editSupplierId)?.code || '-' }}
+              </el-descriptions-item>
+              <el-descriptions-item label="供应商名称">
+                {{ suppliers.find(s => s.id === editSupplierId)?.name || '-' }}
+              </el-descriptions-item>
+              <el-descriptions-item label="联系人" v-if="suppliers.find(s => s.id === editSupplierId)?.contactPerson">
+                {{ suppliers.find(s => s.id === editSupplierId)?.contactPerson }}
+              </el-descriptions-item>
+              <el-descriptions-item label="联系电话" v-if="suppliers.find(s => s.id === editSupplierId)?.contactPhone">
+                {{ suppliers.find(s => s.id === editSupplierId)?.contactPhone }}
+              </el-descriptions-item>
+            </el-descriptions>
           </div>
-          <div class="drawer-header-text">
-            <span class="drawer-title">供应商评分</span>
-            <span class="drawer-subtitle">{{ editingScore?.supplierName }}</span>
+
+          <!-- 评分信息 -->
+          <div class="drawer-section">
+            <div class="drawer-section-header">
+              <el-icon class="drawer-section-icon"><DataAnalysis /></el-icon>
+              <span>评分信息</span>
+            </div>
+            <el-form label-width="100px">
+              <el-form-item label="综合评分">
+                <el-input-number
+                  v-model="editingScore.score"
+                  :min="0"
+                  :max="100"
+                  :precision="1"
+                  style="width: 160px"
+                  controls-position="right"
+                />
+                <span class="score-hint">/ 100</span>
+              </el-form-item>
+              <el-form-item label="评级">
+                <el-select v-model="editingScore.grade" style="width: 200px">
+                  <el-option label="A 级 (优秀)" value="A" />
+                  <el-option label="B 级 (良好)" value="B" />
+                  <el-option label="C 级 (合格)" value="C" />
+                  <el-option label="D 级 (不合格)" value="D" />
+                </el-select>
+              </el-form-item>
+              <el-form-item label="评估日期">
+                <el-date-picker
+                  v-model="editingScore.scoreDate"
+                  type="date"
+                  placeholder="选择日期"
+                  style="width: 200px"
+                />
+              </el-form-item>
+            </el-form>
           </div>
-          <el-tag
-            v-if="editingScore"
-            :type="gradeTagType(editingScore.grade)"
-            effect="dark"
-            round
-          >
-            {{ editingScore.grade ?? '待评级' }}
-          </el-tag>
-        </div>
+
+          <!-- 评估意见 -->
+          <div class="drawer-section">
+            <div class="drawer-section-header">
+              <el-icon class="drawer-section-icon"><TrendCharts /></el-icon>
+              <span>评估意见</span>
+            </div>
+            <el-form>
+              <el-form-item label="">
+                <el-input
+                  v-model="editingScore.evaluation"
+                  type="textarea"
+                  :rows="4"
+                  placeholder="请输入评估意见..."
+                />
+              </el-form-item>
+            </el-form>
+          </div>
+        </template>
       </template>
-
-      <template v-if="editingScore">
-        <!-- 基本信息 -->
-        <div class="drawer-section">
-          <div class="drawer-section-header">
-            <el-icon class="drawer-section-icon"><Shop /></el-icon>
-            <span>基本信息</span>
-          </div>
-          <el-descriptions :column="2" border size="default">
-            <el-descriptions-item label="供应商编码">
-              {{ suppliers.find(s => s.id === editSupplierId)?.code || '-' }}
-            </el-descriptions-item>
-            <el-descriptions-item label="供应商名称">
-              {{ suppliers.find(s => s.id === editSupplierId)?.name || '-' }}
-            </el-descriptions-item>
-            <el-descriptions-item label="联系人" v-if="suppliers.find(s => s.id === editSupplierId)?.contactPerson">
-              {{ suppliers.find(s => s.id === editSupplierId)?.contactPerson }}
-            </el-descriptions-item>
-            <el-descriptions-item label="联系电话" v-if="suppliers.find(s => s.id === editSupplierId)?.contactPhone">
-              {{ suppliers.find(s => s.id === editSupplierId)?.contactPhone }}
-            </el-descriptions-item>
-          </el-descriptions>
-        </div>
-
-        <!-- 评分信息 -->
-        <div class="drawer-section">
-          <div class="drawer-section-header">
-            <el-icon class="drawer-section-icon"><DataAnalysis /></el-icon>
-            <span>评分信息</span>
-          </div>
-          <el-form label-width="100px">
-            <el-form-item label="综合评分">
-              <el-input-number
-                v-model="editingScore.score"
-                :min="0"
-                :max="100"
-                :precision="1"
-                style="width: 160px"
-                controls-position="right"
-              />
-              <span class="score-hint">/ 100</span>
-            </el-form-item>
-            <el-form-item label="评级">
-              <el-select v-model="editingScore.grade" style="width: 200px">
-                <el-option label="A 级 (优秀)" value="A" />
-                <el-option label="B 级 (良好)" value="B" />
-                <el-option label="C 级 (合格)" value="C" />
-                <el-option label="D 级 (不合格)" value="D" />
-              </el-select>
-            </el-form-item>
-            <el-form-item label="评估日期">
-              <el-date-picker
-                v-model="editingScore.scoreDate"
-                type="date"
-                placeholder="选择日期"
-                style="width: 200px"
-              />
-            </el-form-item>
-          </el-form>
-        </div>
-
-        <!-- 评估意见 -->
-        <div class="drawer-section">
-          <div class="drawer-section-header">
-            <el-icon class="drawer-section-icon"><TrendCharts /></el-icon>
-            <span>评估意见</span>
-          </div>
-          <el-form>
-            <el-form-item label="">
-              <el-input
-                v-model="editingScore.evaluation"
-                type="textarea"
-                :rows="4"
-                placeholder="请输入评估意见..."
-              />
-            </el-form-item>
-          </el-form>
-        </div>
-      </template>
-
       <template #footer>
         <div style="display: flex; gap: 8px; justify-content: flex-end;">
           <el-button size="small" @click="editDrawerVisible = false">取消</el-button>
@@ -486,7 +462,7 @@ onMounted(async () => {
           </el-button>
         </div>
       </template>
-    </el-drawer>
+    </RightPanel>
   </div>
 </template>
 

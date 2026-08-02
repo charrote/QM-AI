@@ -17,6 +17,9 @@ public class EquipmentLinkService
     public async Task<List<EquipmentParamMapping>> GetAllMapsAsync() =>
         await _db.EquipmentParamMappings.ToListAsync();
 
+    public IQueryable<EquipmentParamMapping> GetAllMapsQueryable() =>
+        _db.EquipmentParamMappings.AsQueryable();
+
     public async Task<EquipmentParamMapping?> GetMapByIdAsync(long id) =>
         await _db.EquipmentParamMappings.FindAsync(id);
 

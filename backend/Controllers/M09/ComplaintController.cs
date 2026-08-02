@@ -111,5 +111,18 @@ public class ComplaintController : ControllerBase
         }
     }
 
+    [HttpGet("stats")]
+    public async Task<IActionResult> GetStats()
+    {
+        try
+        {
+            return Ok(await _service.GetStatsAsync());
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = "获取统计失败", detail = ex.Message });
+        }
+    }
+
     public sealed class StatusTransitionRequest { public string NewStatus { get; set; } = ""; }
 }

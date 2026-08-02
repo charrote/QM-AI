@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 
 namespace QM_AI.API.Models.M07;
 
@@ -36,16 +37,18 @@ public class CapaVerification
     [Column("evidence")]
     public string? Evidence { get; set; }
 
-    /// <summary>图片URLs</summary>
+    /// <summary>图片 URLs</summary>
     [Column("image_urls")]
     public string? ImageUrls { get; set; }
 
     /// <summary>备注</summary>
+    [Column("remarks")]
     public string? Remarks { get; set; }
 
     [Column("created_at")]
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     [ForeignKey(nameof(CapaId))]
+    [JsonIgnore]
     public Capa? Capa { get; set; }
 }

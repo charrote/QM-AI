@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import RightPanel from '@/components/layout/RightPanel.vue'
 import { User, Plus, Search, Refresh, Setting } from '@element-plus/icons-vue'
 import { userApi } from '@/api/system'
 import type { User as UserType, CreateUser, UpdateUser } from '@/types/system'
@@ -206,39 +207,40 @@ onMounted(async () => {
       </div>
     </div>
 
-    <!-- Drawer -->
-    <el-drawer
-      v-model="drawerVisible"
+    <!-- Panel -->
+    <RightPanel
+      v-model:visible="drawerVisible"
       :title="drawerTitle"
-      size="520px"
-      direction="rtl"
-      :close-on-click-modal="false"
+      :width="520"
+      :show-close="true"
     >
-      <div class="dialog-section">
-        <div class="dialog-section-header">
-          <el-icon class="dialog-section-icon"><Setting /></el-icon>
-          <span class="dialog-section-title">用户信息</span>
+      <template #body>
+        <div class="dialog-section">
+          <div class="dialog-section-header">
+            <el-icon class="dialog-section-icon"><Setting /></el-icon>
+            <span class="dialog-section-title">用户信息</span>
+          </div>
+          <el-form :model="form" label-width="80px">
+            <el-form-item label="用户名" required>
+              <el-input v-model="form.username" :disabled="isEditing" placeholder="请输入用户名" clearable style="width: 100%" />
+            </el-form-item>
+            <el-form-item :label="isEditing ? '新密码' : '密码'" :required="!isEditing">
+              <el-input v-model="form.password" type="password" show-password :placeholder="isEditing ? '留空不修改' : '请输入密码'" clearable style="width: 100%" />
+            </el-form-item>
+            <el-form-item label="显示名称">
+              <el-input v-model="form.displayName" placeholder="请输入显示名称" clearable style="width: 100%" />
+            </el-form-item>
+            <el-form-item label="邮箱">
+              <el-input v-model="form.email" placeholder="请输入邮箱" clearable style="width: 100%" />
+            </el-form-item>
+            <el-form-item label="角色" required>
+              <el-select v-model="form.roleId" filterable placeholder="选择角色" style="width: 100%">
+                <el-option v-for="r in roles" :key="r.id" :label="r.name" :value="r.id" />
+              </el-select>
+            </el-form-item>
+          </el-form>
         </div>
-        <el-form :model="form" label-width="80px">
-          <el-form-item label="用户名" required>
-            <el-input v-model="form.username" :disabled="isEditing" placeholder="请输入用户名" clearable style="width: 100%" />
-          </el-form-item>
-          <el-form-item :label="isEditing ? '新密码' : '密码'" :required="!isEditing">
-            <el-input v-model="form.password" type="password" show-password :placeholder="isEditing ? '留空不修改' : '请输入密码'" clearable style="width: 100%" />
-          </el-form-item>
-          <el-form-item label="显示名称">
-            <el-input v-model="form.displayName" placeholder="请输入显示名称" clearable style="width: 100%" />
-          </el-form-item>
-          <el-form-item label="邮箱">
-            <el-input v-model="form.email" placeholder="请输入邮箱" clearable style="width: 100%" />
-          </el-form-item>
-          <el-form-item label="角色" required>
-            <el-select v-model="form.roleId" filterable placeholder="选择角色" style="width: 100%">
-              <el-option v-for="r in roles" :key="r.id" :label="r.name" :value="r.id" />
-            </el-select>
-          </el-form-item>
-        </el-form>
-      </div>
+      </template>
 
       <template #footer>
         <div style="display: flex; gap: 8px; justify-content: flex-end;">
@@ -246,7 +248,7 @@ onMounted(async () => {
           <el-button size="small" type="primary" @click="handleSave" :loading="saving">保存</el-button>
         </div>
       </template>
-    </el-drawer>
+    </RightPanel>
   </div>
 </template>
 

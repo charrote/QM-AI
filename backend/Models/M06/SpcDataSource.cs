@@ -27,7 +27,7 @@ public class SpcDataSource
     public string SourceType { get; set; } = string.Empty;
 
     [Column("inspection_item_id")]
-    /// <summary>关联检验项目（null表示该数据源类型所有项目）</summary>
+    /// <summary>关联检验项目（null 表示该数据源类型所有项目）</summary>
     public long? InspectionItemId { get; set; }
 
     /// <summary>过滤：产品</summary>

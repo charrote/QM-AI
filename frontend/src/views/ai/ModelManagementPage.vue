@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Cpu } from '@element-plus/icons-vue'
+import { Cpu, CircleCheck, Loading, Warning, Plus } from '@element-plus/icons-vue'
+import RightPanel from '@/components/layout/RightPanel.vue'
+import { useRightPanel } from '@/composables/useRightPanel'
 import { aiApi } from '@/api/ai'
 import { MODEL_TYPE_OPTIONS, MODEL_TYPE_MAP, MODEL_STATUS_OPTIONS, MODEL_STATUS_MAP } from '@/types/ai'
 import type { PagedResult } from '@/types/basicData'
@@ -22,16 +24,16 @@ const models = ref<Array<{
   createdAt: string
 }>>([])
 
-// Create dialog
-const createVisible = ref(false)
+// Create panel
+const createPanel = useRightPanel()
 const createForm = reactive({
   name: '',
   type: 'classification',
   trainingData: '',
 })
 
-// Detail dialog
-const detailVisible = ref(false)
+// Detail panel
+const detailPanel = useRightPanel()
 const currentModel = ref<{
   id: number
   name: string
@@ -54,7 +56,7 @@ async function loadModels() {
     models.value = res.items
     total.value = res.total
   } catch (e) {
-    console.error('Failed to load models', e)
+    console.error('[ModelManagementPage] Failed to load models:', e)
   }
 }
 
@@ -70,7 +72,7 @@ async function handleCreate() {
       trainingData: createForm.trainingData || undefined,
     })
     ElMessage.success('模型训练已启动')
-    createVisible.value = false
+    createPanel.close()
     createForm.name = ''
     createForm.type = 'classification'
     createForm.trainingData = ''
@@ -83,7 +85,7 @@ async function handleCreate() {
 async function viewDetail(id: number) {
   try {
     currentModel.value = await aiApi.getModel(id)
-    detailVisible.value = true
+    detailPanel.open()
   } catch (e: any) {
     ElMessage.error(e?.response?.data?.message || '获取详情失败')
   }
@@ -105,6 +107,18 @@ function formatDate(d?: string) {
   return new Date(d).toLocaleString('zh-CN')
 }
 
+function getAccuracyClass(accuracy?: number) {
+  if (accuracy == null) return ''
+  if (accuracy >= 0.9) return 'ai-stat-value--success'
+  if (accuracy >= 0.7) return 'ai-stat-value--warning'
+  return 'ai-stat-value--danger'
+}
+
+function getAccuracyPct(accuracy?: number) {
+  if (accuracy == null) return 0
+  return Math.round(accuracy * 100)
+}
+
 const createFormRef = ref()
 const formRules = {
   name: [{ required: true, message: '请输入模型名称', trigger: 'blur' }],
@@ -118,105 +132,130 @@ onMounted(() => {
 
 <template>
   <div class="page-container">
-    <!-- Page Header -->
-    <div class="page-header">
-      <div class="page-header-main">
-        <div class="page-header-icon">
-          <el-icon :size="28"><Cpu /></el-icon>
+    <!-- Page Header Banner -->
+    <div class="ai-header-banner">
+      <div class="ai-header-banner-main">
+        <div class="ai-header-banner-icon">
+          <el-icon :size="24"><Cpu /></el-icon>
         </div>
-        <div class="page-header-text">
-          <h2>模型管理</h2>
-          <p>AI 模型训练、部署与性能监控</p>
+        <div class="ai-header-banner-text">
+          <div class="ai-header-banner-title">模型管理</div>
+          <div class="ai-header-banner-subtitle">AI 模型训练、部署与性能监控</div>
         </div>
       </div>
     </div>
 
-    <!-- Model Status Indicators -->
-    <el-row :gutter="12" class="stat-row">
-      <el-col :span="6">
-        <el-card shadow="hover" class="stat-card">
-          <div class="stat-value">{{ models.length }}</div>
-          <div class="stat-label">模型总数</div>
-        </el-card>
-      </el-col>
-      <el-col :span="6">
-        <el-card shadow="hover" class="stat-card">
-          <div class="stat-value stat-active">{{ models.filter(m => m.status === 'active' || m.status === 'trained').length }}</div>
-          <div class="stat-label">已激活</div>
-        </el-card>
-      </el-col>
-      <el-col :span="6">
-        <el-card shadow="hover" class="stat-card">
-          <div class="stat-value stat-training">{{ models.filter(m => m.status === 'training' || m.status === 'pending').length }}</div>
-          <div class="stat-label">训练中</div>
-        </el-card>
-      </el-col>
-      <el-col :span="6">
-        <el-card shadow="hover" class="stat-card">
-          <div class="stat-value stat-inactive">{{ models.filter(m => m.status !== 'active' && m.status !== 'trained' && m.status !== 'training' && m.status !== 'pending').length }}</div>
-          <div class="stat-label">停用/失败</div>
-        </el-card>
-      </el-col>
-    </el-row>
+    <!-- Stats Grid -->
+    <div class="ai-stat-grid">
+      <div class="ai-stat-card ai-stat-card--blue">
+        <div class="ai-stat-icon ai-stat-icon--blue">
+          <el-icon :size="22"><Cpu /></el-icon>
+        </div>
+        <div class="ai-stat-content">
+          <div class="ai-stat-label">模型总数</div>
+          <div class="ai-stat-value">{{ models.length }}</div>
+        </div>
+      </div>
+      <div class="ai-stat-card ai-stat-card--green">
+        <div class="ai-stat-icon ai-stat-icon--green">
+          <el-icon :size="22"><CircleCheck /></el-icon>
+        </div>
+        <div class="ai-stat-content">
+          <div class="ai-stat-label">已激活</div>
+          <div class="ai-stat-value ai-stat-value--success">
+            {{ models.filter(m => m.status === 'active' || m.status === 'trained').length }}
+          </div>
+        </div>
+      </div>
+      <div class="ai-stat-card ai-stat-card--blue">
+        <div class="ai-stat-icon ai-stat-icon--blue">
+          <el-icon :size="22"><Loading /></el-icon>
+        </div>
+        <div class="ai-stat-content">
+          <div class="ai-stat-label">训练中</div>
+          <div class="ai-stat-value ai-stat-value--primary">
+            {{ models.filter(m => m.status === 'training' || m.status === 'pending').length }}
+          </div>
+        </div>
+      </div>
+      <div class="ai-stat-card ai-stat-card--gray">
+        <div class="ai-stat-icon ai-stat-icon--gray">
+          <el-icon :size="22"><Warning /></el-icon>
+        </div>
+        <div class="ai-stat-content">
+          <div class="ai-stat-label">停用/失败</div>
+          <div class="ai-stat-value">
+            {{ models.filter(m => !['active', 'trained', 'training', 'pending'].includes(m.status)).length }}
+          </div>
+        </div>
+      </div>
+    </div>
 
     <!-- Toolbar -->
-    <el-card shadow="never" class="toolbar-card">
-      <div class="toolbar-row">
+    <div class="ai-filter-card">
+      <div class="ai-filter-row">
         <el-select v-model="statusFilter" placeholder="模型状态" clearable style="width: 130px" @change="loadModels">
           <el-option v-for="opt in MODEL_STATUS_OPTIONS" :key="opt.value" :label="opt.label" :value="opt.value" />
         </el-select>
-        <el-button type="primary" @click="createVisible = true">+ 新建模型</el-button>
-        <el-button @click="loadModels">刷新</el-button>
+        <div class="ai-filter-actions">
+          <el-button type="primary" @click="createPanel.open()">
+            <el-icon><Plus /></el-icon> 新建模型
+          </el-button>
+          <el-button @click="loadModels">刷新</el-button>
+        </div>
       </div>
-    </el-card>
+    </div>
 
     <!-- Table -->
-    <el-card shadow="never" class="table-card">
-      <el-table :data="models" stripe style="width: 100%">
-        <el-table-column prop="name" label="模型名称" min-width="150" show-overflow-tooltip />
-        <el-table-column label="类型" width="130">
-          <template #default="{ row }">
-            <el-tag size="small" effect="plain">{{ MODEL_TYPE_MAP[row.type] || row.type }}</el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column label="状态" width="110">
-          <template #default="{ row }">
-            <div class="model-status">
-              <span class="status-dot" :class="`dot-${row.status}`"></span>
-              <el-tag :type="MODEL_STATUS_OPTIONS.find(o => o.value === row.status)?.type || 'info'" size="small" effect="dark">
-                {{ MODEL_STATUS_MAP[row.status] || row.status }}
-              </el-tag>
-            </div>
-          </template>
-        </el-table-column>
-        <el-table-column label="准确率" width="120" align="center">
-          <template #default="{ row }">
-            <div v-if="row.accuracy != null" class="accuracy-cell">
-              <el-progress
-                :percentage="(row.accuracy * 100).toFixed(0)"
-                :stroke-width="8"
-                :color="row.accuracy >= 0.9 ? '#67C23A' : row.accuracy >= 0.7 ? '#E6A23C' : '#F56C6C'"
-              />
-              <span class="accuracy-text">{{ (row.accuracy * 100).toFixed(1) }}%</span>
-            </div>
-            <span v-else>-</span>
-          </template>
-        </el-table-column>
-        <el-table-column label="训练时间" width="160">
-          <template #default="{ row }">{{ formatDate(row.trainedAt) }}</template>
-        </el-table-column>
-        <el-table-column label="创建时间" width="160">
-          <template #default="{ row }">{{ formatDate(row.createdAt) }}</template>
-        </el-table-column>
-        <el-table-column label="操作" width="150" fixed="right">
-          <template #default="{ row }">
-            <el-button link size="small" type="primary" @click="viewDetail(row.id)">详情</el-button>
-            <el-button link size="small" type="danger" @click="handleDelete(row.id)">删除</el-button>
-          </template>
-        </el-table-column>
-      </el-table>
-
-      <div class="pagination-row">
+    <div class="table-card">
+      <div class="table-card__body">
+        <el-table :data="models" stripe style="width: 100%">
+          <el-table-column prop="name" label="模型名称" min-width="150" show-overflow-tooltip />
+          <el-table-column label="类型" width="130" align="center">
+            <template #default="{ row }">
+              <el-tag size="small" effect="plain">{{ MODEL_TYPE_MAP[row.type] || row.type }}</el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column label="状态" width="120" align="center">
+            <template #default="{ row }">
+              <div class="model-status">
+                <span :class="['model-status__dot', `model-status__dot--${row.status}`]"></span>
+                <el-tag :type="MODEL_STATUS_OPTIONS.find(o => o.value === row.status)?.type || 'info'" size="small" effect="dark">
+                  {{ MODEL_STATUS_MAP[row.status] || row.status }}
+                </el-tag>
+              </div>
+            </template>
+          </el-table-column>
+          <el-table-column label="准确率" width="140" align="center">
+            <template #default="{ row }">
+              <div v-if="row.accuracy != null" class="confidence-bar">
+                <div class="confidence-bar__track">
+                  <div :class="[
+                    'confidence-bar__fill',
+                    row.accuracy >= 0.9 ? 'confidence-bar__fill--high' :
+                    row.accuracy >= 0.7 ? 'confidence-bar__fill--med' : 'confidence-bar__fill--low'
+                  ]" :style="{ width: (row.accuracy * 100) + '%' }"></div>
+                </div>
+                <span class="confidence-bar__value">{{ getAccuracyPct(row.accuracy) }}%</span>
+              </div>
+              <span v-else class="text-secondary">-</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="训练时间" width="160" align="center">
+            <template #default="{ row }">{{ formatDate(row.trainedAt) }}</template>
+          </el-table-column>
+          <el-table-column label="创建时间" width="160" align="center">
+            <template #default="{ row }">{{ formatDate(row.createdAt) }}</template>
+          </el-table-column>
+          <el-table-column label="操作" width="150" align="center" fixed="right">
+            <template #default="{ row }">
+              <el-button link size="small" type="primary" @click="viewDetail(row.id)">详情</el-button>
+              <el-button link size="small" type="danger" @click="handleDelete(row.id)">删除</el-button>
+            </template>
+          </el-table-column>
+        </el-table>
+      </div>
+      <div class="table-card__footer">
         <el-pagination
           v-model:current-page="page"
           v-model:page-size="pageSize"
@@ -227,108 +266,83 @@ onMounted(() => {
           @current-change="loadModels"
         />
       </div>
-    </el-card>
+    </div>
 
-    <!-- Create Dialog -->
-    <el-dialog v-model="createVisible" title="新建模型" width="520px" :close-on-click-modal="false">
-      <el-form :model="createForm" label-width="100px" :rules="formRules" ref="createFormRef">
-        <el-divider content-position="left">基本信息</el-divider>
-        <el-form-item label="模型名称" prop="name" required>
-          <el-input v-model="createForm.name" placeholder="如: 缺陷分类模型-v2" />
-        </el-form-item>
-        <el-form-item label="模型类型" prop="type" required>
-          <el-select v-model="createForm.type" style="width: 100%">
-            <el-option v-for="opt in MODEL_TYPE_OPTIONS" :key="opt.value" :label="opt.label" :value="opt.value" />
-          </el-select>
-        </el-form-item>
-        <el-divider content-position="left">训练配置</el-divider>
-        <el-form-item label="训练数据">
-          <el-input v-model="createForm.trainingData" type="textarea" :rows="3" placeholder="训练数据集描述或路径（可选）" />
-        </el-form-item>
-      </el-form>
+    <!-- Panel: Create -->
+    <RightPanel v-model:visible="createPanel.visible" title="新建模型" :width="520">
+      <template #body>
+        <el-form :model="createForm" label-width="100px" :rules="formRules" ref="createFormRef">
+          <el-divider content-position="left">基本信息</el-divider>
+          <el-form-item label="模型名称" prop="name" required>
+            <el-input v-model="createForm.name" placeholder="如: 缺陷分类模型-v2" />
+          </el-form-item>
+          <el-form-item label="模型类型" prop="type" required>
+            <el-select v-model="createForm.type" style="width: 100%">
+              <el-option v-for="opt in MODEL_TYPE_OPTIONS" :key="opt.value" :label="opt.label" :value="opt.value" />
+            </el-select>
+          </el-form-item>
+          <el-divider content-position="left">训练配置</el-divider>
+          <el-form-item label="训练数据">
+            <el-input v-model="createForm.trainingData" type="textarea" :rows="3" placeholder="训练数据集描述或路径（可选）" />
+          </el-form-item>
+        </el-form>
+      </template>
       <template #footer>
-        <el-button @click="createVisible = false">取消</el-button>
+        <el-button @click="createPanel.close()">取消</el-button>
         <el-button type="primary" @click="handleCreate">创建</el-button>
       </template>
-    </el-dialog>
+    </RightPanel>
 
-    <!-- Detail Dialog -->
-    <el-dialog v-model="detailVisible" :title="currentModel?.name || '模型详情'" width="640px">
-      <template v-if="currentModel">
-        <el-descriptions :column="2" border>
-          <el-descriptions-item label="模型名称">{{ currentModel.name }}</el-descriptions-item>
-          <el-descriptions-item label="类型">{{ MODEL_TYPE_MAP[currentModel.type] || currentModel.type }}</el-descriptions-item>
-          <el-descriptions-item label="状态">
-            <div class="model-status">
-              <span class="status-dot" :class="`dot-${(currentModel as any).status}`"></span>
-              <el-tag :type="(currentModel as any)?.status ? (MODEL_STATUS_OPTIONS.find(o => o.value === (currentModel as any).status)?.type || 'info') : 'info'" size="small">
-                {{ MODEL_STATUS_MAP[(currentModel as any).status] || (currentModel as any).status }}
-              </el-tag>
+    <!-- Panel: Detail -->
+    <RightPanel v-model:visible="detailPanel.visible" :title="currentModel?.name || '模型详情'" :width="640">
+      <template #body>
+        <template v-if="currentModel">
+          <el-descriptions :column="2" border>
+            <el-descriptions-item label="模型名称">{{ currentModel.name }}</el-descriptions-item>
+            <el-descriptions-item label="类型">{{ MODEL_TYPE_MAP[currentModel.type] || currentModel.type }}</el-descriptions-item>
+            <el-descriptions-item label="状态">
+              <div class="model-status">
+                <span :class="['model-status__dot', `model-status__dot--${(currentModel as any).status}`]"></span>
+                <el-tag :type="(currentModel as any)?.status ? (MODEL_STATUS_OPTIONS.find(o => o.value === (currentModel as any).status)?.type || 'info') : 'info'" size="small">
+                  {{ MODEL_STATUS_MAP[(currentModel as any).status] || (currentModel as any).status }}
+                </el-tag>
+              </div>
+            </el-descriptions-item>
+            <el-descriptions-item label="准确率">
+              {{ currentModel.accuracy != null ? (currentModel.accuracy * 100).toFixed(1) + '%' : '-' }}
+            </el-descriptions-item>
+            <el-descriptions-item label="训练时间">{{ formatDate(currentModel.trainedAt) }}</el-descriptions-item>
+            <el-descriptions-item label="创建时间">{{ formatDate(currentModel.createdAt) }}</el-descriptions-item>
+          </el-descriptions>
+
+          <el-divider content-position="left">参数</el-divider>
+          <div v-if="Object.keys(currentModel.parameters).length > 0" class="quick-info">
+            <div v-for="(val, key) in currentModel.parameters" :key="key" class="quick-info__item">
+              <div class="quick-info__label">{{ key }}</div>
+              <div class="quick-info__value">{{ typeof val === 'object' ? JSON.stringify(val) : String(val) }}</div>
             </div>
-          </el-descriptions-item>
-          <el-descriptions-item label="准确率">
-            {{ currentModel.accuracy != null ? (currentModel.accuracy * 100).toFixed(1) + '%' : '-' }}
-          </el-descriptions-item>
-          <el-descriptions-item label="训练时间">{{ formatDate(currentModel.trainedAt) }}</el-descriptions-item>
-          <el-descriptions-item label="创建时间">{{ formatDate(currentModel.createdAt) }}</el-descriptions-item>
-        </el-descriptions>
-
-        <el-divider content-position="left">参数</el-divider>
-        <div v-if="Object.keys(currentModel.parameters).length > 0" class="params-grid">
-          <div v-for="(val, key) in currentModel.parameters" :key="key" class="param-item">
-            <span class="param-key">{{ key }}</span>
-            <span class="param-value">{{ typeof val === 'object' ? JSON.stringify(val) : String(val) }}</span>
           </div>
-        </div>
-        <el-empty v-else description="无参数" :image-size="40" />
+          <el-empty v-else description="无参数" :image-size="40" />
 
-        <el-divider content-position="left">指标</el-divider>
-        <div v-if="currentModel.metrics && Object.keys(currentModel.metrics).length > 0" class="params-grid">
-          <div v-for="(val, key) in currentModel.metrics" :key="key" class="param-item">
-            <span class="param-key">{{ key }}</span>
-            <span class="param-value">{{ typeof val === 'number' ? val.toFixed(4) : String(val) }}</span>
+          <el-divider content-position="left">指标</el-divider>
+          <div v-if="currentModel.metrics && Object.keys(currentModel.metrics).length > 0" class="quick-info">
+            <div v-for="(val, key) in currentModel.metrics" :key="key" class="quick-info__item">
+              <div class="quick-info__label">{{ key }}</div>
+              <div class="quick-info__value">{{ typeof val === 'number' ? val.toFixed(4) : String(val) }}</div>
+            </div>
           </div>
-        </div>
-        <el-empty v-else description="无指标" :image-size="40" />
+          <el-empty v-else description="无指标" :image-size="40" />
+        </template>
       </template>
-    </el-dialog>
+      <template #footer>
+        <el-button @click="detailPanel.close()">关闭</el-button>
+      </template>
+    </RightPanel>
   </div>
 </template>
 
 <style scoped>
-.page-container { display: flex; flex-direction: column; height: 100%; }
-.page-header { margin-bottom: 16px; }
-.page-header-main { display: flex; align-items: center; gap: 14px; }
-.page-header-icon { width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; background: #e6f7ff; border-radius: 10px; }
-.page-header-text h2 { margin: 0; font-size: 20px; font-weight: 600; color: #303133; }
-.page-header-text p { margin: 2px 0 0; font-size: 13px; color: #909399; }
-.stat-row { margin-bottom: 12px; }
-.stat-card { text-align: center; border-radius: 8px; transition: all 0.2s; }
-.stat-card:hover { transform: translateY(-2px); }
-.stat-value { font-size: 28px; font-weight: 700; }
-.stat-active { color: #67c23a; }
-.stat-training { color: #409eff; }
-.stat-inactive { color: #909399; }
-.stat-label { font-size: 13px; color: #909399; margin-top: 4px; }
-.toolbar-card { margin-bottom: 12px; }
-.toolbar-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.table-card { flex: 1; display: flex; flex-direction: column; }
-.table-card :deep(.el-card__body) { flex: 1; display: flex; flex-direction: column; padding: 0; }
-.table-card :deep(.el-table) { flex: 1; }
-.pagination-row { display: flex; justify-content: flex-end; padding: 12px 8px; border-top: 1px solid #f0f0f0; }
-.model-status { display: flex; align-items: center; gap: 6px; }
-.status-dot { width: 8px; height: 8px; border-radius: 50%; }
-.dot-active { background: #67c23a; }
-.dot-trained { background: #67c23a; }
-.dot-training { background: #409eff; animation: pulse 1.5s infinite; }
-.dot-pending { background: #409eff; animation: pulse 1.5s infinite; }
-.dot-inactive { background: #909399; }
-.dot-failed { background: #f56c6c; }
-.accuracy-cell { display: flex; align-items: center; gap: 6px; }
-.accuracy-text { font-size: 12px; color: #909399; white-space: nowrap; }
-@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
-.params-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; }
-.param-item { display: flex; flex-direction: column; padding: 8px; background: var(--el-fill-color-light); border-radius: 4px; }
-.param-key { font-size: 12px; color: var(--el-text-color-secondary); margin-bottom: 4px; }
-.param-value { font-size: 13px; color: var(--el-text-color-primary); word-break: break-all; }
+.text-secondary {
+  color: var(--el-text-color-secondary);
+}
 </style>

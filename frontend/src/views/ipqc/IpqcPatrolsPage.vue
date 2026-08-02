@@ -2,6 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Search, Refresh, List, Check, Clock, Delete, Document, Plus } from '@element-plus/icons-vue'
+import RightPanel from '@/components/layout/RightPanel.vue'
 import { patrolApi } from '@/api/ipqc'
 import { inspectionPlanApi } from '@/api/inspectionPlan'
 import type { IpqcPatrol, IpqcPatrolDetail, SubmitIpqcPatrol, IpqcPatrolItemSubmit } from '@/types/ipqc'
@@ -407,98 +408,93 @@ onMounted(async () => {
     </div>
 
     <!-- ================================================================== -->
-    <!-- Drawer: 巡检提交/详情 -->
+    <!-- RightPanel: 巡检提交/详情 -->
     <!-- ================================================================== -->
-    <el-drawer
-      v-model="drawerVisible"
-      :title="drawerTitle"
-      size="580px"
-      direction="rtl"
-      :close-on-click-modal="false"
-    >
-      <template v-if="patrolDetail">
-        <!-- Patrol Info -->
-        <div class="quick-info">
-          <div class="quick-info__item">
-            <div class="quick-info__label">设备</div>
-            <div class="quick-info__value">{{ patrolDetail.equipmentName || '-' }}</div>
-          </div>
-          <div class="quick-info__item">
-            <div class="quick-info__label">工序</div>
-            <div class="quick-info__value">{{ patrolDetail.processName || '-' }}</div>
-          </div>
-          <div class="quick-info__item">
-            <div class="quick-info__label">计划时间</div>
-            <div class="quick-info__value" style="font-size: 13px; font-weight: 400">{{ formatDate(patrolDetail.scheduledTime) }}</div>
-          </div>
-          <div class="quick-info__item">
-            <div class="quick-info__label">实际时间</div>
-            <div class="quick-info__value" style="font-size: 13px; font-weight: 400">{{ formatDate(patrolDetail.actualTime) }}</div>
-          </div>
-        </div>
-
-        <!-- Conclusion & Remarks -->
-        <div class="dialog-section">
-          <div class="dialog-section-header">
-            <el-icon class="dialog-section-icon"><Document /></el-icon>
-            <span class="dialog-section-title">检验结论</span>
-          </div>
-          <el-form :model="submitForm" label-width="80px">
-            <el-form-item label="结论" required>
-              <el-select v-model="submitForm.conclusion" style="width: 100%">
-                <el-option v-for="o in IPQC_PATROL_CONCLUSION_OPTIONS" :key="o.value" :label="o.label" :value="o.value" />
-              </el-select>
-            </el-form-item>
-            <el-form-item label="备注">
-              <el-input v-model="submitForm.remarks" type="textarea" :rows="2" placeholder="备注信息" />
-            </el-form-item>
-          </el-form>
-        </div>
-
-        <!-- Inspection Items -->
-        <div class="dialog-section">
-          <div class="dialog-section-header">
-            <el-icon class="dialog-section-icon"><List /></el-icon>
-            <span class="dialog-section-title">检验项明细</span>
-          </div>
-          <div class="submit-list">
-            <div v-for="(item, idx) in submitForm.items" :key="idx" class="submit-row">
-              <div class="submit-index">{{ idx + 1 }}</div>
-              <el-input
-                v-model="item.itemName"
-                placeholder="项目名称"
-                style="width: 160px"
-                :disabled="!!item.id"
-                size="default"
-              />
-              <el-select v-model="item.dataType" style="width: 110px" :disabled="!!item.id" size="default">
-                <el-option v-for="o in DATA_TYPE_OPTIONS" :key="o.value" :label="o.label" :value="o.value" />
-              </el-select>
-              <el-input-number
-                v-model="item.actualValue"
-                :precision="4"
-                :step="0.1"
-                style="width: 140px"
-                controls-position="right"
-                size="default"
-              />
-              <el-select v-model="item.result" style="width: 110px" size="default">
-                <el-option v-for="o in INSPECTION_RESULT_OPTIONS" :key="o.value" :label="o.label" :value="o.value" />
-              </el-select>
-              <el-button v-if="!item.id" link type="danger" size="small" :icon="Delete" @click="removePatrolItem(idx)" />
+    <RightPanel v-model:visible="drawerVisible" :title="drawerTitle" :width="580">
+      <template #body>
+        <template v-if="patrolDetail">
+          <!-- Patrol Info -->
+          <div class="quick-info">
+            <div class="quick-info__item">
+              <div class="quick-info__label">设备</div>
+              <div class="quick-info__value">{{ patrolDetail.equipmentName || '-' }}</div>
             </div>
-            <el-button type="primary" link @click="addPatrolItem">
-              <el-icon><Plus /></el-icon> 添加项目
-            </el-button>
+            <div class="quick-info__item">
+              <div class="quick-info__label">工序</div>
+              <div class="quick-info__value">{{ patrolDetail.processName || '-' }}</div>
+            </div>
+            <div class="quick-info__item">
+              <div class="quick-info__label">计划时间</div>
+              <div class="quick-info__value" style="font-size: 13px; font-weight: 400">{{ formatDate(patrolDetail.scheduledTime) }}</div>
+            </div>
+            <div class="quick-info__item">
+              <div class="quick-info__label">实际时间</div>
+              <div class="quick-info__value" style="font-size: 13px; font-weight: 400">{{ formatDate(patrolDetail.actualTime) }}</div>
+            </div>
           </div>
+
+          <!-- Conclusion & Remarks -->
+          <div class="dialog-section">
+            <div class="dialog-section-header">
+              <el-icon class="dialog-section-icon"><Document /></el-icon>
+              <span class="dialog-section-title">检验结论</span>
+            </div>
+            <el-form :model="submitForm" label-width="80px">
+              <el-form-item label="结论" required>
+                <el-select v-model="submitForm.conclusion" style="width: 100%">
+                  <el-option v-for="o in IPQC_PATROL_CONCLUSION_OPTIONS" :key="o.value" :label="o.label" :value="o.value" />
+                </el-select>
+              </el-form-item>
+              <el-form-item label="备注">
+                <el-input v-model="submitForm.remarks" type="textarea" :rows="2" placeholder="备注信息" />
+              </el-form-item>
+            </el-form>
+          </div>
+
+          <!-- Inspection Items -->
+          <div class="dialog-section">
+            <div class="dialog-section-header">
+              <el-icon class="dialog-section-icon"><List /></el-icon>
+              <span class="dialog-section-title">检验项明细</span>
+            </div>
+            <div class="submit-list">
+              <div v-for="(item, idx) in submitForm.items" :key="idx" class="submit-row">
+                <div class="submit-index">{{ idx + 1 }}</div>
+                <el-input
+                  v-model="item.itemName"
+                  placeholder="项目名称"
+                  style="width: 160px"
+                  :disabled="!!item.id"
+                  size="default"
+                />
+                <el-select v-model="item.dataType" style="width: 110px" :disabled="!!item.id" size="default">
+                  <el-option v-for="o in DATA_TYPE_OPTIONS" :key="o.value" :label="o.label" :value="o.value" />
+                </el-select>
+                <el-input-number
+                  v-model="item.actualValue"
+                  :precision="4"
+                  :step="0.1"
+                  style="width: 140px"
+                  controls-position="right"
+                  size="default"
+                />
+                <el-select v-model="item.result" style="width: 110px" size="default">
+                  <el-option v-for="o in INSPECTION_RESULT_OPTIONS" :key="o.value" :label="o.label" :value="o.value" />
+                </el-select>
+                <el-button v-if="!item.id" link type="danger" size="small" :icon="Delete" @click="removePatrolItem(idx)" />
+              </div>
+              <el-button type="primary" link @click="addPatrolItem">
+                <el-icon><Plus /></el-icon> 添加项目
+              </el-button>
+            </div>
+          </div>
+        </template>
+
+        <!-- Empty State when patrolDetail is null -->
+        <div v-else-if="drawerVisible" class="empty-state">
+          <p>加载中...</p>
         </div>
       </template>
-
-      <!-- Empty State when patrolDetail is null -->
-      <div v-else-if="drawerVisible" class="empty-state">
-        <p>加载中...</p>
-      </div>
-
       <template #footer>
         <div style="display: flex; gap: 8px; justify-content: flex-end;">
           <el-button size="small" @click="drawerVisible = false">关闭</el-button>
@@ -507,7 +503,7 @@ onMounted(async () => {
           </el-button>
         </div>
       </template>
-    </el-drawer>
+    </RightPanel>
   </div>
 </template>
 

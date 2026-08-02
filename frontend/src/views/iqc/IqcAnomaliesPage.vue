@@ -14,6 +14,7 @@ import {
   WarningFilled, Search, Plus, Refresh, Edit, Setting, Document, Check, Delete,
   Close, Bell, Flag, User, Clock, Link, Box,
 } from '@element-plus/icons-vue'
+import RightPanel from '@/components/layout/RightPanel.vue'
 
 defineOptions({ name: 'IqcAnomaliesPage' })
 
@@ -454,85 +455,80 @@ onMounted(async () => {
     </div>
 
     <!-- ═══════════════════════════════════════════════════════ -->
-    <!-- Drawer: 新建/编辑异常单                                  -->
+    <!-- RightPanel: 新建/编辑异常单                                  -->
     <!-- ═══════════════════════════════════════════════════════ -->
-    <el-drawer
-      v-model="anomalyDrawerVisible"
-      :title="isEditingAnomaly ? '编辑异常单' : '新建异常单'"
-      size="580px"
-      direction="rtl"
-      :close-on-click-modal="false"
-    >
-      <div class="dialog-section">
-        <div class="dialog-section-header">
-          <el-icon class="dialog-section-icon"><Document /></el-icon>
-          <span class="dialog-section-title">来料信息</span>
+    <RightPanel v-model:visible="anomalyDrawerVisible" :title="isEditingAnomaly ? '编辑异常单' : '新建异常单'" :width="580">
+      <template #body>
+        <div class="dialog-section">
+          <div class="dialog-section-header">
+            <el-icon class="dialog-section-icon"><Document /></el-icon>
+            <span class="dialog-section-title">来料信息</span>
+          </div>
+          <el-form :model="anomalyForm" label-width="110px">
+            <el-form-item label="来料登记ID" required>
+              <el-input-number v-model="anomalyForm.receiptId" :min="1" style="width: 100%" controls-position="right" />
+            </el-form-item>
+          </el-form>
         </div>
-        <el-form :model="anomalyForm" label-width="110px">
-          <el-form-item label="来料登记ID" required>
-            <el-input-number v-model="anomalyForm.receiptId" :min="1" style="width: 100%" controls-position="right" />
-          </el-form-item>
-        </el-form>
-      </div>
 
-      <div class="dialog-section">
-        <div class="dialog-section-header">
-          <el-icon class="dialog-section-icon"><WarningFilled /></el-icon>
-          <span class="dialog-section-title">异常信息</span>
+        <div class="dialog-section">
+          <div class="dialog-section-header">
+            <el-icon class="dialog-section-icon"><WarningFilled /></el-icon>
+            <span class="dialog-section-title">异常信息</span>
+          </div>
+          <el-form :model="anomalyForm" label-width="110px">
+            <el-form-item label="异常类型" required>
+              <el-select v-model="anomalyForm.anomalyType" style="width: 100%">
+                <el-option v-for="opt in IQC_ANOMALY_TYPE_OPTIONS" :key="opt.value" :label="opt.label" :value="opt.value" />
+              </el-select>
+            </el-form-item>
+            <el-form-item label="严重程度" required>
+              <el-select v-model="anomalyForm.severity" style="width: 100%">
+                <el-option v-for="opt in IQC_SEVERITY_OPTIONS" :key="opt.value" :label="opt.label" :value="opt.value" />
+              </el-select>
+            </el-form-item>
+            <el-form-item label="描述" required>
+              <el-input v-model="anomalyForm.description" type="textarea" :rows="3" placeholder="请描述异常详情，包括不合格项目、实测值、规格范围等..." />
+            </el-form-item>
+          </el-form>
         </div>
-        <el-form :model="anomalyForm" label-width="110px">
-          <el-form-item label="异常类型" required>
-            <el-select v-model="anomalyForm.anomalyType" style="width: 100%">
-              <el-option v-for="opt in IQC_ANOMALY_TYPE_OPTIONS" :key="opt.value" :label="opt.label" :value="opt.value" />
-            </el-select>
-          </el-form-item>
-          <el-form-item label="严重程度" required>
-            <el-select v-model="anomalyForm.severity" style="width: 100%">
-              <el-option v-for="opt in IQC_SEVERITY_OPTIONS" :key="opt.value" :label="opt.label" :value="opt.value" />
-            </el-select>
-          </el-form-item>
-          <el-form-item label="描述" required>
-            <el-input v-model="anomalyForm.description" type="textarea" :rows="3" placeholder="请描述异常详情，包括不合格项目、实测值、规格范围等..." />
-          </el-form-item>
-        </el-form>
-      </div>
 
-      <div class="dialog-section">
-        <div class="dialog-section-header">
-          <el-icon class="dialog-section-icon"><Box /></el-icon>
-          <span class="dialog-section-title">隔离管理</span>
+        <div class="dialog-section">
+          <div class="dialog-section-header">
+            <el-icon class="dialog-section-icon"><Box /></el-icon>
+            <span class="dialog-section-title">隔离管理</span>
+          </div>
+          <el-form :model="anomalyForm" label-width="110px">
+            <el-form-item label="隔离库存量">
+              <el-input-number v-model="anomalyForm.isolatedInventory" :min="0" :step="1" style="width: 100%" controls-position="right" />
+            </el-form-item>
+            <el-form-item label="不合格数量">
+              <el-input-number v-model="anomalyForm.defectQty" :min="0" :step="1" style="width: 100%" controls-position="right" />
+            </el-form-item>
+            <el-form-item label="处理部门">
+              <el-select v-model="anomalyForm.handlerDept" placeholder="选择处理部门" style="width: 100%" clearable>
+                <el-option value="quality" label="质量部" />
+                <el-option value="purchasing" label="采购部" />
+                <el-option value="engineering" label="工程部" />
+                <el-option value="production" label="生产部" />
+                <el-option value="other" label="其他" />
+              </el-select>
+            </el-form-item>
+          </el-form>
         </div>
-        <el-form :model="anomalyForm" label-width="110px">
-          <el-form-item label="隔离库存量">
-            <el-input-number v-model="anomalyForm.isolatedInventory" :min="0" :step="1" style="width: 100%" controls-position="right" />
-          </el-form-item>
-          <el-form-item label="不合格数量">
-            <el-input-number v-model="anomalyForm.defectQty" :min="0" :step="1" style="width: 100%" controls-position="right" />
-          </el-form-item>
-          <el-form-item label="处理部门">
-            <el-select v-model="anomalyForm.handlerDept" placeholder="选择处理部门" style="width: 100%" clearable>
-              <el-option value="quality" label="质量部" />
-              <el-option value="purchasing" label="采购部" />
-              <el-option value="engineering" label="工程部" />
-              <el-option value="production" label="生产部" />
-              <el-option value="other" label="其他" />
-            </el-select>
-          </el-form-item>
-        </el-form>
-      </div>
 
-      <div class="dialog-section">
-        <div class="dialog-section-header">
-          <el-icon class="dialog-section-icon"><User /></el-icon>
-          <span class="dialog-section-title">处理人</span>
+        <div class="dialog-section">
+          <div class="dialog-section-header">
+            <el-icon class="dialog-section-icon"><User /></el-icon>
+            <span class="dialog-section-title">处理人</span>
+          </div>
+          <el-form :model="anomalyForm" label-width="110px">
+            <el-form-item label="处理人">
+              <el-input v-model="anomalyForm.handler" placeholder="请输入处理人姓名" />
+            </el-form-item>
+          </el-form>
         </div>
-        <el-form :model="anomalyForm" label-width="110px">
-          <el-form-item label="处理人">
-            <el-input v-model="anomalyForm.handler" placeholder="请输入处理人姓名" />
-          </el-form-item>
-        </el-form>
-      </div>
-
+      </template>
       <template #footer>
         <div style="display: flex; gap: 8px; justify-content: flex-end;">
           <el-button size="small" @click="anomalyDrawerVisible = false">取消</el-button>
@@ -541,156 +537,136 @@ onMounted(async () => {
           </el-button>
         </div>
       </template>
-    </el-drawer>
+    </RightPanel>
 
     <!-- ═══════════════════════════════════════════════════════ -->
-    <!-- Drawer: 解决异常单                                       -->
+    <!-- RightPanel: 解决异常单                                       -->
     <!-- ═══════════════════════════════════════════════════════ -->
-    <el-drawer
-      v-model="resolveDrawerVisible"
-      title="解决异常单"
-      size="480px"
-      direction="rtl"
-      :close-on-click-modal="false"
-    >
-      <div style="margin-bottom: 4px; font-size: 13px; color: var(--el-text-color-secondary);">
-        异常单号: <strong>{{ resolveAnomalyNo }}</strong>
-      </div>
-      <div class="dialog-section">
-        <div class="dialog-section-header">
-          <el-icon class="dialog-section-icon"><Check /></el-icon>
-          <span class="dialog-section-title">解决方案</span>
+    <RightPanel v-model:visible="resolveDrawerVisible" title="解决异常单" :width="480">
+      <template #body>
+        <div style="margin-bottom: 4px; font-size: 13px; color: var(--el-text-color-secondary);">
+          异常单号: <strong>{{ resolveAnomalyNo }}</strong>
         </div>
-        <el-form label-width="110px">
-          <el-form-item label="解决方案" required>
-            <el-input v-model="resolveForm.resolution" type="textarea" :rows="4" placeholder="请描述解决方案，包括根因分析、纠正措施等..." />
-          </el-form-item>
-          <el-form-item label="处理人">
-            <el-input v-model="resolveForm.handler" placeholder="请输入处理人姓名" />
-          </el-form-item>
-        </el-form>
-      </div>
-
+        <div class="dialog-section">
+          <div class="dialog-section-header">
+            <el-icon class="dialog-section-icon"><Check /></el-icon>
+            <span class="dialog-section-title">解决方案</span>
+          </div>
+          <el-form label-width="110px">
+            <el-form-item label="解决方案" required>
+              <el-input v-model="resolveForm.resolution" type="textarea" :rows="4" placeholder="请描述解决方案，包括根因分析、纠正措施等..." />
+            </el-form-item>
+            <el-form-item label="处理人">
+              <el-input v-model="resolveForm.handler" placeholder="请输入处理人姓名" />
+            </el-form-item>
+          </el-form>
+        </div>
+      </template>
       <template #footer>
         <div style="display: flex; gap: 8px; justify-content: flex-end;">
           <el-button size="small" @click="resolveDrawerVisible = false">取消</el-button>
           <el-button size="small" type="primary" @click="resolveAnomaly">确认解决</el-button>
         </div>
       </template>
-    </el-drawer>
+    </RightPanel>
 
     <!-- ═══════════════════════════════════════════════════════ -->
-    <!-- Drawer: MRB 评审                                       -->
+    <!-- RightPanel: MRB 评审                                       -->
     <!-- ═══════════════════════════════════════════════════════ -->
-    <el-drawer
-      v-model="mrbDrawerVisible"
-      title="MRB 评审（多部门会签）"
-      size="480px"
-      direction="rtl"
-      :close-on-click-modal="false"
-    >
-      <div style="margin-bottom: 4px; font-size: 13px; color: var(--el-text-color-secondary);">
-        评审不合格品，决定是否让步接收或退货
-      </div>
-      <div class="dialog-section">
-        <div class="dialog-section-header">
-          <el-icon class="dialog-section-icon"><Flag /></el-icon>
-          <span class="dialog-section-title">评审结果</span>
+    <RightPanel v-model:visible="mrbDrawerVisible" title="MRB 评审（多部门会签）" :width="480">
+      <template #body>
+        <div style="margin-bottom: 4px; font-size: 13px; color: var(--el-text-color-secondary);">
+          评审不合格品，决定是否让步接收或退货
         </div>
-        <el-form label-width="110px">
-          <el-form-item label="评审结论" required>
-            <el-radio-group v-model="mrbForm.approved">
-              <el-radio :value="true">通过（让步接收/特采）</el-radio>
-              <el-radio :value="false">驳回（退货/返工）</el-radio>
-            </el-radio-group>
-          </el-form-item>
-          <el-form-item label="评审人" required>
-            <el-input v-model="mrbForm.reviewer" placeholder="多部门会签，用逗号分隔（如：张明/李强/王华）" />
-          </el-form-item>
-          <el-form-item label="评审意见">
-            <el-input v-model="mrbForm.reviewComments" type="textarea" :rows="3" placeholder="请描述评审意见和依据..." />
-          </el-form-item>
-        </el-form>
-      </div>
-
+        <div class="dialog-section">
+          <div class="dialog-section-header">
+            <el-icon class="dialog-section-icon"><Flag /></el-icon>
+            <span class="dialog-section-title">评审结果</span>
+          </div>
+          <el-form label-width="110px">
+            <el-form-item label="评审结论" required>
+              <el-radio-group v-model="mrbForm.approved">
+                <el-radio :value="true">通过（让步接收/特采）</el-radio>
+                <el-radio :value="false">驳回（退货/返工）</el-radio>
+              </el-radio-group>
+            </el-form-item>
+            <el-form-item label="评审人" required>
+              <el-input v-model="mrbForm.reviewer" placeholder="多部门会签，用逗号分隔（如：张明/李强/王华）" />
+            </el-form-item>
+            <el-form-item label="评审意见">
+              <el-input v-model="mrbForm.reviewComments" type="textarea" :rows="3" placeholder="请描述评审意见和依据..." />
+            </el-form-item>
+          </el-form>
+        </div>
+      </template>
       <template #footer>
         <div style="display: flex; gap: 8px; justify-content: flex-end;">
           <el-button size="small" @click="mrbDrawerVisible = false">取消</el-button>
           <el-button size="small" type="primary" @click="submitMrbReview">提交评审</el-button>
         </div>
       </template>
-    </el-drawer>
+    </RightPanel>
 
     <!-- ═══════════════════════════════════════════════════════ -->
-    <!-- Drawer: 处置决定                                       -->
+    <!-- RightPanel: 处置决定                                       -->
     <!-- ═══════════════════════════════════════════════════════ -->
-    <el-drawer
-      v-model="dispositionDrawerVisible"
-      title="处置决定"
-      size="480px"
-      direction="rtl"
-      :close-on-click-modal="false"
-    >
-      <div style="margin-bottom: 4px; font-size: 13px; color: var(--el-text-color-secondary);">
-        MRB评审通过后，做出处置决定
-      </div>
-      <div class="dialog-section">
-        <div class="dialog-section-header">
-          <el-icon class="dialog-section-icon"><Setting /></el-icon>
-          <span class="dialog-section-title">处置方案</span>
+    <RightPanel v-model:visible="dispositionDrawerVisible" title="处置决定" :width="480">
+      <template #body>
+        <div style="margin-bottom: 4px; font-size: 13px; color: var(--el-text-color-secondary);">
+          MRB评审通过后，做出处置决定
         </div>
-        <el-form label-width="110px">
-          <el-form-item label="处置方式" required>
-            <el-select v-model="dispositionForm.disposition" style="width: 100%">
-              <el-option v-for="opt in IQC_DISPOSITION_OPTIONS" :key="opt.value" :label="opt.label" :value="opt.value" />
-            </el-select>
-          </el-form-item>
-          <el-form-item label="处置决定人" required>
-            <el-input v-model="dispositionForm.dispositionBy" placeholder="请输入处置决定人姓名" />
-          </el-form-item>
-        </el-form>
-      </div>
-
+        <div class="dialog-section">
+          <div class="dialog-section-header">
+            <el-icon class="dialog-section-icon"><Setting /></el-icon>
+            <span class="dialog-section-title">处置方案</span>
+          </div>
+          <el-form label-width="110px">
+            <el-form-item label="处置方式" required>
+              <el-select v-model="dispositionForm.disposition" style="width: 100%">
+                <el-option v-for="opt in IQC_DISPOSITION_OPTIONS" :key="opt.value" :label="opt.label" :value="opt.value" />
+              </el-select>
+            </el-form-item>
+            <el-form-item label="处置决定人" required>
+              <el-input v-model="dispositionForm.dispositionBy" placeholder="请输入处置决定人姓名" />
+            </el-form-item>
+          </el-form>
+        </div>
+      </template>
       <template #footer>
         <div style="display: flex; gap: 8px; justify-content: flex-end;">
           <el-button size="small" @click="dispositionDrawerVisible = false">取消</el-button>
           <el-button size="small" type="primary" @click="submitDisposition">确认处置</el-button>
         </div>
       </template>
-    </el-drawer>
+    </RightPanel>
 
     <!-- ═══════════════════════════════════════════════════════ -->
-    <!-- Drawer: 通知供应商                                     -->
+    <!-- RightPanel: 通知供应商                                     -->
     <!-- ═══════════════════════════════════════════════════════ -->
-    <el-drawer
-      v-model="notifyDrawerVisible"
-      title="通知供应商"
-      size="480px"
-      direction="rtl"
-      :close-on-click-modal="false"
-    >
-      <div style="margin-bottom: 4px; font-size: 13px; color: var(--el-text-color-secondary);">
-        发送异常通知给供应商，要求回复和处理
-      </div>
-      <div class="dialog-section">
-        <div class="dialog-section-header">
-          <el-icon class="dialog-section-icon"><Bell /></el-icon>
-          <span class="dialog-section-title">通知内容</span>
+    <RightPanel v-model:visible="notifyDrawerVisible" title="通知供应商" :width="480">
+      <template #body>
+        <div style="margin-bottom: 4px; font-size: 13px; color: var(--el-text-color-secondary);">
+          发送异常通知给供应商，要求回复和处理
         </div>
-        <el-form label-width="110px">
-          <el-form-item label="通知内容">
-            <el-input v-model="notifyForm.message" type="textarea" :rows="4" placeholder="请描述通知内容，包括异常详情、期望回复时间等..." />
-          </el-form-item>
-        </el-form>
-      </div>
-
+        <div class="dialog-section">
+          <div class="dialog-section-header">
+            <el-icon class="dialog-section-icon"><Bell /></el-icon>
+            <span class="dialog-section-title">通知内容</span>
+          </div>
+          <el-form label-width="110px">
+            <el-form-item label="通知内容">
+              <el-input v-model="notifyForm.message" type="textarea" :rows="4" placeholder="请描述通知内容，包括异常详情、期望回复时间等..." />
+            </el-form-item>
+          </el-form>
+        </div>
+      </template>
       <template #footer>
         <div style="display: flex; gap: 8px; justify-content: flex-end;">
           <el-button size="small" @click="notifyDrawerVisible = false">取消</el-button>
           <el-button size="small" type="primary" @click="submitNotifySupplier">发送通知</el-button>
         </div>
       </template>
-    </el-drawer>
+    </RightPanel>
   </div>
 </template>
 

@@ -157,6 +157,27 @@
   /* Focus Ring */
   --focus-ring: 0 0 0 2px rgba(22, 119, 255, 0.12);
 
+  /* ─── M07 Module Component Tokens ────────── */
+  /* Table card */
+  --m07-table-header-height: 42px;
+  --m07-table-cell-height: 42px;
+  --m07-table-cell-padding: 10px 12px;
+  --m07-table-header-padding: 0 12px;
+  --m07-table-header-bg: var(--el-fill-color-light);
+
+  /* Filter bar */
+  --m07-filter-bar-height: 34px;
+
+  /* Action button */
+  --m07-action-btn-padding: 0 6px;
+  --m07-action-btn-radius: var(--radius-sm);
+
+  /* Phase card */
+  --m07-phase-active-border: 3px solid var(--primary, #1677ff);
+  --m07-phase-input-sm: 120px;
+  --m07-phase-input-md: 150px;
+  --m07-phase-input-lg: 200px;
+
   /* ─── Dark Theme Overrides ────────────────── */
 }
 

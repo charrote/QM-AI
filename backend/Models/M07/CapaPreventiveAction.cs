@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 
 namespace QM_AI.API.Models.M07;
 
@@ -39,6 +40,7 @@ public class CapaPreventiveAction
 
     [Column("completed_at")]
     public DateTime? CompletedAt { get; set; }
+    [Column("remarks")]
     public string? Remarks { get; set; }
     [Column("created_at")]
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
@@ -46,5 +48,6 @@ public class CapaPreventiveAction
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
     [ForeignKey(nameof(CapaId))]
+    [JsonIgnore]
     public Capa? Capa { get; set; }
 }

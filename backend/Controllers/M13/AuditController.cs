@@ -13,7 +13,14 @@ public class AuditController : ControllerBase
     public AuditController(AuditService service) => _service = service;
 
     [HttpGet]
-    public async Task<IActionResult> GetAll([FromQuery] string? auditType, [FromQuery] string? status, [FromQuery] int page = 1, [FromQuery] int pageSize = 20) => Ok(await _service.GetAllAsync(auditType, status, page, pageSize));
+    public async Task<IActionResult> GetAll([FromQuery] string? auditType, [FromQuery] string? status, [FromQuery] string? keyword, [FromQuery] int page = 1, [FromQuery] int pageSize = 20)
+    {
+        var (items, total) = await _service.GetAllAsync(auditType, status, keyword, page, pageSize);
+        return Ok(new { items, total });
+    }
+
+    [HttpGet("findings")]
+    public async Task<IActionResult> AllFindings([FromQuery] string? findingType, [FromQuery] string? status) => Ok(await _service.GetAllFindingsAsync(findingType, status));
 
     [HttpGet("{id}")]
     public async Task<IActionResult> GetById(long id) { var a = await _service.GetByIdAsync(id); if (a == null) return NotFound(); return Ok(a); }
@@ -78,14 +85,22 @@ public class AuditController : ControllerBase
     }
 
     [HttpGet("{auditId}/findings")]
-    public async Task<IActionResult> Findings(long auditId) => Ok(await _service.GetFindingsAsync(auditId));
+    public async Task<IActionResult> Findings(long auditId, [FromQuery] string? findingType, [FromQuery] string? status) => Ok(await _service.GetFindingsAsync(auditId, findingType, status));
 
     [HttpPut("findings/{findingId}")]
-    public async Task<IActionResult> UpdateFinding(long findingId, [FromBody] AuditFinding finding)
+    public async Task<IActionResult> UpdateFinding(long findingId, [FromBody] UpdateFindingDto dto)
     {
         try
         {
-            var u = await _service.UpdateFindingRectificationAsync(findingId, finding);
+            var auditFinding = new AuditFinding
+            {
+                Status = dto.Status,
+                RectificationPlan = dto.RectificationPlan,
+                ResponsibleUserIdStr = dto.ResponsibleUserId?.ToString() ?? dto.ResponsibleUserIdStr,
+                RectificationDueDate = dto.RectificationDueDate,
+                VerifiedByStr = dto.VerifiedByStr,
+            };
+            var u = await _service.UpdateFindingRectificationAsync(findingId, auditFinding);
             if (u == null) return NotFound();
             return Ok(u);
         }
@@ -114,5 +129,29 @@ public class AuditController : ControllerBase
         }
     }
 
+    [HttpDelete("findings/{findingId}")]
+    public async Task<IActionResult> DeleteFinding(long findingId)
+    {
+        try
+        {
+            var result = await _service.DeleteFindingAsync(findingId);
+            return result ? Ok(new { success = true }) : NotFound(new { message = "不符合项不存在" });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = "删除不符合项失败", detail = ex.Message });
+        }
+    }
+
     public sealed class VerifyRequest { public string VerifierId { get; set; } = ""; public bool Passed { get; set; } }
+
+    public sealed class UpdateFindingDto
+    {
+        public string? Status { get; set; }
+        public string? RectificationPlan { get; set; }
+        public long? ResponsibleUserId { get; set; }
+        public string? ResponsibleUserIdStr { get; set; }
+        public DateOnly? RectificationDueDate { get; set; }
+        public string? VerifiedByStr { get; set; }
+    }
 }

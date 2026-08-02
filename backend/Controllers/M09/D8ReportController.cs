@@ -17,7 +17,36 @@ public class D8ReportController : ControllerBase
     {
         try
         {
-            return Ok(await _service.GetByComplaintIdAsync(complaintId));
+            var result = await _service.GetByComplaintIdAsync(complaintId);
+            return Ok(result != null ? new List<D8Report> { result } : new List<D8Report>());
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = "查询D8报告失败", detail = ex.Message });
+        }
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> GetAll()
+    {
+        try
+        {
+            return Ok(await _service.GetListAsync());
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = "查询D8报告失败", detail = ex.Message });
+        }
+    }
+
+    [HttpGet("{id}")]
+    public async Task<IActionResult> GetById(long id)
+    {
+        try
+        {
+            var result = await _service.GetByIdAsync(id);
+            if (result == null) return NotFound(new { message = "8D报告不存在" });
+            return Ok(result);
         }
         catch (Exception ex)
         {
@@ -70,5 +99,5 @@ public class D8ReportController : ControllerBase
         }
     }
 
-    public sealed class DisciplineAdvanceRequest { public int NextDiscipline { get; set; } public int StepDelta { get; set; } = 1; public string? JsonPatch { get; set; } }
+    public sealed class DisciplineAdvanceRequest { public int DisciplineIndex { get; set; } public int StepDelta { get; set; } = 1; public string? JsonPatch { get; set; } }
 }

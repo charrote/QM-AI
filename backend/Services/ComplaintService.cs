@@ -72,6 +72,27 @@ public class ComplaintService
 
     public async Task<int> GetCountAsync() => await _db.Complaints.CountAsync();
 
+    public async Task<object> GetStatsAsync()
+    {
+        var totalCount = await _db.Complaints.CountAsync();
+        var bySeverity = await _db.Complaints
+            .GroupBy(c => c.Severity)
+            .Select(g => new { Severity = g.Key, Count = g.Count() })
+            .ToListAsync();
+        var byStatus = await _db.Complaints
+            .GroupBy(c => c.Status)
+            .Select(g => new { Status = g.Key, Count = g.Count() })
+            .ToListAsync();
+
+        return new
+        {
+            TotalCount = totalCount,
+            BySeverity = bySeverity.ToDictionary(x => x.Severity, x => x.Count),
+            ByStatus = byStatus.ToDictionary(x => x.Status, x => x.Count),
+            AvgDaysToClose = 0
+        };
+    }
+
     public async Task<Complaint?> TransitionStatusAsync(long id, string newStatus)
     {
         var c = await _db.Complaints.FindAsync(id);

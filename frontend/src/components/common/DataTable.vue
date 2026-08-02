@@ -173,6 +173,7 @@ function handleSortChange(data: any) {
   overflow: visible;
 }
 
+/* ─── Table Header ─── */
 .el-table th.el-table__cell {
   background: var(--el-fill-color-light) !important;
   font-weight: var(--font-semibold);
@@ -182,21 +183,40 @@ function handleSortChange(data: any) {
   height: 42px;
   padding: 0 12px;
   border-bottom: 1px solid var(--el-border-color-light);
+  white-space: nowrap;
 }
 
+/* ─── Table Body ─── */
 .el-table td.el-table__cell {
   padding: 10px 12px;
   height: 42px;
+  line-height: 20px;
   border-bottom: 1px solid var(--el-border-color-lighter);
   text-align: center;
+  transition: background-color var(--duration-fast) var(--ease-out);
 }
 
+/* Row hover */
+.data-table-wrapper .el-table__row:hover > td {
+  background-color: var(--primary-light, #e6f4ff) !important;
+}
+
+/* Striped rows */
+.data-table-wrapper .el-table__row--striped > td {
+  background-color: var(--el-fill-color-lighter, #fafafa) !important;
+}
+.data-table-wrapper .el-table__row--striped:hover > td {
+  background-color: var(--primary-light, #e6f4ff) !important;
+}
+
+/* ─── Index Column ─── */
 .index-cell {
   font-weight: var(--font-medium);
   color: var(--el-text-color-secondary);
   font-size: var(--font-sm);
 }
 
+/* ─── Pagination ─── */
 .pagination-wrapper {
   display: flex;
   justify-content: flex-end;
@@ -204,11 +224,12 @@ function handleSortChange(data: any) {
   border-top: 1px solid var(--el-border-color-lighter);
 }
 
+/* ─── Empty State ─── */
 :deep(.el-table__empty-block) {
   min-height: 100px;
 }
 
-/* Dark mode overrides */
+/* ─── Dark mode overrides ─── */
 html.dark .el-table th.el-table__cell {
   background: var(--el-fill-color-light) !important;
   color: var(--el-text-color-regular);
@@ -218,7 +239,14 @@ html.dark .el-table td.el-table__cell {
   border-bottom: 1px solid var(--el-border-color-lighter);
 }
 
-html.dark .el-table__row:hover {
-  background: var(--el-fill-color) !important;
+html.dark .data-table-wrapper .el-table__row:hover > td {
+  background-color: var(--el-fill-color, #363637) !important;
+}
+
+html.dark .data-table-wrapper .el-table__row--striped > td {
+  background-color: var(--el-fill-color-lighter, #2a2a2d) !important;
+}
+html.dark .data-table-wrapper .el-table__row--striped:hover > td {
+  background-color: var(--el-fill-color, #363637) !important;
 }
 </style>

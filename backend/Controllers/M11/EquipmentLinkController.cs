@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using QM_AI.API.Models.M11;
 using QM_AI.API.Services;
 
@@ -26,11 +27,29 @@ public class EquipmentLinkController : ControllerBase
     }
 
     [HttpGet("map")]
-    public async Task<IActionResult> ListMaps()
+    public async Task<IActionResult> ListMaps([FromQuery] int page = 1, [FromQuery] int pageSize = 20,
+        [FromQuery] long? equipmentId = null, [FromQuery] string? keyword = null)
     {
         try
         {
-            return Ok(await _service.GetAllMapsAsync());
+            var query = _service.GetAllMapsQueryable();
+
+            if (equipmentId.HasValue)
+                query = query.Where(m => m.EquipmentId == equipmentId.Value);
+
+            if (!string.IsNullOrWhiteSpace(keyword))
+                query = query.Where(m =>
+                    m.MqttTopic.Contains(keyword) ||
+                    m.SystemParamCode.Contains(keyword));
+
+            var total = await query.CountAsync();
+            var items = await query
+                .OrderByDescending(m => m.CreatedAt)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            return Ok(new { items, total, page, pageSize });
         }
         catch (Exception ex)
         {
@@ -101,9 +120,9 @@ public class EquipmentLinkController : ControllerBase
             var mapping = await _service.GetMappingAsync(input.MappingId, "");
             var history = new EquipmentStatusHistory
             {
-                EquipmentId = mapping?.EquipmentId ?? (int)input.MappingId,
+                EquipmentId = mapping?.EquipmentId ?? input.MappingId,
                 Signal = "manual_record",
-                SignalData = $"{{\"value\":{input.Value}}}"
+                SignalData = "{\"value\":" + input.Value + "}"
             };
             await _service.RecordStatusAsync(history);
             return Accepted();
@@ -116,12 +135,12 @@ public class EquipmentLinkController : ControllerBase
 
     public sealed class EquipmentStatusRecordInput { public long MappingId { get; set; } public decimal Value { get; set; } }
 
-    [HttpGet("recent-status/{mappingId}")]
-    public async Task<IActionResult> RecentStatus(long mappingId, [FromQuery] int limit = 50)
+    [HttpGet("recent-status/{equipmentId}")]
+    public async Task<IActionResult> RecentStatus(long equipmentId, [FromQuery] int limit = 50)
     {
         try
         {
-            return Ok(await _service.GetRecentStatusAsync(mappingId, limit));
+            return Ok(await _service.GetRecentStatusAsync(equipmentId, limit));
         }
         catch (Exception ex)
         {
@@ -129,11 +148,35 @@ public class EquipmentLinkController : ControllerBase
         }
     }
 
-    [HttpGet("drift")]
-    public async Task<IActionResult> DetectDrift([FromQuery] long equipmentId, [FromQuery] string sysParamCode, [FromQuery] decimal currentValue)
+    [HttpGet("correlations")]
+    public async Task<IActionResult> ListCorrelations([FromQuery] long? equipmentId = null,
+        [FromQuery] string? dateFrom = null, [FromQuery] string? dateTo = null)
     {
         try
         {
+            DateOnly? from = null;
+            DateOnly? to = null;
+            if (!string.IsNullOrWhiteSpace(dateFrom) && DateOnly.TryParse(dateFrom, out var f)) from = f;
+            if (!string.IsNullOrWhiteSpace(dateTo) && DateOnly.TryParse(dateTo, out var t)) to = t;
+
+            var items = await _service.GetCorrelationsAsync(equipmentId, from, to);
+            return Ok(new { items, total = items.Count });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = "查询关联数据失败", detail = ex.Message });
+        }
+    }
+
+    [HttpGet("drift")]
+    public async Task<IActionResult> DetectDrift([FromQuery] long equipmentId,
+        [FromQuery] string? sysParamCode = null, [FromQuery] decimal currentValue = 0)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(sysParamCode))
+                return BadRequest(new { message = "请提供系统参数代码" });
+
             return Ok(await _service.DetectDriftAsync(equipmentId, sysParamCode, currentValue));
         }
         catch (Exception ex)

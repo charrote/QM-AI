@@ -3,6 +3,7 @@ import { ref, onMounted, reactive, computed, nextTick, watch, onUnmounted } from
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Search, MoreFilled, Edit, Delete, Refresh, Setting, Clock, TrendCharts, CircleCheck, Top, Document, Warning, InfoFilled } from '@element-plus/icons-vue'
 import { spcApi } from '@/api/spc'
+import RightPanel from '@/components/layout/RightPanel.vue'
 import { processApi } from '@/api/basicData'
 import { inspectionItemApi } from '@/api/inspectionItem'
 import type { SpcControlChart, SpcControlChartDetail, CreateSpcControlChart, UpdateSpcControlChart } from '@/types/spc'
@@ -1318,141 +1319,149 @@ onUnmounted(() => {
       </div>
     </div>
 
-    <!-- ── Create/Edit Chart Drawer ── -->
-    <el-drawer v-model="chartDrawerVisible" :title="isEdit ? '编辑控制图' : '新建控制图'" size="520px" direction="rtl" :close-on-click-modal="false" :show-close="true">
-      <el-form :model="chartForm" label-width="110px" label-position="left">
-        <div class="form-section-title">
-          <el-icon><Document /></el-icon>基本信息
-        </div>
-        <el-form-item label="控制图名称" required>
-          <el-input v-model="chartForm.name" placeholder="如：精加工-CNC-001 Xbar-R图" clearable />
-        </el-form-item>
-        <el-form-item label="参数代码" required>
-          <el-input v-model="chartForm.parameterCode" placeholder="如：DIM_A" clearable />
-        </el-form-item>
-        <el-form-item label="工序">
-          <el-select v-model="chartForm.processId" placeholder="请选择工序" filterable style="width:100%">
-            <el-option v-for="p in processOptions" :key="p.id" :label="`${p.code} - ${p.name}`" :value="p.id" />
-          </el-select>
-        </el-form-item>
+    <!-- ── Create/Edit Chart RightPanel ── -->
+    <RightPanel v-model:visible="chartDrawerVisible" :title="isEdit ? '编辑控制图' : '新建控制图'" :width="520">
+      <template #body>
+        <el-form :model="chartForm" label-width="110px" label-position="left">
+          <div class="form-section-title">
+            <el-icon><Document /></el-icon>基本信息
+          </div>
+          <el-form-item label="控制图名称" required>
+            <el-input v-model="chartForm.name" placeholder="如：精加工-CNC-001 Xbar-R图" clearable />
+          </el-form-item>
+          <el-form-item label="参数代码" required>
+            <el-input v-model="chartForm.parameterCode" placeholder="如：DIM_A" clearable />
+          </el-form-item>
+          <el-form-item label="工序">
+            <el-select v-model="chartForm.processId" placeholder="请选择工序" filterable style="width:100%">
+              <el-option v-for="p in processOptions" :key="p.id" :label="`${p.code} - ${p.name}`" :value="p.id" />
+            </el-select>
+          </el-form-item>
 
-        <el-divider />
-        <div class="form-section-title">
-          <el-icon><DataAnalysis /></el-icon>图表配置
-        </div>
-        <el-form-item label="控制图类型">
-          <el-select v-model="chartForm.chartType" style="width:100%">
-            <el-option v-for="opt in CHART_TYPE_OPTIONS" :key="opt.value" :label="opt.label" :value="opt.value" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="子组大小(n)">
-          <el-input-number v-model="chartForm.subgroupSize" :min="2" :max="25" style="width:100%" />
-        </el-form-item>
+          <el-divider />
+          <div class="form-section-title">
+            <el-icon><DataAnalysis /></el-icon>图表配置
+          </div>
+          <el-form-item label="控制图类型">
+            <el-select v-model="chartForm.chartType" style="width:100%">
+              <el-option v-for="opt in CHART_TYPE_OPTIONS" :key="opt.value" :label="opt.label" :value="opt.value" />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="子组大小(n)">
+            <el-input-number v-model="chartForm.subgroupSize" :min="2" :max="25" style="width:100%" />
+          </el-form-item>
 
-        <el-divider />
-        <div class="form-section-title">
-          <el-icon><Warning /></el-icon>规格限
-        </div>
-        <el-form-item label="USL(上限)">
-          <el-input-number v-model="chartForm.usl" :min="0" :step="0.001" :precision="6" placeholder="规格上限" style="width:100%" />
-        </el-form-item>
-        <el-form-item label="LSL(下限)">
-          <el-input-number v-model="chartForm.lsl" :min="0" :step="0.001" :precision="6" placeholder="规格下限" style="width:100%" />
-        </el-form-item>
-        <el-form-item label="目标值">
-          <el-input-number v-model="chartForm.targetValue" :min="0" :step="0.001" :precision="6" style="width:100%" />
-        </el-form-item>
-      </el-form>
+          <el-divider />
+          <div class="form-section-title">
+            <el-icon><Warning /></el-icon>规格限
+          </div>
+          <el-form-item label="USL(上限)">
+            <el-input-number v-model="chartForm.usl" :min="0" :step="0.001" :precision="6" placeholder="规格上限" style="width:100%" />
+          </el-form-item>
+          <el-form-item label="LSL(下限)">
+            <el-input-number v-model="chartForm.lsl" :min="0" :step="0.001" :precision="6" placeholder="规格下限" style="width:100%" />
+          </el-form-item>
+          <el-form-item label="目标值">
+            <el-input-number v-model="chartForm.targetValue" :min="0" :step="0.001" :precision="6" style="width:100%" />
+          </el-form-item>
+        </el-form>
+      </template>
       <template #footer>
         <div class="drawer-footer">
           <el-button @click="chartDrawerVisible = false">取消</el-button>
           <el-button type="primary" @click="saveChart">保存</el-button>
         </div>
       </template>
-    </el-drawer>
+    </RightPanel>
 
-    <!-- ── Add Data Point Dialog ── -->
-    <el-dialog v-model="dpDialogVisible" title="添加数据点" width="480px" :close-on-click-modal="false">
-      <el-form :model="dpForm" label-width="100px" label-position="left">
-        <el-form-item label="测量值" required>
-          <el-input
-            v-model="dpForm.individualValues"
-            type="textarea"
-            :rows="3"
-            placeholder="如: 10.01, 10.02, 9.99, 10.00, 10.01"
-          />
-          <div class="form-tip">逗号分隔的数值，数量应与子组大小（n={{ selectedChart?.subgroupSize || '—' }}）一致</div>
-        </el-form-item>
-        <el-form-item label="测量时间">
-          <el-date-picker v-model="dpForm.measuredAt" type="datetime" placeholder="选择时间" style="width:100%" />
-        </el-form-item>
-      </el-form>
+    <!-- ── Add Data Point RightPanel ── -->
+    <RightPanel v-model:visible="dpDialogVisible" title="添加数据点" :width="480">
+      <template #body>
+        <el-form :model="dpForm" label-width="100px" label-position="left">
+          <el-form-item label="测量值" required>
+            <el-input
+              v-model="dpForm.individualValues"
+              type="textarea"
+              :rows="3"
+              placeholder="如: 10.01, 10.02, 9.99, 10.00, 10.01"
+            />
+            <div class="form-tip">逗号分隔的数值，数量应与子组大小（n={{ selectedChart?.subgroupSize || '—' }}）一致</div>
+          </el-form-item>
+          <el-form-item label="测量时间">
+            <el-date-picker v-model="dpForm.measuredAt" type="datetime" placeholder="选择时间" style="width:100%" />
+          </el-form-item>
+        </el-form>
+      </template>
       <template #footer>
         <el-button @click="dpDialogVisible = false">取消</el-button>
         <el-button type="primary" @click="addDataPoint">添加</el-button>
       </template>
-    </el-dialog>
+    </RightPanel>
 
-    <!-- ── Data Source Dialog ── -->
-    <el-dialog v-model="dsDialogVisible" title="添加数据源" width="520px" :close-on-click-modal="false">
-      <el-form label-width="100px" label-position="left">
-        <div class="form-section-title">
-          <el-icon><Connection /></el-icon>数据源配置
-        </div>
-        <el-form-item label="数据源类型">
-          <el-select v-model="dsForm.sourceType" style="width: 100%">
-            <el-option v-for="o in SOURCE_TYPE_OPTIONS" :key="o.value" :label="o.label" :value="o.value" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="检验项目">
-          <el-select v-model="dsForm.inspectionItemId" placeholder="不选则取全部" clearable filterable style="width: 100%">
-            <el-option v-for="item in inspectionItemOptions" :key="item.id"
-              :label="`${item.itemCode} - ${item.itemName}`" :value="item.id" />
-          </el-select>
-        </el-form-item>
-        <div class="form-tip" style="margin-top: 0;">
-          <el-icon><InfoFilled /></el-icon>
-          不选择检验项目则拉取该业务模块的所有检验数据
-        </div>
-      </el-form>
+    <!-- ── Data Source RightPanel ── -->
+    <RightPanel v-model:visible="dsDialogVisible" title="添加数据源" :width="520">
+      <template #body>
+        <el-form label-width="100px" label-position="left">
+          <div class="form-section-title">
+            <el-icon><Connection /></el-icon>数据源配置
+          </div>
+          <el-form-item label="数据源类型">
+            <el-select v-model="dsForm.sourceType" style="width: 100%">
+              <el-option v-for="o in SOURCE_TYPE_OPTIONS" :key="o.value" :label="o.label" :value="o.value" />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="检验项目">
+            <el-select v-model="dsForm.inspectionItemId" placeholder="不选则取全部" clearable filterable style="width: 100%">
+              <el-option v-for="item in inspectionItemOptions" :key="item.id"
+                :label="`${item.itemCode} - ${item.itemName}`" :value="item.id" />
+            </el-select>
+          </el-form-item>
+          <div class="form-tip" style="margin-top: 0;">
+            <el-icon><InfoFilled /></el-icon>
+            不选择检验项目则拉取该业务模块的所有检验数据
+          </div>
+        </el-form>
+      </template>
       <template #footer>
         <el-button @click="dsDialogVisible = false">取消</el-button>
         <el-button type="primary" @click="addDataSource">添加</el-button>
       </template>
-    </el-dialog>
+    </RightPanel>
 
-    <!-- ── Rule Config Dialog ── -->
-    <el-dialog v-model="ruleConfigVisible" title="判异规则配置" width="700px" :close-on-click-modal="false">
-      <div class="form-section-title">
-        <el-icon><WarningFilled /></el-icon>Western Electric 8大规则配置
-      </div>
-      <p class="form-tip" style="margin-bottom: 16px;">配置各判异规则的阈值参数，保存后重新运行分析以生效。</p>
-      <el-table :data="alertRules" stripe border class="rule-config-table">
-        <el-table-column label="规则" width="60" align="center">
-          <template #default="{ row }">#{{ row.ruleNumber }}</template>
-        </el-table-column>
-        <el-table-column prop="ruleName" label="规则名称" min-width="180" align="center" />
-        <el-table-column label="启用" width="80" align="center">
-          <template #default="{ row }">
-            <el-switch v-model="row.enabled" size="small" />
-          </template>
-        </el-table-column>
-        <el-table-column label="连续点数(N)" width="120" align="center">
-          <template #default="{ row }">
-            <el-input-number v-model="row.triggerThreshold" :min="1" :max="25" controls-position="right" style="width:90px" />
-          </template>
-        </el-table-column>
-        <el-table-column label="σ阈值" width="100" align="center">
-          <template #default="{ row }">
-            <el-input-number v-model="row.sigmaThreshold" :min="0" :max="5" :step="0.5" controls-position="right" style="width:80px" />
-          </template>
-        </el-table-column>
-      </el-table>
+    <!-- ── Rule Config RightPanel ── -->
+    <RightPanel v-model:visible="ruleConfigVisible" title="判异规则配置" :width="700">
+      <template #body>
+        <div class="form-section-title">
+          <el-icon><WarningFilled /></el-icon>Western Electric 8大规则配置
+        </div>
+        <p class="form-tip" style="margin-bottom: 16px;">配置各判异规则的阈值参数，保存后重新运行分析以生效。</p>
+        <el-table :data="alertRules" stripe border class="rule-config-table">
+          <el-table-column label="规则" width="60" align="center">
+            <template #default="{ row }">#{{ row.ruleNumber }}</template>
+          </el-table-column>
+          <el-table-column prop="ruleName" label="规则名称" min-width="180" align="center" />
+          <el-table-column label="启用" width="80" align="center">
+            <template #default="{ row }">
+              <el-switch v-model="row.enabled" size="small" />
+            </template>
+          </el-table-column>
+          <el-table-column label="连续点数(N)" width="120" align="center">
+            <template #default="{ row }">
+              <el-input-number v-model="row.triggerThreshold" :min="1" :max="25" controls-position="right" style="width:90px" />
+            </template>
+          </el-table-column>
+          <el-table-column label="σ阈值" width="100" align="center">
+            <template #default="{ row }">
+              <el-input-number v-model="row.sigmaThreshold" :min="0" :max="5" :step="0.5" controls-position="right" style="width:80px" />
+            </template>
+          </el-table-column>
+        </el-table>
+      </template>
       <template #footer>
         <el-button @click="ruleConfigVisible = false">取消</el-button>
         <el-button type="primary" @click="saveRuleConfig">保存配置</el-button>
       </template>
-    </el-dialog>
+    </RightPanel>
   </div>
 </template>
 

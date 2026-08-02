@@ -1,0 +1,23 @@
+审核与稽查页面错误报告
+==================================================
+
+审核详情 (/audits/detail):
+  控制台错误:
+    Failed to load resource: the server responded with a status of 401 (Unauthorized)
+    Failed to load resource: the server responded with a status of 401 (Unauthorized)
+  HTTP响应错误:
+    [HTTP 401] http://localhost:5620/api/v1/organizations/tree → 
+    [HTTP 401] http://localhost:5620/api/v1/auth/refresh → 
+
+不符合项管理 (/audits/finding):
+  控制台错误:
+    Failed to load resource: the server responded with a status of 401 (Unauthorized)
+    Failed to load resource: the server responded with a status of 401 (Unauthorized)
+  HTTP响应错误:
+    [HTTP 401] http://localhost:5620/api/v1/organizations/tree → 
+    [HTTP 401] http://localhost:5620/api/v1/auth/refresh → 
+
+审核详情(id=1) (/audits/detail?id=1):
+
+不符合项(auditId=1) (/audits/finding?auditId=1):
+

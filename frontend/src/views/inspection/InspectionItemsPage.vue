@@ -3,6 +3,7 @@ import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Checked, Search, Plus, Check, Refresh } from '@element-plus/icons-vue'
 import { inspectionItemApi } from '@/api/inspectionItem'
+import RightPanel from '@/components/layout/RightPanel.vue'
 import type { InspectionItem, InspectionItemDetail, CreateInspectionItem, UpdateInspectionItem } from '@/types/inspectionItem'
 import type { PagedRequest } from '@/types/basicData'
 
@@ -178,13 +179,15 @@ onMounted(loadData)
 
 <template>
   <div class="inspection-items-page">
-    <!-- 页面头部 -->
-    <div class="page-header">
-      <div class="page-header__main">
-        <el-icon class="page-header__icon"><Checked /></el-icon>
-        <div class="page-header__text">
-          <h2 class="page-header__title">检验项目管理</h2>
-          <p class="page-header__subtitle">品质部统一管理的检验项目主数据，贯通IQC/IPQC/FQC/SPC</p>
+    <!-- 页面横幅 -->
+    <div class="page-header-banner page-header-banner--primary">
+      <div class="page-header-banner-main">
+        <div class="page-header-banner-icon">
+          <el-icon :size="28"><Checked /></el-icon>
+        </div>
+        <div class="page-header-banner-text">
+          <h2 class="page-header-banner-title">检验项目管理</h2>
+          <span class="page-header-banner-subtitle">品质部统一管理的检验项目主数据，贯通IQC/IPQC/FQC/SPC</span>
         </div>
       </div>
     </div>
@@ -285,134 +288,131 @@ onMounted(loadData)
       </div>
     </div>
 
-    <!-- 新增/编辑 Drawer -->
-    <el-drawer
-      v-model="dialogVisible"
+    <!-- 新增/编辑 RightPanel -->
+    <RightPanel
+      v-model:visible="dialogVisible"
       :title="dialogTitle"
-      size="600px"
-      direction="rtl"
-      :close-on-click-modal="true"
-      destroy-on-close
-      class="data-drawer"
+      :width="600"
     >
-      <div class="dialog-body-wrap">
-        <el-form
-          :model="form"
-          :rules="formRules"
-          label-width="140px"
-          label-position="top"
-          size="default"
-          class="dialog-form"
-        >
-          <!-- 基本信息 -->
-          <div class="form-section">
-            <div class="form-section__title">基本信息</div>
-            <el-row :gutter="16">
-              <el-col :span="12">
-                <el-form-item label="项目编码" prop="itemCode">
-                  <el-input v-model="form.itemCode" :disabled="isEdit" placeholder="如 DIM-001" />
-                </el-form-item>
-              </el-col>
-              <el-col :span="12">
-                <el-form-item label="项目名称" prop="itemName">
-                  <el-input v-model="form.itemName" :disabled="isEdit" placeholder="如 直径测量" />
-                </el-form-item>
-              </el-col>
-            </el-row>
-            <el-row :gutter="16">
-              <el-col :span="8">
-                <el-form-item label="数据类型">
-                  <el-select v-model="form.dataType" style="width: 100%">
-                    <el-option v-for="o in DATA_TYPE_OPTIONS" :key="o.value" :label="o.label" :value="o.value" />
-                  </el-select>
-                </el-form-item>
-              </el-col>
-              <el-col :span="8">
-                <el-form-item label="单位">
-                  <el-input v-model="form.unit" placeholder="如 mm" />
-                </el-form-item>
-              </el-col>
-              <el-col :span="8">
-                <el-form-item label="检验方法">
-                  <el-input v-model="form.inspectionMethod" placeholder="如 游标卡尺" />
-                </el-form-item>
-              </el-col>
-            </el-row>
-          </div>
+      <template #body>
+        <div class="dialog-body-wrap">
+          <el-form
+            :model="form"
+            :rules="formRules"
+            label-width="140px"
+            label-position="top"
+            size="default"
+            class="dialog-form"
+          >
+            <!-- 基本信息 -->
+            <div class="form-section">
+              <div class="form-section__title">基本信息</div>
+              <el-row :gutter="16">
+                <el-col :span="12">
+                  <el-form-item label="项目编码" prop="itemCode">
+                    <el-input v-model="form.itemCode" :disabled="isEdit" placeholder="如 DIM-001" />
+                  </el-form-item>
+                </el-col>
+                <el-col :span="12">
+                  <el-form-item label="项目名称" prop="itemName">
+                    <el-input v-model="form.itemName" :disabled="isEdit" placeholder="如 直径测量" />
+                  </el-form-item>
+                </el-col>
+              </el-row>
+              <el-row :gutter="16">
+                <el-col :span="8">
+                  <el-form-item label="数据类型">
+                    <el-select v-model="form.dataType" style="width: 100%">
+                      <el-option v-for="o in DATA_TYPE_OPTIONS" :key="o.value" :label="o.label" :value="o.value" />
+                    </el-select>
+                  </el-form-item>
+                </el-col>
+                <el-col :span="8">
+                  <el-form-item label="单位">
+                    <el-input v-model="form.unit" placeholder="如 mm" />
+                  </el-form-item>
+                </el-col>
+                <el-col :span="8">
+                  <el-form-item label="检验方法">
+                    <el-input v-model="form.inspectionMethod" placeholder="如 游标卡尺" />
+                  </el-form-item>
+                </el-col>
+              </el-row>
+            </div>
 
-          <!-- 规格限 & 目标 -->
-          <div class="form-section">
-            <div class="form-section__title">规格限 & 目标</div>
-            <el-row :gutter="16">
-              <el-col :span="8">
-                <el-form-item label="规格上限 (USL)">
-                  <el-input-number v-model="form.usl" :min="undefined" :max="undefined" :precision="4" controls-position="right" style="width: 100%" />
-                </el-form-item>
-              </el-col>
-              <el-col :span="8">
-                <el-form-item label="规格下限 (LSL)">
-                  <el-input-number v-model="form.lsl" :min="undefined" :max="undefined" :precision="4" controls-position="right" style="width: 100%" />
-                </el-form-item>
-              </el-col>
-              <el-col :span="8">
-                <el-form-item label="目标值 (Target)">
-                  <el-input-number v-model="form.targetValue" :min="undefined" :max="undefined" :precision="4" controls-position="right" style="width: 100%" />
-                </el-form-item>
-              </el-col>
-            </el-row>
-          </div>
+            <!-- 规格限 & 目标 -->
+            <div class="form-section">
+              <div class="form-section__title">规格限 & 目标</div>
+              <el-row :gutter="16">
+                <el-col :span="8">
+                  <el-form-item label="规格上限 (USL)">
+                    <el-input-number v-model="form.usl" :min="undefined" :max="undefined" :precision="4" controls-position="right" style="width: 100%" />
+                  </el-form-item>
+                </el-col>
+                <el-col :span="8">
+                  <el-form-item label="规格下限 (LSL)">
+                    <el-input-number v-model="form.lsl" :min="undefined" :max="undefined" :precision="4" controls-position="right" style="width: 100%" />
+                  </el-form-item>
+                </el-col>
+                <el-col :span="8">
+                  <el-form-item label="目标值 (Target)">
+                    <el-input-number v-model="form.targetValue" :min="undefined" :max="undefined" :precision="4" controls-position="right" style="width: 100%" />
+                  </el-form-item>
+                </el-col>
+              </el-row>
+            </div>
 
-          <!-- 管理限 (SPC控制图用) -->
-          <div class="form-section">
-            <div class="form-section__title">管理限 (SPC控制图用)</div>
-            <el-row :gutter="16">
-              <el-col :span="8">
-                <el-form-item label="管理上限 (UCL)">
-                  <el-input-number v-model="form.ucl" :min="undefined" :max="undefined" :precision="4" controls-position="right" style="width: 100%" />
-                </el-form-item>
-              </el-col>
-              <el-col :span="8">
-                <el-form-item label="管理下限 (LCL)">
-                  <el-input-number v-model="form.lcl" :min="undefined" :max="undefined" :precision="4" controls-position="right" style="width: 100%" />
-                </el-form-item>
-              </el-col>
-              <el-col :span="8">
-                <el-form-item label="默认抽样数量">
-                  <el-input-number v-model="form.sampleSize" :min="1" controls-position="right" style="width: 100%" />
-                </el-form-item>
-              </el-col>
-            </el-row>
-          </div>
+            <!-- 管理限 (SPC控制图用) -->
+            <div class="form-section">
+              <div class="form-section__title">管理限 (SPC控制图用)</div>
+              <el-row :gutter="16">
+                <el-col :span="8">
+                  <el-form-item label="管理上限 (UCL)">
+                    <el-input-number v-model="form.ucl" :min="undefined" :max="undefined" :precision="4" controls-position="right" style="width: 100%" />
+                  </el-form-item>
+                </el-col>
+                <el-col :span="8">
+                  <el-form-item label="管理下限 (LCL)">
+                    <el-input-number v-model="form.lcl" :min="undefined" :max="undefined" :precision="4" controls-position="right" style="width: 100%" />
+                  </el-form-item>
+                </el-col>
+                <el-col :span="8">
+                  <el-form-item label="默认抽样数量">
+                    <el-input-number v-model="form.sampleSize" :min="1" controls-position="right" style="width: 100%" />
+                  </el-form-item>
+                </el-col>
+              </el-row>
+            </div>
 
-          <!-- 数采 & SPC配置 -->
-          <div class="form-section">
-            <div class="form-section__title">数采 & SPC配置</div>
-            <el-row :gutter="16">
-              <el-col :span="8">
-                <el-form-item label="数采参数编码">
-                  <el-input v-model="form.dataCollectionParamCode" placeholder="关联 dynamic_params.code" />
-                </el-form-item>
-              </el-col>
-              <el-col :span="8">
-                <el-form-item label="控制图类型">
-                  <el-select v-model="form.chartType" style="width: 100%" clearable>
-                    <el-option v-for="o in CHART_TYPE_OPTIONS" :key="o.value" :label="o.label" :value="o.value" />
-                  </el-select>
-                </el-form-item>
-              </el-col>
-              <el-col :span="8">
-                <el-form-item label="子组大小">
-                  <el-input-number v-model="form.subgroupSize" :min="1" :max="20" controls-position="right" style="width: 100%" />
-                </el-form-item>
-              </el-col>
-            </el-row>
-            <el-form-item label="描述">
-              <el-input v-model="form.description" type="textarea" :rows="2" placeholder="请输入描述" />
-            </el-form-item>
-          </div>
-        </el-form>
-      </div>
-
+            <!-- 数采 & SPC配置 -->
+            <div class="form-section">
+              <div class="form-section__title">数采 & SPC配置</div>
+              <el-row :gutter="16">
+                <el-col :span="8">
+                  <el-form-item label="数采参数编码">
+                    <el-input v-model="form.dataCollectionParamCode" placeholder="关联 dynamic_params.code" />
+                  </el-form-item>
+                </el-col>
+                <el-col :span="8">
+                  <el-form-item label="控制图类型">
+                    <el-select v-model="form.chartType" style="width: 100%" clearable>
+                      <el-option v-for="o in CHART_TYPE_OPTIONS" :key="o.value" :label="o.label" :value="o.value" />
+                    </el-select>
+                  </el-form-item>
+                </el-col>
+                <el-col :span="8">
+                  <el-form-item label="子组大小">
+                    <el-input-number v-model="form.subgroupSize" :min="1" :max="20" controls-position="right" style="width: 100%" />
+                  </el-form-item>
+                </el-col>
+              </el-row>
+              <el-form-item label="描述">
+                <el-input v-model="form.description" type="textarea" :rows="2" placeholder="请输入描述" />
+              </el-form-item>
+            </div>
+          </el-form>
+        </div>
+      </template>
       <template #footer>
         <div class="dialog-footer">
           <el-button @click="dialogVisible = false">取消</el-button>
@@ -421,7 +421,7 @@ onMounted(loadData)
           </el-button>
         </div>
       </template>
-    </el-drawer>
+    </RightPanel>
   </div>
 </template>
 
@@ -433,45 +433,7 @@ onMounted(loadData)
   gap: var(--space-4, 16px);
 }
 
-/* ─── Page Header ─────────────────────────── */
-.page-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: var(--space-4, 16px);
-}
-
-.page-header__main {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3, 12px);
-}
-
-.page-header__icon {
-  font-size: 28px;
-  color: var(--primary, #1677ff);
-  background: var(--primary-bg, #f0f7ff);
-  width: 44px;
-  height: 44px;
-  border-radius: var(--radius-lg, 8px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.page-header__title {
-  margin: 0;
-  font-size: 20px;
-  font-weight: 600;
-  color: var(--text-primary, #1a1a1a);
-  line-height: 1.3;
-}
-
-.page-header__subtitle {
-  margin: 2px 0 0;
-  font-size: 13px;
-  color: var(--text-secondary, #8c8c8c);
-}
+/* banner styles handled by global CSS (page-header-banner) */
 
 /* ─── Data Card ───────────────────────────── */
 .data-card {
@@ -659,35 +621,6 @@ onMounted(loadData)
   flex-shrink: 0;
 }
 
-/* Drawer styles */
-.data-drawer :deep(.el-drawer) {
-  border-radius: var(--radius-lg, 8px) 0 0 var(--radius-lg, 8px);
-  overflow: hidden;
-}
-
-.data-drawer :deep(.el-drawer__header) {
-  padding: 18px 24px;
-  border-bottom: 1px solid var(--border-color, #e4e7ed);
-  margin: 0;
-  background: var(--bg-white, #fff);
-}
-
-.data-drawer :deep(.el-drawer__close-btn) {
-  top: 18px;
-  right: 24px;
-}
-
-.data-drawer :deep(.el-drawer__title) {
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--text-primary, #1a1a1a);
-}
-
-.data-drawer :deep(.el-drawer__body) {
-  padding: 0;
-  background: var(--bg-white, #fff);
-}
-
 /* ─── Dialog Footer Buttons ──────────────── */
 .dialog-footer {
   display: flex;
@@ -697,11 +630,6 @@ onMounted(loadData)
 
 /* ─── Responsive ──────────────────────────── */
 @media (max-width: 768px) {
-  .page-header {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
   .data-card__header {
     flex-direction: column;
     align-items: flex-start;

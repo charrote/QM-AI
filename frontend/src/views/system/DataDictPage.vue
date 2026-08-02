@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import RightPanel from '@/components/layout/RightPanel.vue'
 import { Collection, Plus, Search, Refresh, Edit, Delete, Close, ArrowDown, Check } from '@element-plus/icons-vue'
 import { sysDictApi } from '@/api/sysDict'
 import type { SysDictType, SysDictItem } from '@/types/sysDict'
@@ -266,71 +267,75 @@ onMounted(async () => {
       </div>
     </div>
 
-    <!-- Type Drawer -->
-    <el-drawer v-model="typeDrawerVisible" title="字典类型" size="480px" direction="rtl" :close-on-click-modal="false">
-      <el-form :model="typeForm" label-width="80px">
-        <el-form-item label="类型编码" required>
-          <el-input v-model="typeForm.typeCode" placeholder="如: equipment_type" :disabled="!!typeForm.id" clearable />
-        </el-form-item>
-        <el-form-item label="类型名称" required>
-          <el-input v-model="typeForm.typeName" placeholder="如: 设备类型" clearable />
-        </el-form-item>
-        <el-form-item label="备注">
-          <el-input v-model="typeForm.remark" type="textarea" :rows="2" clearable />
-        </el-form-item>
-      </el-form>
+    <!-- Type Panel -->
+    <RightPanel v-model:visible="typeDrawerVisible" title="字典类型" :width="480" :show-close="true">
+      <template #body>
+        <el-form :model="typeForm" label-width="80px">
+          <el-form-item label="类型编码" required>
+            <el-input v-model="typeForm.typeCode" placeholder="如: equipment_type" :disabled="!!typeForm.id" clearable />
+          </el-form-item>
+          <el-form-item label="类型名称" required>
+            <el-input v-model="typeForm.typeName" placeholder="如: 设备类型" clearable />
+          </el-form-item>
+          <el-form-item label="备注">
+            <el-input v-model="typeForm.remark" type="textarea" :rows="2" clearable />
+          </el-form-item>
+        </el-form>
+      </template>
       <template #footer>
         <div style="display: flex; gap: 8px; justify-content: flex-end;">
           <el-button size="small" @click="typeDrawerVisible = false">取消</el-button>
           <el-button size="small" type="primary" @click="handleTypeSave" :loading="saving">保存</el-button>
         </div>
       </template>
-    </el-drawer>
+    </RightPanel>
 
-    <!-- Item Drawer -->
-    <el-drawer v-model="itemDrawerVisible" title="字典项" size="480px" direction="rtl" :close-on-click-modal="false">
-      <el-form :model="itemForm" label-width="80px">
-        <el-form-item label="显示标签" required>
-          <el-input v-model="itemForm.itemLabel" placeholder="如: CNC 加工中心" clearable />
-        </el-form-item>
-        <el-form-item label="选项值" required>
-          <el-input v-model="itemForm.itemValue" placeholder="如: CNC" clearable />
-        </el-form-item>
-        <el-form-item label="排序">
-          <el-input-number v-model="itemForm.sortOrder" :min="0" controls-position="right" style="width: 100%" />
-        </el-form-item>
-        <el-form-item label="颜色">
-          <el-popover placement="bottom" :width="340" trigger="click">
-            <template #reference>
-              <div class="color-picker-trigger">
-                <div v-if="itemForm.color" class="color-swatch-preview" :style="{ backgroundColor: itemForm.color }"></div>
-                <span v-else class="color-placeholder">请选择颜色</span>
-                <span>{{ itemForm.color || '选择颜色' }}</span>
-                <el-icon><ArrowDown /></el-icon>
+    <!-- Item Panel -->
+    <RightPanel v-model:visible="itemDrawerVisible" title="字典项" :width="480" :show-close="true">
+      <template #body>
+        <el-form :model="itemForm" label-width="80px">
+          <el-form-item label="显示标签" required>
+            <el-input v-model="itemForm.itemLabel" placeholder="如: CNC 加工中心" clearable />
+          </el-form-item>
+          <el-form-item label="选项值" required>
+            <el-input v-model="itemForm.itemValue" placeholder="如: CNC" clearable />
+          </el-form-item>
+          <el-form-item label="排序">
+            <el-input-number v-model="itemForm.sortOrder" :min="0" controls-position="right" style="width: 100%" />
+          </el-form-item>
+          <el-form-item label="颜色">
+            <el-popover placement="bottom" :width="340" trigger="click">
+              <template #reference>
+                <div class="color-picker-trigger">
+                  <div v-if="itemForm.color" class="color-swatch-preview" :style="{ backgroundColor: itemForm.color }"></div>
+                  <span v-else class="color-placeholder">请选择颜色</span>
+                  <span>{{ itemForm.color || '选择颜色' }}</span>
+                  <el-icon><ArrowDown /></el-icon>
+                </div>
+              </template>
+              <div class="color-grid">
+                <div
+                  v-for="c in colorOptions"
+                  :key="c"
+                  class="color-grid-item"
+                  :class="{ active: itemForm.color === c }"
+                  :style="{ backgroundColor: c }"
+                  @click="itemForm.color = c"
+                >
+                  <el-icon v-if="itemForm.color === c" class="check-icon"><Check /></el-icon>
+                </div>
               </div>
-            </template>
-            <div class="color-grid">
-              <div
-                v-for="c in colorOptions"
-                :key="c"
-                class="color-grid-item"
-                :class="{ active: itemForm.color === c }"
-                :style="{ backgroundColor: c }"
-                @click="itemForm.color = c"
-              >
-                <el-icon v-if="itemForm.color === c" class="check-icon"><Check /></el-icon>
-              </div>
-            </div>
-          </el-popover>
-        </el-form-item>
-      </el-form>
+            </el-popover>
+          </el-form-item>
+        </el-form>
+      </template>
       <template #footer>
         <div style="display: flex; gap: 8px; justify-content: flex-end;">
           <el-button size="small" @click="itemDrawerVisible = false">取消</el-button>
           <el-button size="small" type="primary" @click="handleItemSave" :loading="saving">保存</el-button>
         </div>
       </template>
-    </el-drawer>
+    </RightPanel>
   </div>
 </template>
 

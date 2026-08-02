@@ -41,13 +41,13 @@ public class SpcControlChart
     [Column("target_value", TypeName = "decimal(15,6)")]
     public decimal? TargetValue { get; set; }
 
-    [Column(TypeName = "decimal(15,6)")]
+    [Column("cl", TypeName = "decimal(15,6)")]
     public decimal? Cl { get; set; } // Center Line
 
-    [Column(TypeName = "decimal(15,6)")]
+    [Column("ucl", TypeName = "decimal(15,6)")]
     public decimal? Ucl { get; set; } // Upper Control Limit
 
-    [Column(TypeName = "decimal(15,6)")]
+    [Column("lcl", TypeName = "decimal(15,6)")]
     public decimal? Lcl { get; set; } // Lower Control Limit
 
     [Column("created_at")]

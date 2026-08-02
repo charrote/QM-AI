@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { DocumentChecked, Plus, Back, Refresh } from '@element-plus/icons-vue'
+import { DocumentChecked, Plus, Back, Refresh, Search } from '@element-plus/icons-vue'
+import RightPanel from '@/components/layout/RightPanel.vue'
+import { useRightPanel } from '@/composables/useRightPanel'
 import { d8ReportApi } from '@/api/d8Report'
 import { complaintApi } from '@/api/complaint'
 import type { D8Report } from '@/types/complaint'
@@ -20,7 +22,7 @@ const viewMode = ref<'list' | 'detail'>('list')
 const complaintIdFilter = ref<number | undefined>(undefined)
 
 // Dialog
-const dialogVisible = ref(false)
+const formPanel = useRightPanel()
 const isEditing = ref(false)
 const currentD8Id = ref<number | null>(null)
 const form = reactive({
@@ -72,7 +74,7 @@ function openCreate() {
   form.d6Verification = ''
   form.d7Preventive = ''
   form.d8Thanks = ''
-  dialogVisible.value = true
+  formPanel.open()
 }
 
 function openEdit(row: D8Report) {
@@ -90,7 +92,7 @@ function openEdit(row: D8Report) {
   form.d6Verification = row.d6Verification || ''
   form.d7Preventive = row.d7Preventive || ''
   form.d8Thanks = row.d8Thanks || ''
-  dialogVisible.value = true
+  formPanel.open()
 }
 
 async function saveD8() {
@@ -118,7 +120,7 @@ async function saveD8() {
       await d8ReportApi.create({ complaintId: form.complaintId, d0Description: form.d0Description })
       ElMessage.success('8D报告已创建')
     }
-    dialogVisible.value = false
+    formPanel.close()
     await loadD8List()
   } catch (e: any) {
     ElMessage.error(e?.response?.data?.message || '操作失败')
@@ -224,83 +226,97 @@ onMounted(loadD8List)
 </script>
 
 <template>
-  <div class="page-container">
-    <!-- Page Header -->
-    <div class="page-header" v-if="viewMode === 'list'">
-      <div class="page-header__main">
-        <el-icon class="page-header__icon" :size="28"><DocumentChecked /></el-icon>
-        <div class="page-header__text">
-          <h2 class="page-header__title">8D 报告</h2>
-          <p class="page-header__subtitle">客户投诉 8D 分析报告</p>
+  <div class="qmc-container">
+    <!-- Page Header Banner -->
+    <div class="page-header-banner page-header-banner--primary" v-if="viewMode === 'list'">
+      <div class="page-header-banner-main">
+        <div class="page-header-banner-icon">
+          <el-icon :size="28"><DocumentChecked /></el-icon>
         </div>
-      </div>
-      <div class="page-header__actions">
-        <el-button :icon="Plus" type="primary" @click="openCreate">新建8D报告</el-button>
+        <div class="page-header-banner-text">
+          <h2 class="page-header-banner-title">8D 报告分析</h2>
+          <span class="page-header-banner-subtitle">客户投诉 8D 报告管理与分析，D0~D8 阶段全流程追踪</span>
+        </div>
       </div>
     </div>
 
     <template v-if="viewMode === 'list'">
-      <!-- Search Toolbar -->
-      <div class="toolbar-row">
-        <el-input
-          v-model="complaintIdFilter"
-          placeholder="按投诉ID筛选"
-          clearable
-          style="width: 220px"
-          @change="loadD8List"
-        />
-        <el-button :icon="Refresh" @click="loadD8List">刷新</el-button>
+      <!-- Data Card -->
+      <div class="data-card">
+        <div class="data-card__header">
+          <span class="data-card__title">
+            <el-icon style="color: var(--primary)"><DocumentChecked /></el-icon>
+            8D 报告清单
+            <el-tag v-if="d8List.length" type="info" size="small">{{ d8List.length }} 条</el-tag>
+          </span>
+          <div class="data-card__toolbar">
+            <el-input
+              v-model="complaintIdFilter"
+              placeholder="按投诉ID筛选"
+              clearable
+              size="small"
+              :prefix-icon="Search"
+              style="width: 220px"
+              @keyup.enter="loadD8List"
+              @clear="loadD8List"
+            />
+            <el-button size="small" @click="loadD8List"><el-icon><Refresh /></el-icon>刷新</el-button>
+            <el-button type="primary" size="small" @click="openCreate"><el-icon><Plus /></el-icon>新建8D报告</el-button>
+          </div>
+        </div>
+        <div class="data-card__table">
+          <el-table :data="d8List" stripe v-loading="loading" style="width: 100%">
+            <el-table-column prop="id" label="ID" width="70" />
+            <el-table-column prop="complaintId" label="投诉ID" width="90" />
+            <el-table-column label="D0·问题概述" min-width="220" show-overflow-tooltip>
+              <template #default="{ row }">{{ row.d0Description?.slice(0, 50) || '-' }}</template>
+            </el-table-column>
+            <el-table-column label="当前阶段" width="140">
+              <template #default="{ row }">
+                <el-tag size="small" effect="plain">
+                  {{ D8_DISCIPLINE_LABELS[row.currentDiscipline]?.label || `D${row.currentDiscipline}` }}
+                </el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column label="状态" width="110">
+              <template #default="{ row }">
+                <el-tag :type="D8_STATUS_OPTIONS.find(o => o.value === row.status)?.type || 'info'" size="small" effect="plain">
+                  {{ D8_STATUS_MAP[row.status] || row.status }}
+                </el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column label="创建时间" width="170">
+              <template #default="{ row }">{{ formatDate(row.createdAt) }}</template>
+            </el-table-column>
+            <el-table-column label="操作" width="220" fixed="right">
+              <template #default="{ row }">
+                <el-button link size="small" type="primary" @click="viewDetail(row)">查看</el-button>
+                <el-button link size="small" type="warning" @click="openEdit(row)">编辑</el-button>
+                <el-button link size="small" type="danger" @click="deleteD8(row)">删除</el-button>
+              </template>
+            </el-table-column>
+          </el-table>
+        </div>
       </div>
-
-      <!-- Data Table -->
-      <el-table :data="d8List" stripe v-loading="loading" style="width: 100%" class="data-card-table">
-        <el-table-column prop="id" label="ID" width="70" />
-        <el-table-column prop="complaintId" label="投诉ID" width="90" />
-        <el-table-column label="D0·问题概述" min-width="220" show-overflow-tooltip>
-          <template #default="{ row }">{{ row.d0Description?.slice(0, 50) || '-' }}</template>
-        </el-table-column>
-        <el-table-column label="当前阶段" width="140">
-          <template #default="{ row }">
-            <el-tag size="small" effect="plain">
-              {{ D8_DISCIPLINE_LABELS[row.currentDiscipline]?.label || `D${row.currentDiscipline}` }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column label="状态" width="110">
-          <template #default="{ row }">
-            <el-tag :type="D8_STATUS_OPTIONS.find(o => o.value === row.status)?.type || 'info'" size="small" effect="plain">
-              {{ D8_STATUS_MAP[row.status] || row.status }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column label="创建时间" width="170">
-          <template #default="{ row }">{{ formatDate(row.createdAt) }}</template>
-        </el-table-column>
-        <el-table-column label="操作" width="220" fixed="right">
-          <template #default="{ row }">
-            <el-button link size="small" type="primary" @click="viewDetail(row)">查看</el-button>
-            <el-button link size="small" type="warning" @click="openEdit(row)">编辑</el-button>
-            <el-button link size="small" type="danger" @click="deleteD8(row)">删除</el-button>
-          </template>
-        </el-table-column>
-      </el-table>
     </template>
 
     <template v-if="selectedD8">
-      <!-- Detail View with Step Form -->
-      <div class="page-header">
-        <div class="page-header__main">
-          <el-button :icon="Back" link @click="viewMode = 'list'" style="margin-right: 8px">返回列表</el-button>
-          <el-icon class="page-header__icon" :size="28"><DocumentChecked /></el-icon>
-          <div class="page-header__text">
-            <h2 class="page-header__title">8D 报告 #{{ selectedD8.id }}</h2>
+      <!-- Detail Content -->
+      <div class="content-area">
+        <!-- Detail Header -->
+        <div class="page-header" style="margin: 8px 0 12px; border-radius: 8px; background: var(--el-bg-color);">
+          <div class="page-header__main" style="gap: 12px;">
+            <el-button :icon="Back" link style="margin-right: 4px; flex-shrink: 0;" @click="viewMode = 'list'">返回列表</el-button>
+            <el-icon class="page-header__icon" :size="28"><DocumentChecked /></el-icon>
+            <div class="page-header__text">
+              <h2 class="page-header__title">8D 报告 #{{ selectedD8.id }}</h2>
+            </div>
+          </div>
+          <div class="page-header__actions">
+            <el-button size="small" type="primary" @click="exportPdf">导出PDF</el-button>
+            <el-button size="small" type="warning" @click="openEdit(selectedD8)">编辑</el-button>
           </div>
         </div>
-        <div class="page-header__actions">
-          <el-button type="primary" size="small" @click="exportPdf">导出PDF</el-button>
-          <el-button type="warning" size="small" @click="openEdit(selectedD8)">编辑</el-button>
-        </div>
-      </div>
 
       <!-- Steps -->
       <el-card class="steps-card" shadow="never" style="margin-bottom: 16px">
@@ -370,107 +386,94 @@ onMounted(loadD8List)
           </div>
         </el-collapse-item>
       </el-collapse>
+      </div>
     </template>
 
-    <!-- Create/Edit Dialog -->
-    <el-dialog
-      v-model="dialogVisible"
-      :title="isEditing ? '编辑8D报告' : '新建8D报告'"
-      width="720px"
-      :close-on-click-modal="false"
-    >
-      <el-form :model="form" label-width="120px">
-        <el-row :gutter="16">
-          <el-col :span="12">
-            <el-form-item label="投诉ID" required>
-              <el-input-number v-model="form.complaintId" :min="1" style="width: 100%" />
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-form-item label="D0·问题概述" required>
-          <el-input v-model="form.d0Description" type="textarea" :rows="2" placeholder="描述问题概述" />
-        </el-form-item>
-        <el-form-item label="D1·改善小组">
-          <el-input v-model="form.d1Team" type="textarea" :rows="2" placeholder="团队成员及角色" />
-        </el-form-item>
-        <el-form-item label="D2·问题描述">
-          <el-input v-model="form.d2Description" type="textarea" :rows="2" placeholder="问题描述、5W2H" />
-        </el-form-item>
-        <el-form-item label="D3·临时围堵">
-          <el-input v-model="form.d3Measures" type="textarea" :rows="2" placeholder="临时围堵措施" />
-        </el-form-item>
-        <el-form-item label="D4·分析方法">
-          <el-input v-model="form.d4AnalysisMethod" type="textarea" :rows="2" placeholder="鱼骨图/5Why/FTA" />
-        </el-form-item>
-        <el-form-item label="D4·分析内容">
-          <el-input v-model="form.d4Content" type="textarea" :rows="2" placeholder="详细分析过程" />
-        </el-form-item>
-        <el-form-item label="D4·根本原因">
-          <el-input v-model="form.d4RootCause" type="textarea" :rows="2" placeholder="确认的根本原因" />
-        </el-form-item>
-        <el-form-item label="D5·纠正措施">
-          <el-input v-model="form.d5Actions" type="textarea" :rows="2" placeholder="纠正措施计划" />
-        </el-form-item>
-        <el-form-item label="D6·实施验证">
-          <el-input v-model="form.d6Verification" type="textarea" :rows="2" placeholder="实施及验证结果" />
-        </el-form-item>
-        <el-form-item label="D7·预防措施">
-          <el-input v-model="form.d7Preventive" type="textarea" :rows="2" placeholder="预防措施" />
-        </el-form-item>
-        <el-form-item label="D8·结案致谢">
-          <el-input v-model="form.d8Thanks" type="textarea" :rows="2" placeholder="结案致谢及总结" />
-        </el-form-item>
-      </el-form>
+    <!-- Panel: Create/Edit -->
+    <RightPanel v-model:visible="formPanel.visible" :title="isEditing ? '编辑8D报告' : '新建8D报告'" :width="720">
+      <template #body>
+        <el-form :model="form" label-width="120px">
+          <el-row :gutter="16">
+            <el-col :span="12">
+              <el-form-item label="投诉ID" required>
+                <el-input-number v-model="form.complaintId" :min="1" style="width: 100%" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-form-item label="D0·问题概述" required>
+            <el-input v-model="form.d0Description" type="textarea" :rows="2" placeholder="描述问题概述" />
+          </el-form-item>
+          <el-form-item label="D1·改善小组">
+            <el-input v-model="form.d1Team" type="textarea" :rows="2" placeholder="团队成员及角色" />
+          </el-form-item>
+          <el-form-item label="D2·问题描述">
+            <el-input v-model="form.d2Description" type="textarea" :rows="2" placeholder="问题描述、5W2H" />
+          </el-form-item>
+          <el-form-item label="D3·临时围堵">
+            <el-input v-model="form.d3Measures" type="textarea" :rows="2" placeholder="临时围堵措施" />
+          </el-form-item>
+          <el-form-item label="D4·分析方法">
+            <el-input v-model="form.d4AnalysisMethod" type="textarea" :rows="2" placeholder="鱼骨图/5Why/FTA" />
+          </el-form-item>
+          <el-form-item label="D4·分析内容">
+            <el-input v-model="form.d4Content" type="textarea" :rows="2" placeholder="详细分析过程" />
+          </el-form-item>
+          <el-form-item label="D4·根本原因">
+            <el-input v-model="form.d4RootCause" type="textarea" :rows="2" placeholder="确认的根本原因" />
+          </el-form-item>
+          <el-form-item label="D5·纠正措施">
+            <el-input v-model="form.d5Actions" type="textarea" :rows="2" placeholder="纠正措施计划" />
+          </el-form-item>
+          <el-form-item label="D6·实施验证">
+            <el-input v-model="form.d6Verification" type="textarea" :rows="2" placeholder="实施及验证结果" />
+          </el-form-item>
+          <el-form-item label="D7·预防措施">
+            <el-input v-model="form.d7Preventive" type="textarea" :rows="2" placeholder="预防措施" />
+          </el-form-item>
+          <el-form-item label="D8·结案致谢">
+            <el-input v-model="form.d8Thanks" type="textarea" :rows="2" placeholder="结案致谢及总结" />
+          </el-form-item>
+        </el-form>
+      </template>
       <template #footer>
-        <el-button @click="dialogVisible = false">取消</el-button>
+        <el-button @click="formPanel.close()">取消</el-button>
         <el-button type="primary" @click="saveD8">保存</el-button>
       </template>
-    </el-dialog>
+    </RightPanel>
   </div>
 </template>
 
 <style scoped>
-.page-container { display: flex; flex-direction: column; height: 100%; gap: 16px; }
-
-/* Page Header */
-.page-header {
+.qmc-container {
+  height: 100%;
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  background: var(--el-bg-color);
-  border-radius: var(--radius-lg, 8px);
-  padding: 16px 20px;
-  border: 1px solid var(--el-border-color-lighter);
-}
-.page-header__main { display: flex; align-items: center; gap: 12px; }
-.page-header__icon { color: var(--el-color-primary); flex-shrink: 0; }
-.page-header__title { margin: 0; font-size: 20px; font-weight: 600; color: var(--el-text-color-primary); line-height: 1.2; }
-.page-header__subtitle { margin: 4px 0 0; font-size: 13px; color: var(--el-text-color-secondary); }
-.page-header__actions { display: flex; gap: 8px; }
-
-/* Toolbar */
-.toolbar-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-/* Data Table Card */
-.data-card-table {
-  background: var(--el-bg-color);
-  border-radius: var(--radius-lg, 8px);
-  border: 1px solid var(--el-border-color-lighter);
+  flex-direction: column;
   overflow: hidden;
 }
-.data-card-table :deep(.el-table th.el-table__cell) {
-  background: var(--el-fill-color-light) !important;
+.content-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 8px 8px 0;
+  overflow-y: auto;
 }
-
 .card-header { display: flex; align-items: center; justify-content: space-between; }
 .step-nav { display: flex; justify-content: space-between; }
 .field-label { font-weight: 600; font-size: 14px; }
 .field-content { white-space: pre-wrap; font-size: 13px; line-height: 1.6; }
 .discipline-detail { margin-bottom: 8px; }
 .discipline-detail-content { margin-top: 4px; white-space: pre-wrap; font-size: 13px; line-height: 1.6; color: var(--el-text-color-regular); }
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-radius: var(--radius-lg, 8px);
+  padding: 12px 20px;
+}
+.page-header__main { display: flex; align-items: center; gap: 12px; }
+.page-header__icon { color: var(--el-color-primary); flex-shrink: 0; }
+.page-header__title { margin: 0; font-size: 20px; font-weight: 600; color: var(--el-text-color-primary); line-height: 1.2; }
+.page-header__subtitle { margin: 4px 0 0; font-size: 13px; color: var(--el-text-color-secondary); }
+.page-header__actions { display: flex; gap: 8px; }
 </style>

@@ -60,6 +60,7 @@ public class Audit
     public int TotalFindings { get; set; }
 
     /// <summary>统计: 符合项数</summary>
+    [Column("conformities")]
     public int Conformities { get; set; }
 
     /// <summary>统计: 不符合项数</summary>
@@ -67,9 +68,11 @@ public class Audit
     public int NonConformities { get; set; }
 
     /// <summary>统计: 改进机会数</summary>
+    [Column("opportunities")]
     public int Opportunities { get; set; }
 
     /// <summary>审核范围（JSON：产线/工序/产品）</summary>
+    [Column("scope")]
     public string? Scope { get; set; }
 
     /// <summary>状态：planned / in_progress / completed / archived</summary>

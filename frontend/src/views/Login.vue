@@ -81,14 +81,18 @@ const currentYear = computed(() => new Date().getFullYear())
         <div class="brand-bg">
           <div class="bg-gradient-1"></div>
           <div class="bg-gradient-2"></div>
+          <div class="bg-gradient-3"></div>
           <div class="bg-grid"></div>
+          <div class="bg-particles">
+            <span v-for="i in 12" :key="i" class="particle" :style="{ left: (i * 8.3) + '%', top: (i * 7.7) + '%' }"></span>
+          </div>
         </div>
         
         <div class="brand-content">
           <div class="brand-logo">
             <div class="logo-badge">
               <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M9 12L11 14L15 10M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M9 12L11 14L15 10M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
             </div>
             <span class="logo-text">QM-AI</span>
@@ -239,7 +243,7 @@ export default {
   height: 600px;
   top: -200px;
   right: -100px;
-  background: radial-gradient(circle, rgba(22, 119, 255, 0.15) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba(22, 119, 255, 0.18) 0%, transparent 70%);
   pointer-events: none;
 }
 
@@ -249,7 +253,18 @@ export default {
   height: 400px;
   bottom: -100px;
   left: -50px;
-  background: radial-gradient(circle, rgba(82, 196, 26, 0.1) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba(82, 196, 26, 0.12) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.bg-gradient-3 {
+  position: absolute;
+  width: 500px;
+  height: 500px;
+  top: 40%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: radial-gradient(circle, rgba(64, 150, 255, 0.06) 0%, transparent 60%);
   pointer-events: none;
 }
 
@@ -257,10 +272,50 @@ export default {
   position: absolute;
   inset: 0;
   background-image: 
-    linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+    linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
   background-size: 40px 40px;
   pointer-events: none;
+}
+
+.bg-particles {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.particle {
+  position: absolute;
+  width: 3px;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 50%;
+  box-shadow: 0 0 6px rgba(64, 150, 255, 0.2);
+  animation: particleFloat 6s ease-in-out infinite;
+}
+
+.particle:nth-child(odd) {
+  width: 2px;
+  height: 2px;
+  background: rgba(255, 255, 255, 0.1);
+  animation-duration: 8s;
+  animation-delay: -3s;
+}
+
+.particle:nth-child(3n) {
+  width: 4px;
+  height: 4px;
+  background: rgba(64, 150, 255, 0.12);
+  box-shadow: 0 0 8px rgba(64, 150, 255, 0.3);
+  animation-duration: 7s;
+  animation-delay: -1s;
+}
+
+@keyframes particleFloat {
+  0%, 100% { transform: translateY(0) translateX(0); opacity: 0.4; }
+  25% { transform: translateY(-12px) translateX(4px); opacity: 0.8; }
+  50% { transform: translateY(-6px) translateX(-3px); opacity: 0.5; }
+  75% { transform: translateY(-18px) translateX(6px); opacity: 0.7; }
 }
 
 .brand-content {
@@ -283,13 +338,14 @@ export default {
 .logo-badge {
   width: 44px;
   height: 44px;
-  color: #4096ff;
-  background: rgba(64, 150, 255, 0.1);
+  color: #fff;
+  background: rgba(64, 150, 255, 0.15);
   border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid rgba(64, 150, 255, 0.2);
+  border: 1px solid rgba(64, 150, 255, 0.25);
+  box-shadow: 0 0 16px rgba(64, 150, 255, 0.12);
 }
 
 .logo-badge svg {
@@ -318,10 +374,10 @@ export default {
   letter-spacing: 0.3px;
 }
 
-/* Stats */
+/* Stats — Glass Morphism Cards */
 .brand-stats {
   display: flex;
-  gap: 28px;
+  gap: 16px;
   justify-content: center;
   margin-bottom: 40px;
 }
@@ -330,21 +386,34 @@ export default {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
+  padding: 18px 32px;
+  background: rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 
+    0 4px 24px rgba(0, 0, 0, 0.15),
+    0 0 0 1px rgba(255, 255, 255, 0.04) inset;
+  min-width: 110px;
 }
 
 .stat-value {
-  font-size: 26px;
+  font-size: 30px;
   font-weight: 700;
   color: #4096ff;
+  text-shadow: 0 0 20px rgba(64, 150, 255, 0.25);
+  line-height: 1.2;
 }
 
 .stat-label {
   font-size: 12px;
-  color: rgba(255, 255, 255, 0.55);
+  color: rgba(255, 255, 255, 0.78);
+  letter-spacing: 0.3px;
 }
 
-/* Feature Cards */
+/* Feature Cards — Glass Morphism */
 .brand-features {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -355,23 +424,19 @@ export default {
 .feature-item {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 10px 14px;
+  gap: 10px;
+  padding: 12px 16px;
   background: rgba(255, 255, 255, 0.06);
-  border-radius: 8px;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-radius: 10px;
   border: 1px solid rgba(255, 255, 255, 0.08);
   font-size: 13px;
-  color: rgba(255, 255, 255, 0.8);
-  transition: all 0.2s ease;
-}
-
-.feature-item:hover {
-  background: rgba(255, 255, 255, 0.1);
-  border-color: rgba(255, 255, 255, 0.15);
+  color: rgba(255, 255, 255, 0.82);
 }
 
 .feature-icon {
-  color: rgba(255, 255, 255, 0.6);
+  color: rgba(255, 255, 255, 0.65);
   flex-shrink: 0;
 }
 

@@ -18,11 +18,19 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     try
     {
         var serverVersion = ServerVersion.AutoDetect(connectionString);
-        options.UseMySql(connectionString, serverVersion);
+        options.UseMySql(connectionString, serverVersion,
+            mysqlOptions => mysqlOptions.EnableRetryOnFailure(
+                maxRetryCount: 5,
+                maxRetryDelay: TimeSpan.FromSeconds(30),
+                errorNumbersToAdd: null));
     }
     catch
     {
-        options.UseMySql(connectionString, ServerVersion.Parse("8.0.0"));
+        options.UseMySql(connectionString, ServerVersion.Parse("8.0.0"),
+            mysqlOptions => mysqlOptions.EnableRetryOnFailure(
+                maxRetryCount: 5,
+                maxRetryDelay: TimeSpan.FromSeconds(30),
+                errorNumbersToAdd: null));
     }
 });
 
@@ -113,7 +121,12 @@ builder.Services.AddSwaggerGen(options =>
 builder.Services.AddSignalR();
 
 // Controllers
-builder.Services.AddControllers();
+builder.Services.AddControllers().AddJsonOptions(options =>
+{
+    // 使用 camelCase 序列化，与前端 TypeScript 命名风格一致
+    options.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
+    options.JsonSerializerOptions.DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull;
+});
 
 // Services
 builder.Services.AddScoped<AuthService>();
@@ -140,6 +153,7 @@ builder.Services.AddScoped<TraceService>();
 
 // M09 客诉 8D
 builder.Services.AddScoped<ComplaintService>();
+builder.Services.AddScoped<D8ReportService>();
 
 // M11 设备联动
 builder.Services.AddScoped<EquipmentLinkService>();
@@ -161,6 +175,9 @@ using (var scope = app.Services.CreateScope())
     try
     {
         var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        // 自动创建缺失的表（EF Core 自动迁移）
+        await context.Database.EnsureCreatedAsync();
+        Console.WriteLine("[DB] Schema ensured (tables created if missing)");
         await DbInitializer.Initialize(context);
         Console.WriteLine("[Seed] 种子数据初始化完成");
     }

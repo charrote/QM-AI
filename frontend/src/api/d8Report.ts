@@ -5,7 +5,10 @@ const BASE = '/m09/d8reports'
 
 export const d8ReportApi = {
   list(complaintId?: number): Promise<D8Report[]> {
-    return request.get(`${BASE}/complaint/${complaintId ?? 0}`, { params: { complaintId } }).then(r => r.data)
+    if (complaintId && complaintId > 0) {
+      return request.get(`${BASE}/complaint/${complaintId}`).then(r => r.data)
+    }
+    return request.get(BASE).then(r => r.data)
   },
   create(data: CreateD8Report): Promise<D8Report> {
     return request.post(`${BASE}/complaint/${data.complaintId}`, data).then(r => r.data)

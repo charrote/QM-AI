@@ -19,16 +19,16 @@ public class SpcAnalysisResult
     [MaxLength(20)]
     public string AnalysisType { get; set; } = "cpk"; // cpk, ppk, capability
 
-    [Column(TypeName = "decimal(10,4)")]
+    [Column("cp", TypeName = "decimal(10,4)")]
     public decimal? Cp { get; set; }
 
-    [Column(TypeName = "decimal(10,4)")]
+    [Column("cpk", TypeName = "decimal(10,4)")]
     public decimal? Cpk { get; set; }
 
-    [Column(TypeName = "decimal(10,4)")]
+    [Column("pp", TypeName = "decimal(10,4)")]
     public decimal? Pp { get; set; }
 
-    [Column(TypeName = "decimal(10,4)")]
+    [Column("ppk", TypeName = "decimal(10,4)")]
     public decimal? Ppk { get; set; }
 
     [Column("sigma_within", TypeName = "decimal(15,6)")]

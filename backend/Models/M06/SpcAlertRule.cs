@@ -25,6 +25,7 @@ public class SpcAlertRule
     [Column("rule_description")]
     public string? RuleDescription { get; set; }
 
+    [Column("enabled")]
     public bool Enabled { get; set; } = true;
 
     [Column("trigger_threshold")]

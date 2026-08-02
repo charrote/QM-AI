@@ -182,7 +182,6 @@ export const menuConfigs: MenuConfig[] = [
     module: 'audits',
     children: [
       { id: 'audit-list', name: '审核列表', icon: 'Document', path: '/audits/list', closable: true, order: 1, module: 'audits' },
-      { id: 'audit-detail', name: '审核详情', icon: 'View', path: '/audits/detail', closable: true, order: 2, module: 'audits' },
       { id: 'finding', name: '不符合项管理', icon: 'WarningFilled', path: '/audits/finding', closable: true, order: 3, module: 'audits' },
     ],
   },

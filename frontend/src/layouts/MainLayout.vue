@@ -241,6 +241,8 @@ function handleMenuSelect(index: string) {
 }
 
 function handleLogout() {
+  // 退出登录前清除所有已打开的 Tab
+  tabStore.clearTabs()
   authStore.logout(() => {
     router.push('/login')
   })
@@ -336,44 +338,50 @@ function getIconComponent(iconName?: string) {
           </span>
           <template #dropdown>
             <el-dropdown-menu class="org-dropdown-menu">
-              <el-dropdown-item @click="orgStore.clearSelection()" :class="{ 'is-active': !orgStore.selectedOrgId }">
-                <el-icon><RefreshLeft /></el-icon>
-                全企业
-              </el-dropdown-item>
+              <!-- 顶部固定区：全企业 + 搜索 + 计数 -->
+              <div class="org-dropdown-header">
+                <el-dropdown-item @click="orgStore.clearSelection()" :class="{ 'is-active': !orgStore.selectedOrgId }">
+                  <el-icon><RefreshLeft /></el-icon>
+                  全企业
+                </el-dropdown-item>
 
-              <!-- 搜索框 -->
-              <div class="org-search-box">
-                <el-input
-                  v-model="orgSearch"
-                  placeholder="搜索组织名称..."
-                  size="small"
-                  clearable
-                  prefix-icon="Search"
-                  @input="filterOrgList"
-                />
+                <!-- 搜索框 -->
+                <div class="org-search-box">
+                  <el-input
+                    v-model="orgSearch"
+                    placeholder="搜索组织名称..."
+                    size="small"
+                    clearable
+                    prefix-icon="Search"
+                    @input="filterOrgList"
+                  />
+                </div>
+
+                <el-dropdown-item divided disabled style="font-size: 11px; color: #909399; cursor: default; padding: 4px 16px;">
+                  {{ filteredOrgs.length }} 个组织
+                </el-dropdown-item>
               </div>
 
-              <el-dropdown-item divided disabled style="font-size: 11px; color: #909399; cursor: default; padding: 4px 16px;">
-                {{ filteredOrgs.length }} 个组织
-              </el-dropdown-item>
+              <!-- 组织列表滚动区 -->
+              <div class="org-list-scroll">
+                <template v-for="org in filteredOrgs" :key="org.id">
+                  <el-dropdown-item
+                    @click="selectOrgItem(org)"
+                    :class="{ 'is-active': orgStore.selectedOrgId === org.id }"
+                  >
+                    <span :style="{ paddingLeft: getLevelPadding(org.level) + 'px' }">
+                      <el-icon :size="14" :class="['org-level-icon', org.level]">
+                        <component :is="getOrgLevelIcon(org.level)" />
+                      </el-icon>
+                      {{ org.name }}
+                    </span>
+                  </el-dropdown-item>
+                </template>
 
-              <template v-for="org in filteredOrgs" :key="org.id">
-                <el-dropdown-item
-                  @click="selectOrgItem(org)"
-                  :class="{ 'is-active': orgStore.selectedOrgId === org.id }"
-                >
-                  <span :style="{ paddingLeft: getLevelPadding(org.level) + 'px' }">
-                    <el-icon :size="14" :class="['org-level-icon', org.level]">
-                      <component :is="getOrgLevelIcon(org.level)" />
-                    </el-icon>
-                    {{ org.name }}
-                  </span>
+                <el-dropdown-item v-if="filteredOrgs.length === 0" disabled style="padding: 16px; color: #909399; text-align: center;">
+                  无匹配结果
                 </el-dropdown-item>
-              </template>
-
-              <el-dropdown-item v-if="filteredOrgs.length === 0" disabled style="padding: 16px; color: #909399; text-align: center;">
-                无匹配结果
-              </el-dropdown-item>
+              </div>
             </el-dropdown-menu>
           </template>
         </el-dropdown>
@@ -402,7 +410,7 @@ function getIconComponent(iconName?: string) {
         <div class="header-icon-btn" @click="toggleFullscreen" title="全屏">
           <el-icon :size="17">
             <FullScreen v-if="!isFullscreen" />
-            <Bug v-else />
+            <FullScreen v-else />
           </el-icon>
         </div>
 
@@ -1034,6 +1042,18 @@ html.dark .org-dropdown-menu .is-active {
   background: rgba(22, 119, 255, 0.15);
 }
 
+/* Dropdown header: fixed top section (全企业 + search + count) */
+.org-dropdown-header {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--el-bg-color, #fff);
+}
+
+html.dark .org-dropdown-header {
+  background: var(--el-bg-color, #1e1e1e);
+}
+
 /* Org search box */
 .org-search-box {
   padding: var(--space-2) var(--space-3);
@@ -1075,6 +1095,30 @@ html.dark .org-dropdown-menu .org-level-icon.line { color: #4ade80; }
 
 html.dark .org-path {
   color: var(--text-secondary, #71717a);
+}
+
+/* Org list scroll area: fixed max-height with scroll */
+.org-list-scroll {
+  max-height: 300px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+.org-list-scroll::-webkit-scrollbar {
+  width: 5px;
+}
+
+.org-list-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.org-list-scroll::-webkit-scrollbar-thumb {
+  background: var(--el-border-color, #dcdfe6);
+  border-radius: 3px;
+}
+
+.org-list-scroll::-webkit-scrollbar-thumb:hover {
+  background: var(--el-border-color-dark, #c0c4cc);
 }
 
 /* ═══ Responsive ═══ */

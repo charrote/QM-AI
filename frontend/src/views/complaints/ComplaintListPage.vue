@@ -2,7 +2,7 @@
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Search, Refresh, Plus, Edit, Delete, Document, TrendCharts, Check, Close, ChatLineSquare } from '@element-plus/icons-vue'
+import { Search, Refresh, Plus, Edit, Delete, Document, TrendCharts, Check, Close, ChatLineSquare, WarningFilled, Clock } from '@element-plus/icons-vue'
 import { complaintApi } from '@/api/complaint'
 import { customerApi } from '@/api/basicData'
 import type { Complaint, CreateComplaint, UpdateComplaint } from '@/types/complaint'
@@ -12,7 +12,8 @@ import {
 } from '@/types/complaint'
 import DataTable, { type Column } from '@/components/common/DataTable.vue'
 import StatusTag from '@/components/common/StatusTag.vue'
-import FormDialog from '@/components/common/FormDialog.vue'
+import RightPanel from '@/components/layout/RightPanel.vue'
+import { useRightPanel } from '@/composables/useRightPanel'
 import { usePagination } from '@/composables/usePagination'
 
 defineOptions({ name: 'ComplaintListPage' })
@@ -42,7 +43,7 @@ const stats = reactive({
 })
 
 // Dialog state
-const dialogVisible = ref(false)
+const formPanel = useRightPanel()
 const isEditing = ref(false)
 const currentId = ref<number | null>(null)
 const submitLoading = ref(false)
@@ -88,7 +89,8 @@ async function loadComplaints() {
 
 async function loadStats() {
   try {
-    Object.assign(stats, { totalCount: 0, bySeverity: {}, byStatus: {}, avgDaysToClose: 0 })
+    const res = await complaintApi.stats()
+    Object.assign(stats, res)
   } catch (e) {
     console.error('Failed to load stats', e)
   }
@@ -125,13 +127,13 @@ function applySearch() {
 
 // ─── CRUD operations ─────────────────────────────────────
 function openCreate() {
-isEditing.value = false
+ isEditing.value = false
   currentId.value = null
   Object.assign(form, {
     complaintCode: '', customerId: undefined, severity: 'minor',
     subject: '', description: '', assignedTo: undefined, dueDate: '',
   })
-  dialogVisible.value = true
+  formPanel.open()
 }
 
 function openEdit(row: Complaint) {
@@ -146,7 +148,7 @@ function openEdit(row: Complaint) {
     assignedTo: row.assignedTo?.toString() || '',
     dueDate: row.dueDate?.slice(0, 10) || '',
   })
-  dialogVisible.value = true
+  formPanel.open()
 }
 
 async function saveComplaint(formData: Partial<CreateComplaint>) {
@@ -163,8 +165,9 @@ async function saveComplaint(formData: Partial<CreateComplaint>) {
       await complaintApi.create(formData as CreateComplaint)
       ElMessage.success('客诉已创建')
     }
-    dialogVisible.value = false
+          formPanel.close()
     await Promise.all([loadComplaints(), loadStats()])
+  
   } catch (e: any) {
     ElMessage.error(e?.response?.data?.message || '操作失败')
   } finally {
@@ -206,231 +209,224 @@ async function transitionStatus(row: Complaint, newStatus: string) {
 onMounted(async () => {
   await Promise.all([loadComplaints(), loadStats(), loadCustomers()])
 })
+
+// ─── Stat card helpers ───────────────────────────────────
+function severityClass(v: string): string {
+  const map: Record<string, string> = { critical: 'danger', major: 'warning', minor: 'success' }
+  return map[v] || 'info'
+}
+function severityIconClass(v: string): string {
+  const map: Record<string, string> = { critical: 'stat-grid__icon--danger', major: 'stat-grid__icon--warning', minor: 'stat-grid__icon--success' }
+  return map[v] || 'stat-grid__icon--info'
+}
+function statusClass(v: string): string {
+  const map: Record<string, string> = { new: 'info', acknowledged: 'primary', in_progress: 'warning', closed: 'success' }
+  return map[v] || 'info'
+}
+function statusIconClass(v: string): string {
+  const map: Record<string, string> = { new: 'stat-grid__icon--info', acknowledged: 'stat-grid__icon--primary', in_progress: 'stat-grid__icon--warning', closed: 'stat-grid__icon--success' }
+  return map[v] || 'stat-grid__icon--info'
+}
 </script>
 
 <template>
-  <div class="page-container">
-    <!-- Page Header -->
-    <div class="page-header">
-      <div class="page-header__main">
-        <el-icon class="page-header__icon" :size="28"><ChatLineSquare /></el-icon>
-        <div class="page-header__text">
-          <h2 class="page-header__title">客户投诉</h2>
-          <p class="page-header__subtitle">管理客户投诉与处理流程</p>
+  <div class="iqc-container">
+    <!-- Header Banner -->
+    <div class="page-header-banner page-header-banner--primary">
+      <div class="page-header-banner-main">
+        <div class="page-header-banner-icon">
+          <el-icon :size="28"><ChatLineSquare /></el-icon>
+        </div>
+        <div class="page-header-banner-text">
+          <h2 class="page-header-banner-title">客户投诉管理</h2>
+          <span class="page-header-banner-subtitle">管理客户投诉记录，追踪处理进度，推进8D分析与CAPA</span>
         </div>
       </div>
-      <div class="page-header__actions">
-        <el-button :icon="Plus" type="primary" @click="openCreate">新建客诉</el-button>
+    </div>
+
+    <!-- Stats Grid -->
+    <div class="stat-grid">
+      <div class="stat-grid__item stat-grid__item--primary">
+        <div class="stat-grid__icon stat-grid__icon--primary"><el-icon><ChatLineSquare /></el-icon></div>
+        <div class="stat-grid__text">
+          <div class="stat-grid__label">投诉总数</div>
+          <div class="stat-grid__value">{{ stats.totalCount }}</div>
+        </div>
+      </div>
+      <div v-for="item in SEVERITY_OPTIONS" :key="item.value" class="stat-grid__item"
+           :class="'stat-grid__item--' + severityClass(item.value)">
+        <div :class="['stat-grid__icon', severityIconClass(item.value)]">
+          <el-icon><WarningFilled /></el-icon>
+        </div>
+        <div class="stat-grid__text">
+          <div class="stat-grid__label">{{ item.label }}</div>
+          <div class="stat-grid__value">{{ stats.bySeverity[item.value] || 0 }}</div>
+        </div>
+      </div>
+      <div v-for="item in STATUS_OPTIONS" :key="item.value" class="stat-grid__item"
+           :class="'stat-grid__item--' + statusClass(item.value)">
+        <div :class="['stat-grid__icon', statusIconClass(item.value)]">
+          <el-icon><Document /></el-icon>
+        </div>
+        <div class="stat-grid__text">
+          <div class="stat-grid__label">{{ item.label }}</div>
+          <div class="stat-grid__value">{{ stats.byStatus[item.value] || 0 }}</div>
+        </div>
+      </div>
+      <div class="stat-grid__item stat-grid__item--info">
+        <div class="stat-grid__icon stat-grid__icon--info"><el-icon><Clock /></el-icon></div>
+        <div class="stat-grid__text">
+          <div class="stat-grid__label">平均处理天数</div>
+          <div class="stat-grid__value">{{ stats.avgDaysToClose.toFixed(1) }}</div>
+        </div>
       </div>
     </div>
 
-    <!-- Stats Cards -->
-    <el-row :gutter="12" class="stats-row">
-      <el-col :xs="12" :sm="6" :lg="4">
-        <el-card shadow="hover" class="stat-card">
-          <div class="stat-value">{{ stats.totalCount }}</div>
-          <div class="stat-label">投诉总数</div>
-        </el-card>
-      </el-col>
-      <el-col v-for="item in SEVERITY_OPTIONS" :key="item.value" :xs="12" :sm="6" :lg="4">
-        <el-card shadow="hover" class="stat-card">
-          <div class="stat-value">{{ stats.bySeverity[item.value] || 0 }}</div>
-          <div class="stat-label">{{ item.label }}</div>
-        </el-card>
-      </el-col>
-      <el-col v-for="item in STATUS_OPTIONS" :key="item.value" :xs="12" :sm="6" :lg="4">
-        <el-card shadow="hover" class="stat-card">
-          <div class="stat-value">{{ stats.byStatus[item.value] || 0 }}</div>
-          <div class="stat-label">{{ item.label }}</div>
-        </el-card>
-      </el-col>
-      <el-col :xs="12" :sm="6" :lg="4">
-        <el-card shadow="hover" class="stat-card">
-          <div class="stat-value">{{ stats.avgDaysToClose.toFixed(1) }}</div>
-          <div class="stat-label">平均处理天数</div>
-        </el-card>
-      </el-col>
-    </el-row>
-
-    <!-- Search Toolbar -->
-    <div class="toolbar-row">
-      <el-input
-        v-model="searchKeyword"
-        placeholder="搜索代码/主题/客户..."
-        :prefix-icon="Search"
-        clearable
-        style="width: 260px"
-        @keyup.enter="applySearch"
-      />
-      <el-select v-model="customerIdFilter" placeholder="客户" clearable filterable style="width: 180px" @change="applySearch">
-        <el-option v-for="opt in customerOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
-      </el-select>
-      <el-select v-model="severityFilter" placeholder="严重程度" clearable style="width: 140px" @change="applySearch">
-        <el-option v-for="opt in SEVERITY_OPTIONS" :key="opt.value" :label="opt.label" :value="opt.value" />
-      </el-select>
-      <el-select v-model="statusFilter" placeholder="状态" clearable style="width: 140px" @change="applySearch">
-        <el-option v-for="opt in STATUS_OPTIONS" :key="opt.value" :label="opt.label" :value="opt.value" />
-      </el-select>
-      <el-button :icon="Refresh" @click="loadComplaints">刷新</el-button>
-      <div class="toolbar-spacer" />
+    <!-- Data Card -->
+    <div class="data-card">
+      <div class="data-card__header">
+        <span class="data-card__title">
+          <el-icon style="color: var(--primary)"><ChatLineSquare /></el-icon>
+          客诉清单
+          <el-tag v-if="pagination.total.value" type="info" size="small">{{ pagination.total.value }} 条</el-tag>
+        </span>
+        <div class="data-card__toolbar">
+          <el-input
+            v-model="searchKeyword"
+            placeholder="搜索代码/主题/客户..."
+            clearable
+            size="small"
+            :prefix-icon="Search"
+            style="width: 220px"
+            @keyup.enter="applySearch"
+          />
+          <el-select v-model="customerIdFilter" placeholder="客户" clearable size="small" filterable style="width: 160px" @change="applySearch">
+            <el-option v-for="opt in customerOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
+          </el-select>
+          <el-select v-model="severityFilter" placeholder="严重程度" clearable size="small" style="width: 120px" @change="applySearch">
+            <el-option v-for="opt in SEVERITY_OPTIONS" :key="opt.value" :label="opt.label" :value="opt.value" />
+          </el-select>
+          <el-select v-model="statusFilter" placeholder="状态" clearable size="small" style="width: 100px" @change="applySearch">
+            <el-option v-for="opt in STATUS_OPTIONS" :key="opt.value" :label="opt.label" :value="opt.value" />
+          </el-select>
+          <el-button size="small" @click="loadComplaints"><el-icon><Refresh /></el-icon>刷新</el-button>
+          <el-button type="primary" size="small" @click="openCreate"><el-icon><Plus /></el-icon>新建客诉</el-button>
+        </div>
+      </div>
+      <div class="data-card__table">
+        <DataTable
+          :data="complaints"
+          :columns="tableColumns"
+          :loading="pagination.loading.value"
+          :total="pagination.total.value"
+          :current-page="pagination.currentPage.value"
+          :page-size="pagination.pageSize.value"
+          :page-sizes="[10, 20, 50, 100]"
+          @update:current-page="handlePageChange"
+          @update:page-size="handleSizeChange"
+        >
+          <template #customerName="{ row }">
+            {{ (row.customer && row.customer.name) || row.customerName || '-' }}
+          </template>
+          <template #severity="{ row }">
+            <StatusTag :status="row.severity" :text="SEVERITY_MAP[row.severity] || row.severity" />
+          </template>
+          <template #status="{ row }">
+            <StatusTag :status="row.status" :text="STATUS_MAP[row.status] || row.status" />
+          </template>
+          <template #assignedTo="{ row }">
+            {{ row.assignedTo || '-' }}
+          </template>
+          <template #dueDate="{ row }">
+            {{ row.dueDate?.slice(0, 10) || '-' }}
+          </template>
+          <template #createdAt="{ row }">
+            {{ row.createdAt ? new Date(row.createdAt).toLocaleString('zh-CN') : '-' }}
+          </template>
+          <template #actions="{ row }">
+            <el-button link size="small" type="primary" :icon="Edit" @click.stop="openEdit(row)">编辑</el-button>
+            <el-button link size="small" type="primary" :icon="Document" @click.stop="viewDetail(row)">详情</el-button>
+            <el-button link size="small" type="warning" :icon="TrendCharts" @click.stop="goToCapa(row)">CAPA</el-button>
+            <el-button
+              v-if="row.status === 'new'"
+              link size="small" type="success" :icon="Check"
+              @click.stop="transitionStatus(row, 'acknowledged')"
+            >确认接收</el-button>
+            <el-button
+              v-if="row.status === 'in_progress'"
+              link size="small" type="success" :icon="Close"
+              @click.stop="transitionStatus(row, 'closed')"
+            >关闭</el-button>
+            <el-button link size="small" type="danger" :icon="Delete" @click.stop="deleteComplaint(row)">删除</el-button>
+          </template>
+        </DataTable>
+      </div>
+      <div class="data-card__footer">
+        <div class="data-card__pagination">
+          <el-pagination
+            v-model:current-page="pagination.currentPage.value"
+            v-model:page-size="pagination.pageSize.value"
+            :total="pagination.total.value"
+            :page-sizes="[10, 20, 50, 100]"
+            layout="total, sizes, prev, pager, next, jumper"
+            @size-change="handleSizeChange"
+            @current-change="handlePageChange"
+          />
+        </div>
+      </div>
     </div>
 
-    <!-- Data Table -->
-    <DataTable
-      :data="complaints"
-      :columns="tableColumns"
-      :loading="pagination.loading.value"
-      :total="pagination.total.value"
-      :current-page="pagination.currentPage.value"
-      :page-size="pagination.pageSize.value"
-      :page-sizes="[10, 20, 50, 100]"
-      @update:current-page="handlePageChange"
-      @update:page-size="handleSizeChange"
-    >
-      <template #severity="{ row }">
-        <StatusTag :status="row.severity" :text="SEVERITY_MAP[row.severity] || row.severity" />
+    <!-- Create/Edit Panel -->
+    <RightPanel v-model:visible="formPanel.visible" :title="isEditing ? '编辑客诉' : '新建客诉'" :width="680">
+      <template #body>
+        <el-form :model="form" label-width="90px" size="default">
+          <el-row :gutter="16">
+            <el-col :span="12">
+              <el-form-item label="投诉代码" required>
+                <el-input v-model="form.complaintCode" placeholder="如: CMP-2026-001" :disabled="isEditing" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="客户" required>
+                <el-select v-model="form.customerId" filterable placeholder="选择客户" style="width: 100%">
+                  <el-option v-for="opt in customerOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
+                </el-select>
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row :gutter="16">
+            <el-col :span="12">
+              <el-form-item label="严重程度" required>
+                <el-select v-model="form.severity" style="width: 100%">
+                  <el-option v-for="opt in SEVERITY_OPTIONS" :key="opt.value" :label="opt.label" :value="opt.value" />
+                </el-select>
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="负责人">
+                <el-input v-model="form.assignedTo" placeholder="负责人姓名" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-form-item label="主题" required>
+            <el-input v-model="form.subject" placeholder="客诉主题" />
+          </el-form-item>
+          <el-form-item label="描述">
+            <el-input v-model="form.description" type="textarea" :rows="3" placeholder="客诉描述" />
+          </el-form-item>
+          <el-row :gutter="16">
+            <el-col :span="12">
+              <el-form-item label="截止日期">
+                <el-date-picker v-model="form.dueDate" type="date" value-format="YYYY-MM-DD" style="width: 100%" placeholder="选择日期" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+        </el-form>
       </template>
-      <template #status="{ row }">
-        <StatusTag :status="row.status" :text="STATUS_MAP[row.status] || row.status" />
+      <template #footer>
+        <el-button @click="formPanel.close()">取消</el-button>
+        <el-button type="primary" :loading="submitLoading" @click="saveComplaint(form as CreateComplaint)">保存</el-button>
       </template>
-      <template #assignedTo="{ row }">
-        {{ row.assignedTo || '-' }}
-      </template>
-      <template #dueDate="{ row }">
-        {{ row.dueDate?.slice(0, 10) || '-' }}
-      </template>
-      <template #createdAt="{ row }">
-        {{ row.createdAt ? new Date(row.createdAt).toLocaleString('zh-CN') : '-' }}
-      </template>
-      <template #actions="{ row }">
-        <el-button link size="small" type="primary" :icon="Edit" @click.stop="openEdit(row)">编辑</el-button>
-        <el-button link size="small" type="primary" :icon="Document" @click.stop="viewDetail(row)">详情</el-button>
-        <el-button link size="small" type="warning" :icon="TrendCharts" @click.stop="goToCapa(row)">CAPA</el-button>
-        <el-button
-          v-if="row.status === 'new'"
-          link size="small" type="success" :icon="Check"
-          @click.stop="transitionStatus(row, 'acknowledged')"
-        >确认接收</el-button>
-        <el-button
-          v-if="row.status === 'in_progress'"
-          link size="small" type="success" :icon="Close"
-          @click.stop="transitionStatus(row, 'closed')"
-        >关闭</el-button>
-        <el-button link size="small" type="danger" :icon="Delete" @click.stop="deleteComplaint(row)">删除</el-button>
-      </template>
-    </DataTable>
-
-    <!-- Create/Edit Dialog -->
-    <FormDialog
-      :visible="dialogVisible"
-      :title="isEditing ? '编辑客诉' : '新建客诉'"
-      :loading="submitLoading"
-      width="680px"
-      @update:visible="dialogVisible = $event"
-      @submit="saveComplaint(form as CreateComplaint)"
-    >
-      <el-form :model="form" label-width="90px" size="default">
-        <el-row :gutter="16">
-          <el-col :span="12">
-            <el-form-item label="投诉代码" required>
-              <el-input v-model="form.complaintCode" placeholder="如: CMP-2026-001" :disabled="isEditing" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="客户" required>
-              <el-select v-model="form.customerId" filterable placeholder="选择客户" style="width: 100%">
-                <el-option v-for="opt in customerOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
-              </el-select>
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="16">
-          <el-col :span="12">
-            <el-form-item label="严重程度" required>
-              <el-select v-model="form.severity" style="width: 100%">
-                <el-option v-for="opt in SEVERITY_OPTIONS" :key="opt.value" :label="opt.label" :value="opt.value" />
-              </el-select>
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="负责人">
-              <el-input v-model="form.assignedTo" placeholder="负责人姓名" />
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-form-item label="主题" required>
-          <el-input v-model="form.subject" placeholder="客诉主题" />
-        </el-form-item>
-        <el-form-item label="描述">
-          <el-input v-model="form.description" type="textarea" :rows="3" placeholder="客诉描述" />
-        </el-form-item>
-        <el-row :gutter="16">
-          <el-col :span="12">
-            <el-form-item label="截止日期">
-              <el-date-picker v-model="form.dueDate" type="date" value-format="YYYY-MM-DD" style="width: 100%" placeholder="选择日期" />
-            </el-form-item>
-          </el-col>
-        </el-row>
-      </el-form>
-    </FormDialog>
+    </RightPanel>
   </div>
 </template>
-
-<style scoped>
-.page-container { display: flex; flex-direction: column; height: 100%; gap: 16px; }
-
-/* Page Header */
-.page-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  background: var(--el-bg-color);
-  border-radius: var(--radius-lg, 8px);
-  padding: 16px 20px;
-  border: 1px solid var(--el-border-color-lighter);
-}
-.page-header__main { display: flex; align-items: center; gap: 12px; }
-.page-header__icon {
-  color: var(--el-color-primary);
-  flex-shrink: 0;
-}
-.page-header__title {
-  margin: 0;
-  font-size: 20px;
-  font-weight: 600;
-  color: var(--el-text-color-primary);
-  line-height: 1.2;
-}
-.page-header__subtitle {
-  margin: 4px 0 0;
-  font-size: 13px;
-  color: var(--el-text-color-secondary);
-}
-.page-header__actions { display: flex; gap: 8px; }
-
-/* Toolbar */
-.toolbar-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-.toolbar-spacer { flex: 1; }
-
-/* Stats */
-.stats-row { margin: 0; }
-
-.stat-card { text-align: center; }
-
-.stat-value {
-  font-size: 28px;
-  font-weight: 700;
-  color: var(--el-text-color-primary);
-}
-
-.stat-label {
-  font-size: 13px;
-  color: var(--el-text-color-secondary);
-  margin-top: 4px;
-}
-</style>

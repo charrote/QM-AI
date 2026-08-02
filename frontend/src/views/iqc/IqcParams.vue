@@ -3,6 +3,7 @@ import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { paramGroupApi, dynamicParamApi, closureRuleApi } from '@/api/dynamicParams'
 import { Setting, Document, DataAnalysis, Tools, FolderOpened, Edit, Delete, Cpu } from '@element-plus/icons-vue'
+import RightPanel from '@/components/layout/RightPanel.vue'
 import type {
   ParamGroup, ParamGroupDetail, CreateParamGroup,
   DynamicParam, DynamicParamDetail, CreateDynamicParam, UpdateDynamicParam,
@@ -719,278 +720,264 @@ onMounted(async () => {
     <!-- Dialogs -->
     <!-- ================================================================== -->
 
-    <!-- 参数组 Drawer -->
-    <el-drawer
-      v-model="groupDialogVisible"
-      :title="isEditingGroup ? '编辑参数组' : '新建参数组'"
-      size="520px"
-      direction="rtl"
-      :close-on-click-modal="false"
-    >
-      <div class="dialog-section">
-        <div class="dialog-section-header">
-          <el-icon class="dialog-section-icon"><Edit /></el-icon>
-          <span class="dialog-section-title">组信息</span>
+    <!-- RightPanel: 参数组 -->
+    <RightPanel v-model:visible="groupDialogVisible" :title="isEditingGroup ? '编辑参数组' : '新建参数组'" :width="520">
+      <template #body>
+        <div class="dialog-section">
+          <div class="dialog-section-header">
+            <el-icon class="dialog-section-icon"><Edit /></el-icon>
+            <span class="dialog-section-title">组信息</span>
+          </div>
+          <el-form :model="groupForm" label-width="100px" >
+            <el-form-item label="组名称" required>
+              <el-input v-model="groupForm.name" placeholder="如：热力学参数组" />
+            </el-form-item>
+            <el-form-item label="组编码" :required="!isEditingGroup">
+              <el-input
+                v-model="groupForm.code"
+                :disabled="isEditingGroup"
+                placeholder="如：thermo_params"
+              />
+            </el-form-item>
+            <el-form-item label="排序号">
+              <el-input-number v-model="groupForm.sortOrder!" :min="0" :step="1" />
+            </el-form-item>
+            <el-form-item label="描述">
+              <el-input v-model="groupForm.description" type="textarea" :rows="3" />
+            </el-form-item>
+          </el-form>
         </div>
-        <el-form :model="groupForm" label-width="100px" >
-          <el-form-item label="组名称" required>
-            <el-input v-model="groupForm.name" placeholder="如：热力学参数组" />
-          </el-form-item>
-          <el-form-item label="组编码" :required="!isEditingGroup">
-            <el-input
-              v-model="groupForm.code"
-              :disabled="isEditingGroup"
-              placeholder="如：thermo_params"
-            />
-          </el-form-item>
-          <el-form-item label="排序号">
-            <el-input-number v-model="groupForm.sortOrder!" :min="0" :step="1" />
-          </el-form-item>
-          <el-form-item label="描述">
-            <el-input v-model="groupForm.description" type="textarea" :rows="3" />
-          </el-form-item>
-        </el-form>
-      </div>
+      </template>
       <template #footer>
         <div style="display: flex; gap: 8px; justify-content: flex-end;">
           <el-button size="small" @click="groupDialogVisible = false">取消</el-button>
           <el-button size="small" type="primary" @click="saveGroup">保存</el-button>
         </div>
       </template>
-    </el-drawer>
+    </RightPanel>
 
-    <!-- 参数 Drawer -->
-    <el-drawer
-      v-model="paramDialogVisible"
-      :title="isEditingParam ? '编辑参数' : '新建参数'"
-      size="620px"
-      direction="rtl"
-      :close-on-click-modal="false"
-    >
-      <div class="dialog-section">
-        <div class="dialog-section-header">
-          <el-icon class="dialog-section-icon"><Tools /></el-icon>
-          <span class="dialog-section-title">基本信息</span>
-        </div>
-        <el-form :model="paramForm" label-width="120px" >
-          <el-form-item label="参数名称" required>
-            <el-input v-model="paramForm.name" placeholder="如：温度-精加工" />
-          </el-form-item>
-          <el-form-item label="参数编码" :required="!isEditingParam">
-            <el-input
-              v-model="paramForm.code"
-              :disabled="isEditingParam"
-              placeholder="如：temp_finishing"
-            />
-          </el-form-item>
-          <el-form-item label="数据类型" required>
-            <el-select v-model="paramForm.dataType" style="width: 100%">
-              <el-option
-                v-for="opt in dataTypeOptions"
-                :key="opt.value"
-                :value="opt.value"
-                :label="opt.label"
+    <!-- RightPanel: 参数 -->
+    <RightPanel v-model:visible="paramDialogVisible" :title="isEditingParam ? '编辑参数' : '新建参数'" :width="620">
+      <template #body>
+        <div class="dialog-section">
+          <div class="dialog-section-header">
+            <el-icon class="dialog-section-icon"><Tools /></el-icon>
+            <span class="dialog-section-title">基本信息</span>
+          </div>
+          <el-form :model="paramForm" label-width="120px" >
+            <el-form-item label="参数名称" required>
+              <el-input v-model="paramForm.name" placeholder="如：温度-精加工" />
+            </el-form-item>
+            <el-form-item label="参数编码" :required="!isEditingParam">
+              <el-input
+                v-model="paramForm.code"
+                :disabled="isEditingParam"
+                placeholder="如：temp_finishing"
               />
-            </el-select>
-          </el-form-item>
-          <el-form-item label="单位">
-            <el-input v-model="paramForm.unit" placeholder="如：℃" />
-          </el-form-item>
-        </el-form>
-      </div>
-
-      <div class="dialog-section" v-if="paramForm.dataType === 'numeric'">
-        <div class="dialog-section-header">
-          <el-icon class="dialog-section-icon"><DataAnalysis /></el-icon>
-          <span class="dialog-section-title">规格限设置</span>
+            </el-form-item>
+            <el-form-item label="数据类型" required>
+              <el-select v-model="paramForm.dataType" style="width: 100%">
+                <el-option
+                  v-for="opt in dataTypeOptions"
+                  :key="opt.value"
+                  :value="opt.value"
+                  :label="opt.label"
+                />
+              </el-select>
+            </el-form-item>
+            <el-form-item label="单位">
+              <el-input v-model="paramForm.unit" placeholder="如：℃" />
+            </el-form-item>
+          </el-form>
         </div>
-        <el-form :model="paramForm" label-width="100px">
-          <el-row :gutter="16">
-            <el-col :span="12">
-              <el-form-item label="目标值">
-                <el-input-number 
-                  v-model="paramForm.targetValue!" 
-                  :precision="paramForm.precision || 0" 
-                  :step="getStepSize(paramForm.precision || 0)"
-                  controls-position="right" 
-                  style="width: 100%" 
-                />
-              </el-form-item>
-            </el-col>
-            <el-col :span="12">
-              <el-form-item label="精度（小数位）">
-                <el-input-number v-model="paramForm.precision!" :min="0" :max="6" :step="1" controls-position="right" style="width: 100%" />
-              </el-form-item>
-            </el-col>
-          </el-row>
-          <el-row :gutter="16">
-            <el-col :span="12">
-              <el-form-item label="上规格限 (USL)">
-                <el-input-number 
-                  v-model="paramForm.usl!" 
-                  :precision="paramForm.precision || 0" 
-                  :step="getStepSize(paramForm.precision || 0)"
-                  controls-position="right" 
-                  style="width: 100%" 
-                />
-              </el-form-item>
-            </el-col>
-            <el-col :span="12">
-              <el-form-item label="下规格限 (LSL)">
-                <el-input-number 
-                  v-model="paramForm.lsl!" 
-                  :precision="paramForm.precision || 0" 
-                  :step="getStepSize(paramForm.precision || 0)"
-                  controls-position="right" 
-                  style="width: 100%" 
-                />
-              </el-form-item>
-            </el-col>
-          </el-row>
-          <el-form-item v-if="specLimitError" label=" " label-width="100px">
-            <span style="color: var(--el-color-danger)">{{ specLimitError }}</span>
-          </el-form-item>
-        </el-form>
-      </div>
 
-      <div class="dialog-section">
-        <div class="dialog-section-header">
-          <el-icon class="dialog-section-icon"><Cpu /></el-icon>
-          <span class="dialog-section-title">高级设置</span>
+        <div class="dialog-section" v-if="paramForm.dataType === 'numeric'">
+          <div class="dialog-section-header">
+            <el-icon class="dialog-section-icon"><DataAnalysis /></el-icon>
+            <span class="dialog-section-title">规格限设置</span>
+          </div>
+          <el-form :model="paramForm" label-width="100px">
+            <el-row :gutter="16">
+              <el-col :span="12">
+                <el-form-item label="目标值">
+                  <el-input-number 
+                    v-model="paramForm.targetValue!" 
+                    :precision="paramForm.precision || 0" 
+                    :step="getStepSize(paramForm.precision || 0)"
+                    controls-position="right" 
+                    style="width: 100%" 
+                  />
+                </el-form-item>
+              </el-col>
+              <el-col :span="12">
+                <el-form-item label="精度（小数位）">
+                  <el-input-number v-model="paramForm.precision!" :min="0" :max="6" :step="1" controls-position="right" style="width: 100%" />
+                </el-form-item>
+              </el-col>
+            </el-row>
+            <el-row :gutter="16">
+              <el-col :span="12">
+                <el-form-item label="上规格限 (USL)">
+                  <el-input-number 
+                    v-model="paramForm.usl!" 
+                    :precision="paramForm.precision || 0" 
+                    :step="getStepSize(paramForm.precision || 0)"
+                    controls-position="right" 
+                    style="width: 100%" 
+                  />
+                </el-form-item>
+              </el-col>
+              <el-col :span="12">
+                <el-form-item label="下规格限 (LSL)">
+                  <el-input-number 
+                    v-model="paramForm.lsl!" 
+                    :precision="paramForm.precision || 0" 
+                    :step="getStepSize(paramForm.precision || 0)"
+                    controls-position="right" 
+                    style="width: 100%" 
+                  />
+                </el-form-item>
+              </el-col>
+            </el-row>
+            <el-form-item v-if="specLimitError" label=" " label-width="100px">
+              <span style="color: var(--el-color-danger)">{{ specLimitError }}</span>
+            </el-form-item>
+          </el-form>
         </div>
-        <el-form :model="paramForm" label-width="120px">
-          <el-form-item label="AI 策略预置">
-            <el-select v-model="paramForm.aiStrategy" style="width: 100%" clearable placeholder="选择 AI 策略">
-              <el-option
-                v-for="s in filteredStrategies"
-                :key="s.id"
-                :value="s.id"
-                :label="s.name"
-              >
-                <span>{{ s.name }}</span>
-                <span class="strategy-desc">{{ s.description }}</span>
-              </el-option>
-            </el-select>
-          </el-form-item>
-          <el-form-item label="排序号">
-            <el-input-number v-model="paramForm.sortOrder!" :min="0" :step="1" style="width: 100%" />
-          </el-form-item>
-          <el-form-item label="启用状态">
-            <el-switch v-model="paramForm.isActive" />
-          </el-form-item>
-        </el-form>
-      </div>
 
+        <div class="dialog-section">
+          <div class="dialog-section-header">
+            <el-icon class="dialog-section-icon"><Cpu /></el-icon>
+            <span class="dialog-section-title">高级设置</span>
+          </div>
+          <el-form :model="paramForm" label-width="120px">
+            <el-form-item label="AI 策略预置">
+              <el-select v-model="paramForm.aiStrategy" style="width: 100%" clearable placeholder="选择 AI 策略">
+                <el-option
+                  v-for="s in filteredStrategies"
+                  :key="s.id"
+                  :value="s.id"
+                  :label="s.name"
+                >
+                  <span>{{ s.name }}</span>
+                  <span class="strategy-desc">{{ s.description }}</span>
+                </el-option>
+              </el-select>
+            </el-form-item>
+            <el-form-item label="排序号">
+              <el-input-number v-model="paramForm.sortOrder!" :min="0" :step="1" style="width: 100%" />
+            </el-form-item>
+            <el-form-item label="启用状态">
+              <el-switch v-model="paramForm.isActive" />
+            </el-form-item>
+          </el-form>
+        </div>
+      </template>
       <template #footer>
         <div style="display: flex; gap: 8px; justify-content: flex-end;">
           <el-button size="small" @click="paramDialogVisible = false">取消</el-button>
           <el-button size="small" type="primary" @click="saveParam">保存</el-button>
         </div>
       </template>
-    </el-drawer>
+    </RightPanel>
 
-    <!-- 关单规则 Drawer -->
-    <el-drawer
-      v-model="ruleDialogVisible"
-      :title="isEditingRule ? '编辑关单规则' : '新建关单规则'"
-      size="680px"
-      direction="rtl"
-      :close-on-click-modal="false"
-    >
-      <div class="dialog-section">
-        <div class="dialog-section-header">
-          <el-icon class="dialog-section-icon"><Setting /></el-icon>
-          <span class="dialog-section-title">规则基本信息</span>
-        </div>
-        <el-form :model="ruleForm" label-width="120px" >
-          <el-form-item label="规则名称" required>
-            <el-input v-model="ruleForm.name" placeholder="如：连续10件合格放行" />
-          </el-form-item>
-          <el-form-item label="规则编码" :required="!isEditingRule">
-            <el-input
-              v-model="ruleForm.code"
-              :disabled="isEditingRule"
-              placeholder="如：consecutive_10_ok"
-            />
-          </el-form-item>
-          <el-form-item label="逻辑运算符">
-            <el-radio-group v-model="ruleForm.logic">
-              <el-radio value="AND">全部满足 (AND)</el-radio>
-              <el-radio value="OR">任一满足 (OR)</el-radio>
-            </el-radio-group>
-          </el-form-item>
-          <el-form-item label="描述">
-            <el-input v-model="ruleForm.description" type="textarea" :rows="2" />
-          </el-form-item>
-        </el-form>
-      </div>
-
-      <!-- Conditions Builder -->
-      <div class="dialog-section">
-        <div class="dialog-section-header">
-          <el-icon class="dialog-section-icon"><DataAnalysis /></el-icon>
-          <span class="dialog-section-title">触发条件</span>
-        </div>
-        <div class="conditions-builder">
-        <div class="conditions-header">
-          <span class="conditions-title">触发条件</span>
-          <el-button size="small" type="primary" link @click="addCondition">
-            + 添加条件
-          </el-button>
-        </div>
-        <div
-          v-for="(cond, idx) in conditions"
-          :key="idx"
-          class="condition-row"
-        >
-          <div class="condition-fields">
-            <el-select
-              v-model="cond.type"
-              style="width: 160px"
-              @change="resetConditionFields(idx)"
-            >
-              <el-option
-                v-for="opt in conditionTypeOptions"
-                :key="opt.value"
-                :value="opt.value"
-                :label="opt.label"
-              />
-            </el-select>
-            <el-select v-model="cond.operator" style="width: 80px">
-              <el-option
-                v-for="opt in operatorOptions"
-                :key="opt.value"
-                :value="opt.value"
-                :label="opt.label"
-              />
-            </el-select>
-            <el-input-number
-              v-model="cond.threshold"
-              :min="0"
-              :max="10000"
-              :precision="2"
-              :step="cond.type === 'spk_cpk' ? 0.01 : 1"
-              style="width: 140px"
-            />
-            <span class="condition-unit">
-              {{ cond.type === 'consecutive_ok' ? '件' : cond.type === 'spk_cpk' ? '' : cond.type === 'sampling_rate' ? '%' : '分' }}
-            </span>
+    <!-- RightPanel: 关单规则 -->
+    <RightPanel v-model:visible="ruleDialogVisible" :title="isEditingRule ? '编辑关单规则' : '新建关单规则'" :width="680">
+      <template #body>
+        <div class="dialog-section">
+          <div class="dialog-section-header">
+            <el-icon class="dialog-section-icon"><Setting /></el-icon>
+            <span class="dialog-section-title">规则基本信息</span>
           </div>
-          <el-button
-            link
-            size="small"
-            type="danger"
-            @click="removeCondition(idx)"
-          >
-            <el-icon><Delete /></el-icon>
-          </el-button>
+          <el-form :model="ruleForm" label-width="120px" >
+            <el-form-item label="规则名称" required>
+              <el-input v-model="ruleForm.name" placeholder="如：连续10件合格放行" />
+            </el-form-item>
+            <el-form-item label="规则编码" :required="!isEditingRule">
+              <el-input
+                v-model="ruleForm.code"
+                :disabled="isEditingRule"
+                placeholder="如：consecutive_10_ok"
+              />
+            </el-form-item>
+            <el-form-item label="逻辑运算符">
+              <el-radio-group v-model="ruleForm.logic">
+                <el-radio value="AND">全部满足 (AND)</el-radio>
+                <el-radio value="OR">任一满足 (OR)</el-radio>
+              </el-radio-group>
+            </el-form-item>
+            <el-form-item label="描述">
+              <el-input v-model="ruleForm.description" type="textarea" :rows="2" />
+            </el-form-item>
+          </el-form>
         </div>
-        <div v-if="conditions.length === 0" class="condition-empty">
-          暂无条件，点击「添加条件」开始构建
-        </div>
-        </div>
-      </div>
 
+        <!-- Conditions Builder -->
+        <div class="dialog-section">
+          <div class="dialog-section-header">
+            <el-icon class="dialog-section-icon"><DataAnalysis /></el-icon>
+            <span class="dialog-section-title">触发条件</span>
+          </div>
+          <div class="conditions-builder">
+          <div class="conditions-header">
+            <span class="conditions-title">触发条件</span>
+            <el-button size="small" type="primary" link @click="addCondition">
+              + 添加条件
+            </el-button>
+          </div>
+          <div
+            v-for="(cond, idx) in conditions"
+            :key="idx"
+            class="condition-row"
+          >
+            <div class="condition-fields">
+              <el-select
+                v-model="cond.type"
+                style="width: 160px"
+                @change="resetConditionFields(idx)"
+              >
+                <el-option
+                  v-for="opt in conditionTypeOptions"
+                  :key="opt.value"
+                  :value="opt.value"
+                  :label="opt.label"
+                />
+              </el-select>
+              <el-select v-model="cond.operator" style="width: 80px">
+                <el-option
+                  v-for="opt in operatorOptions"
+                  :key="opt.value"
+                  :value="opt.value"
+                  :label="opt.label"
+                />
+              </el-select>
+              <el-input-number
+                v-model="cond.threshold"
+                :min="0"
+                :max="10000"
+                :precision="2"
+                :step="cond.type === 'spk_cpk' ? 0.01 : 1"
+                style="width: 140px"
+              />
+              <span class="condition-unit">
+                {{ cond.type === 'consecutive_ok' ? '件' : cond.type === 'spk_cpk' ? '' : cond.type === 'sampling_rate' ? '%' : '分' }}
+              </span>
+            </div>
+            <el-button
+              link
+              size="small"
+              type="danger"
+              @click="removeCondition(idx)"
+            >
+              <el-icon><Delete /></el-icon>
+            </el-button>
+          </div>
+          <div v-if="conditions.length === 0" class="condition-empty">
+            暂无条件，点击「添加条件」开始构建
+          </div>
+          </div>
+        </div>
+      </template>
       <template #footer>
         <div style="display: flex; gap: 8px; justify-content: flex-end;">
           <el-button size="small" @click="ruleDialogVisible = false">取消</el-button>
@@ -999,7 +986,7 @@ onMounted(async () => {
           </el-button>
         </div>
       </template>
-    </el-drawer>
+    </RightPanel>
 </template>
 
 <style scoped>

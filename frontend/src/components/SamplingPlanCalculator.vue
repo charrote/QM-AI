@@ -1,79 +1,78 @@
 <template>
   <!-- ===================== Drawer 模式 ===================== -->
-  <el-drawer
+  <RightPanel
     v-if="mode === 'drawer'"
-    v-model="visible"
+    v-model:visible="visible"
     title="GB/T 2828.1 抽样方案计算器"
-    size="480px"
-    direction="rtl"
-    :close-on-click-modal="false"
+    :width="480"
   >
-    <div class="sampling-drawer-content">
-      <el-form label-width="80px" label-position="left">
-        <el-form-item label="批量">
-          <el-input-number
-            v-model="form.lotSize"
-            :min="1"
-            :max="500000"
-            style="width: 100%"
-          />
-        </el-form-item>
-        <el-form-item label="检验水平">
-          <el-select v-model="form.samplingLevel" style="width: 100%">
-            <el-option
-              v-for="opt in SAMPLING_LEVEL_OPTIONS"
-              :key="opt.value"
-              :label="opt.label"
-              :value="opt.value"
+    <template #body>
+      <div class="sampling-drawer-content">
+        <el-form label-width="80px" label-position="left">
+          <el-form-item label="批量">
+            <el-input-number
+              v-model="form.lotSize"
+              :min="1"
+              :max="500000"
+              style="width: 100%"
             />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="AQL 值">
-          <el-input-number
-            v-model="form.aqlValue"
-            :min="0.01"
-            :step="0.1"
-            :precision="2"
-            style="width: 100%"
-          />
-        </el-form-item>
-        <el-form-item>
-          <el-button type="primary" size="small" @click="handleCalculate" style="width: 100%">
-            计算抽样方案
-          </el-button>
-        </el-form-item>
-      </el-form>
+          </el-form-item>
+          <el-form-item label="检验水平">
+            <el-select v-model="form.samplingLevel" style="width: 100%">
+              <el-option
+                v-for="opt in SAMPLING_LEVEL_OPTIONS"
+                :key="opt.value"
+                :label="opt.label"
+                :value="opt.value"
+              />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="AQL 值">
+            <el-input-number
+              v-model="form.aqlValue"
+              :min="0.01"
+              :step="0.1"
+              :precision="2"
+              style="width: 100%"
+            />
+          </el-form-item>
+          <el-form-item>
+            <el-button type="primary" size="small" @click="handleCalculate" style="width: 100%">
+              计算抽样方案
+            </el-button>
+          </el-form-item>
+        </el-form>
 
-      <div v-if="result" class="sampling-result-card">
-        <div class="result-title">计算结果</div>
-        <div class="result-grid">
-          <div class="result-item">
-            <div class="result-label">字母代码</div>
-            <div class="result-value">{{ result.sampleCode }}</div>
-          </div>
-          <div class="result-item">
-            <div class="result-label">样本量</div>
-            <div class="result-value result-success">{{ result.sampleSize }}</div>
-          </div>
-          <div class="result-item">
-            <div class="result-label">Ac</div>
-            <div class="result-value result-warning">{{ result.ac }}</div>
-          </div>
-          <div class="result-item">
-            <div class="result-label">Re</div>
-            <div class="result-value result-danger">{{ result.re }}</div>
+        <div v-if="result" class="sampling-result-card">
+          <div class="result-title">计算结果</div>
+          <div class="result-grid">
+            <div class="result-item">
+              <div class="result-label">字母代码</div>
+              <div class="result-value">{{ result.sampleCode }}</div>
+            </div>
+            <div class="result-item">
+              <div class="result-label">样本量</div>
+              <div class="result-value result-success">{{ result.sampleSize }}</div>
+            </div>
+            <div class="result-item">
+              <div class="result-label">Ac</div>
+              <div class="result-value result-warning">{{ result.ac }}</div>
+            </div>
+            <div class="result-item">
+              <div class="result-label">Re</div>
+              <div class="result-value result-danger">{{ result.re }}</div>
+            </div>
           </div>
         </div>
       </div>
-    </div>
-
+    </template>
     <template #footer>
       <div style="display: flex; gap: 8px; justify-content: flex-end;">
         <el-button size="small" @click="handleReset">重置</el-button>
         <el-button size="small" type="primary" @click="handleCalculate">重新计算</el-button>
       </div>
     </template>
-  </el-drawer>
+  </RightPanel>
 
   <!-- ===================== Panel 模式 (内联折叠面板) ===================== -->
   <div v-else-if="mode === 'panel'" class="sampling-panel">
@@ -204,6 +203,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { ScaleToOriginal, Document, WarningFilled, CircleCheck, CircleClose, CaretBottom } from '@element-plus/icons-vue'
+import RightPanel from '@/components/layout/RightPanel.vue'
 import { SAMPLING_LEVEL_OPTIONS } from '@/types/iqc'
 import { useSamplingPlan } from '@/composables/useSamplingPlan'
 

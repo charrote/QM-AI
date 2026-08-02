@@ -13,6 +13,7 @@ public class User
 
     [Required]
     [MaxLength(100)]
+    [Column("username")]
     public string Username { get; set; } = string.Empty;
 
     [Required]
