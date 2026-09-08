@@ -27,6 +27,9 @@ public class SpcDataPoint
     [Column("subgroup_range")]
     public decimal? SubgroupRange { get; set; } // R (or S for Xbar_S)
 
+    [Column("subgroup_std_dev")]
+    public decimal? SubgroupStdDev { get; set; } // S (within-subgroup std dev, used by Xbar_S)
+
     [Column("measured_at")]
     public DateTime MeasuredAt { get; set; }
 

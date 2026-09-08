@@ -167,6 +167,7 @@ public class SpcService
                 IndividualValues = p.IndividualValues,
                 SubgroupMean = p.SubgroupMean,
                 SubgroupRange = p.SubgroupRange,
+                SubgroupStdDev = p.SubgroupStdDev,
                 MeasuredAt = p.MeasuredAt,
                 CreatedAt = p.CreatedAt
             })
@@ -185,13 +186,19 @@ public class SpcService
     {
         var values = System.Text.Json.JsonSerializer.Deserialize<List<double>>(dto.IndividualValues) ?? new List<double>();
 
+        // Within-subgroup stats: mean, range, sample std dev
+        double? mean = values.Count > 0 ? values.Average() : null;
+        double? range = values.Count > 0 ? values.Max() - values.Min() : null;
+        double? stdDev = values.Count > 1 ? _algorithm.CalculateSampleStdDev(values) : null;
+
         var dataPoint = new SpcDataPoint
         {
             ChartId = dto.ChartId,
             SubgroupIndex = dto.SubgroupIndex,
             IndividualValues = dto.IndividualValues,
-            SubgroupMean = values.Count > 0 ? (decimal)values.Average() : null,
-            SubgroupRange = values.Count > 0 ? (decimal)(values.Max() - values.Min()) : null,
+            SubgroupMean = mean.HasValue ? (decimal)mean.Value : null,
+            SubgroupRange = range.HasValue ? (decimal)range.Value : null,
+            SubgroupStdDev = stdDev.HasValue ? (decimal)stdDev.Value : null,
             MeasuredAt = dto.MeasuredAt
         };
 
@@ -210,6 +217,7 @@ public class SpcService
             IndividualValues = dataPoint.IndividualValues,
             SubgroupMean = dataPoint.SubgroupMean,
             SubgroupRange = dataPoint.SubgroupRange,
+            SubgroupStdDev = dataPoint.SubgroupStdDev,
             MeasuredAt = dataPoint.MeasuredAt,
             CreatedAt = dataPoint.CreatedAt
         };
@@ -271,11 +279,27 @@ public class SpcService
         var means = new List<double>();
         var allValues = new List<double>();
         var subgroups = new List<double[]>();
+        var attrPoints = new List<AttributePoint>();
+        bool isAttribute = chart.ChartType is "P" or "C" or "U";
 
         foreach (var dp in dataPoints)
         {
             var values = System.Text.Json.JsonSerializer.Deserialize<List<double>>(dp.IndividualValues) ?? new List<double>();
-            if (values.Count > 0)
+            if (values.Count == 0) continue;
+
+            if (isAttribute)
+            {
+                // Attribute encoding: individual_values = [sampleSize, defectCount]
+                double sampleSize = values[0];
+                double defects = values.Count > 1 ? values[1] : 0;
+                attrPoints.Add(new AttributePoint { SampleSize = sampleSize, Defects = defects });
+                // Plotted statistic: P = d/n, C = d, U = d/n
+                double plotted = chart.ChartType == "C"
+                    ? defects
+                    : (sampleSize > 0 ? defects / sampleSize : 0);
+                means.Add(plotted);
+            }
+            else
             {
                 subgroups.Add(values.ToArray());
                 means.Add((double)(dp.SubgroupMean ?? (decimal)values.Average()));
@@ -294,6 +318,9 @@ public class SpcService
             {
                 "Xbar_S" => _algorithm.CalculateXbarSControlLimits(subgroups),
                 "I_MR" => _algorithm.CalculateImrControlLimits(allValues),
+                "P" => _algorithm.CalculatePControlLimits(attrPoints),
+                "C" => _algorithm.CalculateCControlLimits(attrPoints),
+                "U" => _algorithm.CalculateUControlLimits(attrPoints),
                 _ => _algorithm.CalculateXbarRControlLimits(subgroups)
             };
         }
@@ -306,12 +333,25 @@ public class SpcService
         var violations = _algorithm.DetectRuleViolations(
             means.ToArray(), limits.ClXbar, limits.UclXbar, limits.LclXbar, limits.SigmaEstimate);
 
-        // Calculate capability if USL/LSL are set
+        // Calculate capability if USL/LSL are set (variable charts only — attribute charts have no USL/LSL)
         SpcAnalysisResultDto? capability = null;
-        if (chart.Usl.HasValue && chart.Lsl.HasValue)
+        if (chart.Usl.HasValue && chart.Lsl.HasValue && !isAttribute)
         {
-            var cpkResult = _algorithm.CalculateCapability(
-                allValues, (double)chart.Usl, (double)chart.Lsl);
+            CpkResult cpkResult;
+            bool hasSubgroups = subgroups.Count >= 2 && subgroups[0].Length >= 2;
+            if (hasSubgroups && (chart.ChartType is "Xbar_R" or "Xbar_S"))
+            {
+                // Within-subgroup sigma: R̄/d₂ for Xbar-R, S̄/c₄ for Xbar-S (Minitab standard)
+                bool useStdDev = chart.ChartType == "Xbar_S";
+                cpkResult = _algorithm.CalculateCapabilityFromSubgroups(
+                    subgroups, (double)chart.Usl, (double)chart.Lsl, useStdDev);
+            }
+            else
+            {
+                // I-MR (individuals): overall sigma estimation
+                cpkResult = _algorithm.CalculateCapability(
+                    allValues, (double)chart.Usl, (double)chart.Lsl);
+            }
 
             capability = new SpcAnalysisResultDto
             {
@@ -425,6 +465,7 @@ public class SpcService
                 IndividualValues = p.IndividualValues,
                 SubgroupMean = p.SubgroupMean,
                 SubgroupRange = p.SubgroupRange,
+                SubgroupStdDev = p.SubgroupStdDev,
                 MeasuredAt = p.MeasuredAt,
                 CreatedAt = p.CreatedAt
             }).ToList()
@@ -663,6 +704,42 @@ public class SpcService
 
         if (dataPoints.Count < 2) return;
 
+        bool isAttribute = chart.ChartType is "P" or "C" or "U";
+
+        if (isAttribute)
+        {
+            // Attribute charts: individual_values = [sampleSize, defectCount]
+            var attrPoints = new List<AttributePoint>();
+            foreach (var dp in dataPoints)
+            {
+                var values = System.Text.Json.JsonSerializer.Deserialize<List<double>>(dp.IndividualValues);
+                if (values == null || values.Count == 0) continue;
+                attrPoints.Add(new AttributePoint
+                {
+                    SampleSize = values[0],
+                    Defects = values.Count > 1 ? values[1] : 0
+                });
+            }
+            if (attrPoints.Count < 2) return;
+            try
+            {
+                ControlLimitsResult limits = chart.ChartType switch
+                {
+                    "P" => _algorithm.CalculatePControlLimits(attrPoints),
+                    "C" => _algorithm.CalculateCControlLimits(attrPoints),
+                    "U" => _algorithm.CalculateUControlLimits(attrPoints),
+                    _ => throw new NotSupportedException()
+                };
+                chart.Cl = (decimal)limits.ClXbar;
+                chart.Ucl = (decimal)limits.UclXbar;
+                chart.Lcl = (decimal)limits.LclXbar;
+                chart.UpdatedAt = DateTime.UtcNow;
+                await _db.SaveChangesAsync();
+            }
+            catch { /* not enough data */ }
+            return;
+        }
+
         var subgroups = new List<double[]>();
         foreach (var dp in dataPoints)
         {
@@ -686,6 +763,7 @@ public class SpcService
             chart.Ucl = (decimal)limits.UclXbar;
             chart.Lcl = (decimal)limits.LclXbar;
             chart.UpdatedAt = DateTime.UtcNow;
+            await _db.SaveChangesAsync();
         }
         catch
         {

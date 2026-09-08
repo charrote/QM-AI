@@ -3,6 +3,7 @@ import { ref, onMounted, reactive, computed, nextTick, watch, onUnmounted } from
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Search, MoreFilled, Edit, Delete, Refresh, Setting, Clock, TrendCharts, CircleCheck, Top, Document, Warning, InfoFilled } from '@element-plus/icons-vue'
 import { spcApi } from '@/api/spc'
+import { useSpcChartSeries, type ChartSeries } from '@/composables/useSpcChartSeries'
 import RightPanel from '@/components/layout/RightPanel.vue'
 import { processApi } from '@/api/basicData'
 import { inspectionItemApi } from '@/api/inspectionItem'
@@ -111,6 +112,10 @@ const xbarChartRef = ref<HTMLElement>()
 const rChartRef = ref<HTMLElement>()
 let xbarChartInstance: any = null
 let rChartInstance: any = null
+
+// Unified chart series (handles all 6 chart types)
+const { buildSeries } = useSpcChartSeries()
+const chartSeries = ref<ChartSeries | null>(null)
 
 function resizeHandlerXbar() {
   xbarChartInstance?.resize?.()
@@ -346,126 +351,89 @@ async function runAnalysis() {
 // ═════════════════════════════════════════════════════════════════
 
 function renderCharts() {
-  if (!analysisReport.value?.controlLimits || !analysisReport.value?.dataPoints) return
+  if (!selectedChart.value || !analysisReport.value?.dataPoints) return
+  const s = buildSeries(selectedChart.value, analysisReport.value)
+  chartSeries.value = s
 
-  const limits = analysisReport.value.controlLimits
-  const dps = analysisReport.value.dataPoints
+  renderMainChart(s)
 
-  // X̄ chart data
-  const xbarCategories = dps.map(dp => `#${dp.subgroupIndex}`)
-  const xbarValues = dps.map(dp => Number(dp.subgroupMean || 0))
-
-  // R chart data
-  const rValues = dps.map(dp => Number(dp.subgroupRange || 0))
-
-  renderXbarChart(xbarCategories, xbarValues, limits)
-  renderRChart(xbarCategories, rValues, limits)
+  if (s.subTitle && s.subValues && s.subLimits && s.subSeriesName) {
+    renderSubChart(s)
+  } else if (rChartInstance) {
+    rChartInstance.dispose()
+    rChartInstance = null
+  }
 }
 
-function renderXbarChart(categories: string[], values: number[], limits: any) {
-  if (!xbarChartRef.value) return
+function buildChartOption(title: string, seriesName: string, color: string, values: (number | null)[], limits: { cl: number, ucl: number, lcl: number }, categories: string[], violationIndices: number[], s: ChartSeries) {
+  const vSet = new Set(violationIndices)
+  const markPoints: any[] = []
+  values.forEach((v, i) => {
+    if (v == null) return
+    if (vSet.has(i)) {
+      markPoints.push({
+        name: '违规点', value: v, xAxis: i, yAxis: v,
+        symbol: 'circle', symbolSize: 12,
+        itemStyle: { color: '#f56c6c', borderColor: '#f56c6c', borderWidth: 2 },
+        label: { show: true, formatter: '违规', fontSize: 12, color: '#f56c6c', position: 'top' },
+      })
+    }
+  })
+  return {
+    title: { text: title, left: 'center', textStyle: { fontSize: 14 } },
+    tooltip: {
+      trigger: 'axis',
+      formatter: (params: any) => {
+        const v = params[0].value
+        const base = `子组: ${params[0].axisValue}<br/>${seriesName}: ${v != null ? Number(v).toFixed(4) : '-'}`
+        if (s.isAttribute && s.attrPoints) {
+          const ap = s.attrPoints[params[0].dataIndex]
+          if (ap) return `${base}<br/>样本量 n=${ap.n}<br/>不良/缺陷数 d=${ap.d}`
+        }
+        return base
+      },
+    },
+    legend: { data: [seriesName, 'CL', 'UCL', 'LCL'], bottom: 0 },
+    grid: { left: 60, right: 20, top: 40, bottom: 40 },
+    xAxis: { type: 'category', data: categories, axisLabel: { rotate: 45, fontSize: 10 } },
+    yAxis: { type: 'value', name: seriesName, nameTextStyle: { fontSize: 11 } },
+    series: [{
+      name: seriesName, type: 'line', data: values, smooth: false,
+      symbol: 'circle', symbolSize: 6,
+      lineStyle: { color, width: 2 },
+      itemStyle: { color },
+      markPoint: { data: markPoints },
+      markLine: {
+        silent: true,
+        data: [
+          { name: 'UCL', yAxis: limits.ucl, lineStyle: { color: '#f56c6c', type: 'dashed' }, label: { formatter: `UCL=${limits.ucl?.toFixed(4)}` } },
+          { name: 'CL', yAxis: limits.cl, lineStyle: { color: '#67c23a', type: 'solid' }, label: { formatter: `CL=${limits.cl?.toFixed(4)}` } },
+          { name: 'LCL', yAxis: limits.lcl, lineStyle: { color: '#f56c6c', type: 'dashed' }, label: { formatter: `LCL=${limits.lcl?.toFixed(4)}` } },
+        ],
+      },
+    }],
+  }
+}
 
-  // Dynamic import ECharts
+function renderMainChart(s: ChartSeries) {
+  if (!xbarChartRef.value) return
   import('echarts').then(echarts => {
     if (xbarChartInstance) xbarChartInstance.dispose()
     xbarChartInstance = echarts.init(xbarChartRef.value!)
-
-    // Mark violation points
-    const violations = analysisReport.value?.violations || []
-    const violationIndices = new Set(violations.map(v => v.index))
-
-    const markAreas: any[] = []
-    const markPoints: any[] = []
-
-    // Mark violation points
-    values.forEach((v, i) => {
-      if (violationIndices.has(i)) {
-        markPoints.push({
-          name: '违规点',
-          value: v,
-          xAxis: i,
-          yAxis: v,
-          symbol: 'circle',
-          symbolSize: 12,
-          itemStyle: { color: '#f56c6c', borderColor: '#f56c6c', borderWidth: 2 },
-          label: { show: true, formatter: '违规', fontSize: 12, color: '#f56c6c', position: 'top' },
-        })
-      }
-    })
-
-    const option = {
-      title: { text: 'X̄ 均值控制图', left: 'center', textStyle: { fontSize: 14 } },
-      tooltip: { trigger: 'axis', formatter: (params: any) => `子组: ${params[0].axisValue}<br/>均值: ${params[0].value?.toFixed(4)}` },
-      legend: { data: ['X̄', 'CL', 'UCL', 'LCL'], bottom: 0 },
-      grid: { left: 60, right: 20, top: 40, bottom: 40 },
-      xAxis: { type: 'category', data: categories, axisLabel: { rotate: 45, fontSize: 10 } },
-      yAxis: { type: 'value', name: '均值', nameTextStyle: { fontSize: 11 } },
-      series: [
-        {
-          name: 'X̄',
-          type: 'line',
-          data: values,
-          smooth: false,
-          symbol: 'circle',
-          symbolSize: 6,
-          lineStyle: { color: '#409eff', width: 2 },
-          itemStyle: { color: '#409eff' },
-          markPoint: { data: markPoints },
-          markLine: {
-            silent: true,
-            data: [
-              { name: 'UCL', yAxis: limits.uclXbar, lineStyle: { color: '#f56c6c', type: 'dashed' }, label: { formatter: `UCL=${limits.uclXbar?.toFixed(4)}` } },
-              { name: 'CL', yAxis: limits.clXbar, lineStyle: { color: '#67c23a', type: 'solid' }, label: { formatter: `CL=${limits.clXbar?.toFixed(4)}` } },
-              { name: 'LCL', yAxis: limits.lclXbar, lineStyle: { color: '#f56c6c', type: 'dashed' }, label: { formatter: `LCL=${limits.lclXbar?.toFixed(4)}` } },
-            ],
-          },
-        },
-      ],
-    }
-
-    xbarChartInstance.setOption(option)
+    xbarChartInstance.setOption(buildChartOption(
+      s.mainTitle, s.mainSeriesName, '#409eff', s.mainValues, s.mainLimits, s.categories, s.mainViolationIndices, s))
     window.removeEventListener('resize', resizeHandlerXbar)
     window.addEventListener('resize', resizeHandlerXbar)
   })
 }
 
-function renderRChart(categories: string[], values: number[], limits: any) {
-  if (!rChartRef.value) return
-
+function renderSubChart(s: ChartSeries) {
+  if (!rChartRef.value || !s.subValues || !s.subLimits || !s.subTitle || !s.subSeriesName) return
   import('echarts').then(echarts => {
     if (rChartInstance) rChartInstance.dispose()
     rChartInstance = echarts.init(rChartRef.value!)
-
-    const option = {
-      title: { text: 'R 极差控制图', left: 'center', textStyle: { fontSize: 14 } },
-      tooltip: { trigger: 'axis', formatter: (params: any) => `子组: ${params[0].axisValue}<br/>极差: ${params[0].value?.toFixed(4)}` },
-      legend: { data: ['R', 'CL', 'UCL', 'LCL'], bottom: 0 },
-      grid: { left: 60, right: 20, top: 40, bottom: 40 },
-      xAxis: { type: 'category', data: categories, axisLabel: { rotate: 45, fontSize: 10 } },
-      yAxis: { type: 'value', name: '极差', nameTextStyle: { fontSize: 11 } },
-      series: [
-        {
-          name: 'R',
-          type: 'line',
-          data: values,
-          smooth: false,
-          symbol: 'circle',
-          symbolSize: 6,
-          lineStyle: { color: '#e6a23c', width: 2 },
-          itemStyle: { color: '#e6a23c' },
-          markLine: {
-            silent: true,
-            data: [
-              { name: 'UCL', yAxis: limits.uclR, lineStyle: { color: '#f56c6c', type: 'dashed' }, label: { formatter: `UCL=${limits.uclR?.toFixed(4)}` } },
-              { name: 'CL', yAxis: limits.clR, lineStyle: { color: '#67c23a', type: 'solid' }, label: { formatter: `CL=${limits.clR?.toFixed(4)}` } },
-              { name: 'LCL', yAxis: limits.lclR, lineStyle: { color: '#f56c6c', type: 'dashed' }, label: { formatter: `LCL=${limits.lclR?.toFixed(4)}` } },
-            ],
-          },
-        },
-      ],
-    }
-
-    rChartInstance.setOption(option)
+    rChartInstance.setOption(buildChartOption(
+      s.subTitle, s.subSeriesName, '#e6a23c', s.subValues, s.subLimits, s.categories, s.subViolationIndices, s))
     window.removeEventListener('resize', resizeHandlerR)
     window.addEventListener('resize', resizeHandlerR)
   })
@@ -997,11 +965,11 @@ onUnmounted(() => {
               </div>
 
               <!-- Charts -->
-              <div class="charts-row">
+              <div class="charts-row" :class="{ 'single-chart': chartSeries?.isAttribute }">
                 <div class="chart-container">
                   <div ref="xbarChartRef" class="chart-box"></div>
                 </div>
-                <div class="chart-container">
+                <div v-if="!chartSeries?.isAttribute" class="chart-container">
                   <div ref="rChartRef" class="chart-box"></div>
                 </div>
               </div>
@@ -1986,6 +1954,10 @@ onUnmounted(() => {
   grid-template-columns: 1fr 1fr;
   gap: 14px;
   margin-bottom: 14px;
+}
+
+.charts-row.single-chart {
+  grid-template-columns: 1fr;
 }
 
 .chart-container {

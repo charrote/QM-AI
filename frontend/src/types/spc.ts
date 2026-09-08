@@ -51,6 +51,7 @@ export interface SpcDataPoint {
   individualValues: string
   subgroupMean?: number
   subgroupRange?: number
+  subgroupStdDev?: number
   measuredAt: string
   createdAt: string
 }
@@ -191,12 +192,18 @@ export const CHART_TYPE_OPTIONS = [
   { value: 'Xbar_R', label: 'X̄-R 均值-极差图' },
   { value: 'Xbar_S', label: 'X̄-S 均值-标准差图' },
   { value: 'I_MR', label: 'I-MR 单值-移动极差图' },
+  { value: 'P', label: 'P 不良率图（属性）' },
+  { value: 'C', label: 'C 缺陷数图（属性）' },
+  { value: 'U', label: 'U 缺陷密度图（属性）' },
 ]
 
 export const CHART_TYPE_MAP: Record<string, string> = {
   Xbar_R: 'X̄-R 均值-极差图',
   Xbar_S: 'X̄-S 均值-标准差图',
   I_MR: 'I-MR 单值-移动极差图',
+  P: 'P 不良率图（属性）',
+  C: 'C 缺陷数图（属性）',
+  U: 'U 缺陷密度图（属性）',
 }
 
 export const CPK_GRADE_OPTIONS = [

@@ -11,6 +11,7 @@ import type { InspectionItem } from '@/types/inspectionItem'
 import type { PagedRequest } from '@/types/basicData'
 import { CHART_TYPE_OPTIONS, CHART_TYPE_MAP, CPK_GRADE_TYPE, ANOVA_SOURCE_MAP, SOURCE_TYPE_OPTIONS, WESTERN_ELECTRIC_RULES } from '@/types/spc'
 import { useSpcHelpers } from '@/composables/useSpcHelpers'
+import { useSpcChartSeries, type ChartSeries } from '@/composables/useSpcChartSeries'
 import RightPanel from '@/components/layout/RightPanel.vue'
 
 defineOptions({ name: 'SpcChartDetailPage' })
@@ -101,6 +102,10 @@ const chart1Ref = ref<HTMLElement>()
 const chart2Ref = ref<HTMLElement>()
 let chart1Instance: any = null
 let chart2Instance: any = null
+
+// Unified chart series (handles all 6 chart types)
+const { buildSeries } = useSpcChartSeries()
+const chartSeries = ref<ChartSeries | null>(null)
 
 const resizeHandler1 = () => chart1Instance?.resize?.()
 const resizeHandler2 = () => chart2Instance?.resize?.()
@@ -202,41 +207,37 @@ async function fetchDataSources() {
 // ─── ECharts Rendering ─────────────────────────────────
 
 function renderCharts() {
-  if (!analysisReport.value?.dataPoints || !analysisReport.value?.controlLimits) return
-  const limits = analysisReport.value.controlLimits
-  const dps = analysisReport.value.dataPoints
-  const categories = dps.map(dp => `#${dp.subgroupIndex}`)
-  const chartType = selectedChart.value?.chartType || 'Xbar_R'
+  if (!selectedChart.value || !analysisReport.value?.dataPoints) return
+  const chart = selectedChart.value
+  const report = analysisReport.value
+  const s = buildSeries(chart, report)
+  chartSeries.value = s
 
-  if (chartType === 'I_MR') {
-    const iValues = dps.map(dp => Number(dp.subgroupMean || 0))
-    const mrValues = dps.map(dp => Number(dp.subgroupRange || 0))
-    renderLineChart(chart1Ref.value, 'I 单值控制图', categories, iValues, limits, 'X̄', '#409eff',
-      { cl: limits.clXbar, ucl: limits.uclXbar, lcl: limits.lclXbar }, chart1Instance)
-    renderLineChart(chart2Ref.value, 'MR 移动极差控制图', categories, mrValues, limits, 'MR', '#e6a23c',
-      { cl: limits.clR, ucl: limits.uclR, lcl: limits.lclR }, chart2Instance)
+  // Main chart (always present)
+  renderLineChart(chart1Ref.value, s.mainTitle, s.categories, s.mainValues,
+    s.mainSeriesName, '#409eff', s.mainLimits, chart1Instance, s.mainViolationIndices)
+
+  // Sub chart (only for variable charts)
+  if (s.subTitle && s.subValues && s.subLimits && s.subSeriesName) {
+    renderLineChart(chart2Ref.value, s.subTitle, s.categories, s.subValues,
+      s.subSeriesName, '#e6a23c', s.subLimits, chart2Instance, s.subViolationIndices)
   } else {
-    const xbarValues = dps.map(dp => Number(dp.subgroupMean || 0))
-    const rangeValues = dps.map(dp => Number(dp.subgroupRange || 0))
-    const secondLabel = chartType === 'Xbar_S' ? 'S' : 'R'
-    renderLineChart(chart1Ref.value, 'X̄ 均值控制图', categories, xbarValues, limits, 'X̄', '#409eff',
-      { cl: limits.clXbar, ucl: limits.uclXbar, lcl: limits.lclXbar }, chart1Instance)
-    renderLineChart(chart2Ref.value, `${secondLabel} ${chartType === 'Xbar_S' ? '标准差' : '极差'}控制图`, categories, rangeValues, limits, secondLabel, '#e6a23c',
-      { cl: limits.clR, ucl: limits.uclR, lcl: limits.lclR }, chart2Instance)
+    // Attribute chart: hide the second chart box
+    if (chart2Instance) { chart2Instance.dispose(); chart2Instance = null }
   }
 }
 
-function renderLineChart(container: HTMLElement | undefined, title: string, categories: string[], values: number[], limits: any, seriesName: string, color: string, lineLimits: { cl: number, ucl: number, lcl: number }, instanceRef: any) {
+function renderLineChart(container: HTMLElement | undefined, title: string, categories: string[], values: (number | null)[], seriesName: string, color: string, lineLimits: { cl: number, ucl: number, lcl: number }, instanceRef: any, violationIndices: number[] = []) {
   if (!container) return
   import('echarts').then(echarts => {
     if (instanceRef.current) instanceRef.current.dispose()
     const chart = echarts.init(container)
 
-    const violations = analysisReport.value?.violations || []
-    const violationIndices = new Set(violations.map(v => v.index))
+    const vSet = new Set(violationIndices)
     const markPoints: any[] = []
     values.forEach((v, i) => {
-      if (violationIndices.has(i)) {
+      if (v == null) return
+      if (vSet.has(i)) {
         markPoints.push({
           name: '违规点', value: v, xAxis: i, yAxis: v,
           symbol: 'circle', symbolSize: 12,
@@ -246,9 +247,26 @@ function renderLineChart(container: HTMLElement | undefined, title: string, cate
       }
     })
 
+    // Attribute chart tooltip: show sample size & defect count
+    const s = chartSeries.value
+    const isAttr = !!s?.isAttribute
+    const attrTip = (params: any) => {
+      if (!s?.attrPoints) return ''
+      const ap = s.attrPoints[params[0].dataIndex]
+      if (!ap) return ''
+      return `样本量 n=${ap.n}<br/>不良/缺陷数 d=${ap.d}`
+    }
+
     chart.setOption({
       title: { text: title, left: 'center', textStyle: { fontSize: 14 } },
-      tooltip: { trigger: 'axis', formatter: (params: any) => `子组: ${params[0].axisValue}<br/>${seriesName}: ${params[0].value?.toFixed(4)}` },
+      tooltip: {
+        trigger: 'axis',
+        formatter: (params: any) => {
+          const v = params[0].value
+          const base = `子组: ${params[0].axisValue}<br/>${seriesName}: ${v != null ? Number(v).toFixed(4) : '-'}`
+          return isAttr && s?.attrPoints ? `${base}<br/>${attrTip(params)}` : base
+        },
+      },
       legend: { data: [seriesName, 'CL', 'UCL', 'LCL'], bottom: 0 },
       grid: { left: 60, right: 20, top: 40, bottom: 40 },
       xAxis: { type: 'category', data: categories, axisLabel: { rotate: 45, fontSize: 10 } },
@@ -735,7 +753,7 @@ onMounted(loadAll)
                   <span>分析中...</span>
                 </div>
               </div>
-              <div ref="chart2Ref" class="chart-box">
+              <div v-if="!chartSeries?.isAttribute" ref="chart2Ref" class="chart-box">
                 <div v-if="analysisLoading" class="chart-loading">
                   <el-icon class="is-loading" :size="28"><Refresh /></el-icon>
                   <span>分析中...</span>
@@ -746,7 +764,7 @@ onMounted(loadAll)
             <div v-if="analysisReport?.controlLimits" class="limits-info-bar">
               <div class="limits-section">
                 <div class="limits-section-title">
-                  <el-icon><DataLine /></el-icon> X̄ 控制限
+                  <el-icon><DataLine /></el-icon> {{ chartSeries?.mainSeriesName || 'X̄' }} 控制限
                 </div>
                 <div class="limits-values">
                   <div class="limit-item limit-ucl">
@@ -763,26 +781,28 @@ onMounted(loadAll)
                   </div>
                 </div>
               </div>
-              <div class="limits-divider"></div>
-              <div class="limits-section">
-                <div class="limits-section-title">
-                  <el-icon><TrendCharts /></el-icon> R 控制限
+              <template v-if="!chartSeries?.isAttribute">
+                <div class="limits-divider"></div>
+                <div class="limits-section">
+                  <div class="limits-section-title">
+                    <el-icon><TrendCharts /></el-icon> {{ chartSeries?.subSeriesName || 'R' }} 控制限
+                  </div>
+                  <div class="limits-values">
+                    <div class="limit-item limit-ucl">
+                      <span class="limit-label">UCL</span>
+                      <span class="limit-val">{{ formatNumber(analysisReport.controlLimits.uclR, 4) }}</span>
+                    </div>
+                    <div class="limit-item limit-cl">
+                      <span class="limit-label">CL</span>
+                      <span class="limit-val">{{ formatNumber(analysisReport.controlLimits.clR, 4) }}</span>
+                    </div>
+                    <div class="limit-item limit-lcl">
+                      <span class="limit-label">LCL</span>
+                      <span class="limit-val">{{ formatNumber(analysisReport.controlLimits.lclR, 4) }}</span>
+                    </div>
+                  </div>
                 </div>
-                <div class="limits-values">
-                  <div class="limit-item limit-ucl">
-                    <span class="limit-label">UCL</span>
-                    <span class="limit-val">{{ formatNumber(analysisReport.controlLimits.uclR, 4) }}</span>
-                  </div>
-                  <div class="limit-item limit-cl">
-                    <span class="limit-label">CL</span>
-                    <span class="limit-val">{{ formatNumber(analysisReport.controlLimits.clR, 4) }}</span>
-                  </div>
-                  <div class="limit-item limit-lcl">
-                    <span class="limit-label">LCL</span>
-                    <span class="limit-val">{{ formatNumber(analysisReport.controlLimits.lclR, 4) }}</span>
-                  </div>
-                </div>
-              </div>
+              </template>
             </div>
 
             <div class="section-title">

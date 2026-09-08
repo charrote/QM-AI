@@ -140,6 +140,90 @@ public class SpcAlgorithmService
     }
 
     /// <summary>
+    /// Calculate P (fraction nonconforming) control limits.
+    /// individual_values encodes [sampleSize, defectCount] per point.
+    /// Variable-n: per-point limits differ, but we return fixed limits based on
+    /// the average sample size n̄ (exact when n is constant, as in demo data).
+    /// </summary>
+    public ControlLimitsResult CalculatePControlLimits(IEnumerable<AttributePoint> points)
+    {
+        var pts = points.ToList();
+        if (!pts.Any())
+            throw new ArgumentException("Attribute data cannot be empty.");
+
+        double sumN = pts.Sum(p => p.SampleSize);
+        double sumD = pts.Sum(p => p.Defects);
+        double pBar = sumD / sumN;          // Overall fraction nonconforming
+        double nBar = sumN / pts.Count;     // Average sample size
+
+        double ucl = pBar + 3 * Math.Sqrt(pBar * (1 - pBar) / nBar);
+        double lcl = pBar - 3 * Math.Sqrt(pBar * (1 - pBar) / nBar);
+        if (lcl < 0) lcl = 0;
+        if (ucl > 1) ucl = 1;
+
+        return new ControlLimitsResult
+        {
+            ClXbar = pBar,
+            UclXbar = ucl,
+            LclXbar = lcl,
+            SigmaEstimate = nBar > 0 ? Math.Sqrt(pBar * (1 - pBar) / nBar) : 0
+        };
+    }
+
+    /// <summary>
+    /// Calculate C (count of nonconformities) control limits.
+    /// individual_values encodes [1, defectCount] or [sampleSize, defectCount]; only Defects used.
+    /// c̄ ± 3√c̄
+    /// </summary>
+    public ControlLimitsResult CalculateCControlLimits(IEnumerable<AttributePoint> points)
+    {
+        var pts = points.ToList();
+        if (!pts.Any())
+            throw new ArgumentException("Attribute data cannot be empty.");
+
+        double cBar = pts.Average(p => p.Defects);  // Average count
+        double ucl = cBar + 3 * Math.Sqrt(cBar);
+        double lcl = cBar - 3 * Math.Sqrt(cBar);
+        if (lcl < 0) lcl = 0;
+
+        return new ControlLimitsResult
+        {
+            ClXbar = cBar,
+            UclXbar = ucl,
+            LclXbar = lcl,
+            SigmaEstimate = Math.Sqrt(cBar)
+        };
+    }
+
+    /// <summary>
+    /// Calculate U (nonconformities per unit) control limits.
+    /// individual_values encodes [sampleSize, defectCount]. ū = Σc / Σn, UCL = ū + 3√(ū/n̄)
+    /// </summary>
+    public ControlLimitsResult CalculateUControlLimits(IEnumerable<AttributePoint> points)
+    {
+        var pts = points.ToList();
+        if (!pts.Any())
+            throw new ArgumentException("Attribute data cannot be empty.");
+
+        double sumN = pts.Sum(p => p.SampleSize);
+        double sumC = pts.Sum(p => p.Defects);
+        double uBar = sumC / sumN;          // Average nonconformities per unit
+        double nBar = sumN / pts.Count;     // Average sample size (units inspected)
+
+        double ucl = uBar + 3 * Math.Sqrt(uBar / nBar);
+        double lcl = uBar - 3 * Math.Sqrt(uBar / nBar);
+        if (lcl < 0) lcl = 0;
+
+        return new ControlLimitsResult
+        {
+            ClXbar = uBar,
+            UclXbar = ucl,
+            LclXbar = lcl,
+            SigmaEstimate = nBar > 0 ? Math.Sqrt(uBar / nBar) : 0
+        };
+    }
+
+    /// <summary>
     /// Calculate process capability indices (Cp, Cpk, Pp, Ppk).
     /// </summary>
     /// <summary>
@@ -147,7 +231,7 @@ public class SpcAlgorithmService
     /// For X̄-R charts, sigmaWithin must be estimated from within-subgroup variation,
     /// NOT from individual values. This matches Minitab behavior.
     /// </summary>
-    public CpkResult CalculateCapabilityFromSubgroups(IEnumerable<double[]> subgroups, double usl, double lsl)
+    public CpkResult CalculateCapabilityFromSubgroups(IEnumerable<double[]> subgroups, double usl, double lsl, bool useStdDev = false)
     {
         var subgroupsList = subgroups.ToList();
         if (!subgroupsList.Any() || subgroupsList.First().Length < 2)
@@ -157,12 +241,22 @@ public class SpcAlgorithmService
         var allValues = subgroupsList.SelectMany(s => s).ToList();
         double mean = allValues.Average();
 
-        // Calculate R̄ for within-subgroup sigma estimation (SPC standard)
-        var rValues = subgroupsList.Select(s => s.Max() - s.Min()).ToList();
-        double rDouble = rValues.Average();
+        // Within-subgroup sigma: S̄/c₄ for Xbar-S, R̄/d₂ for Xbar-R (Minitab standard)
         int n = subgroupsList.First().Length;
-        var constants = SpcConstants.GetConstants(n);
-        double sigmaWithin = rDouble / constants.d2;  // R̄/d₂ method (Minitab standard)
+        double sigmaWithin;
+        if (useStdDev)
+        {
+            var sValues = subgroupsList.Select(s => CalculateSampleStdDev(s)).ToList();
+            double sDouble = sValues.Average();
+            double c4 = SpcConstants.GetXbarSConstants(n).c4;
+            sigmaWithin = c4 > 0 ? sDouble / c4 : sDouble;
+        }
+        else
+        {
+            var rValues = subgroupsList.Select(s => s.Max() - s.Min()).ToList();
+            double rDouble = rValues.Average();
+            sigmaWithin = rDouble / SpcConstants.GetConstants(n).d2;
+        }
 
         double sigmaOverall = CalculatePopulationStdDev(allValues);
 
@@ -253,78 +347,96 @@ public class SpcAlgorithmService
         double oneSigma = sigma;
         double twoSigma = 2 * sigma;
 
-        // ── Rule 1: 1 point beyond 3σ (beyond UCL or LCL) ──
+        // ── Rule 1: 1 point beyond 3σ (beyond UCL or LCL) — report EVERY offending point ──
         for (int i = 0; i < n; i++)
         {
-            if (means[i] > ucl || means[i] < lcl)
+            if (means[i] > ucl)
             {
                 violations.Add(new RuleViolationResult(1, i,
-                    $"1点超出3σ控制限 (点 #{i + 1}, 值={means[i]:F4})"));
-                break; // Report first violation
+                    $"1点超出3σ控制限UCL (点 #{i + 1}, 值={means[i]:F4})"));
+            }
+            else if (means[i] < lcl)
+            {
+                violations.Add(new RuleViolationResult(1, i,
+                    $"1点超出3σ控制限LCL (点 #{i + 1}, 值={means[i]:F4})"));
             }
         }
 
-        // ── Rule 2: 9 consecutive points on same side of CL ──
+        // ── Rule 2: 9+ consecutive points on same side of CL (per run) ──
         int runStart = 0;
         bool aboveCl = means[0] >= cl;
-        for (int i = 1; i < n; i++)
+        for (int i = 1; i <= n; i++)
         {
-            bool currentAbove = means[i] >= cl;
-            if (currentAbove == aboveCl)
+            if (i < n)
             {
-                if (i - runStart + 1 >= 9)
-                {
-                    violations.Add(new RuleViolationResult(2, i,
-                        $"连续{i - runStart + 1}点在CL同侧 (点 #{runStart + 1} ~ #{i + 1})"));
-                    break;
-                }
+                bool currentAbove = means[i] >= cl;
+                if (currentAbove == aboveCl) continue; // run continues
             }
-            else
+            int runLen = i - runStart;
+            if (runLen >= 9)
+            {
+                violations.Add(new RuleViolationResult(2, i - 1,
+                    $"连续{runLen}点在CL同侧 (点 #{runStart + 1} ~ #{i})"));
+            }
+            if (i < n)
             {
                 runStart = i;
-                aboveCl = currentAbove;
+                aboveCl = means[i] >= cl;
             }
         }
 
-        // ── Rule 3: 6 consecutive points increasing or decreasing ──
-        for (int i = 0; i <= n - 6; i++)
+        // ── Rule 3: 6 consecutive points increasing or decreasing (per maximal run) ──
+        int trendLen = 1;
+        int dir = 0; // +1 increasing, -1 decreasing
+        for (int i = 1; i <= n; i++)
         {
-            bool increasing = true;
-            bool decreasing = true;
-            for (int j = i; j < i + 5; j++)
+            if (i < n)
             {
-                if (means[j + 1] <= means[j]) increasing = false;
-                if (means[j + 1] >= means[j]) decreasing = false;
-            }
-            if (increasing || decreasing)
-            {
-                violations.Add(new RuleViolationResult(3, i + 5,
-                    $"连续6点{(increasing ? "递增" : "递减")} (点 #{i + 1} ~ #{i + 6})"));
-                break;
-            }
-        }
-
-        // ── Rule 4: 14 consecutive points alternating up and down ──
-        // Start from i=1 so that means[j-1] always has a valid predecessor
-        for (int i = 1; i <= n - 14; i++)
-        {
-            bool alternating = true;
-            for (int j = i; j < i + 13; j++)
-            {
-                double diff1 = means[j + 1] - means[j];
-                double diff2 = means[j] - means[j - 1];
-                // Alternating means signs differ: product should be negative
-                if (diff1 * diff2 >= 0)
-                {
-                    alternating = false;
-                    break;
+                int d = means[i] > means[i - 1] ? 1 : (means[i] < means[i - 1] ? -1 : 0);
+                if (d == 0) { trendLen = 1; dir = 0; continue; }
+                if (dir == 0) dir = d;
+                if (d == dir) { trendLen++; }
+                else { // direction changed
+                    if (trendLen >= 6)
+                        violations.Add(new RuleViolationResult(3, i - 1,
+                            $"连续{trendLen - 1}点{(dir == 1 ? "递增" : "递减")} (点 #{i - trendLen + 1} ~ #{i - 1})"));
+                    trendLen = 1;
+                    dir = d;
                 }
             }
-            if (alternating)
+            else if (trendLen >= 6)
             {
-                violations.Add(new RuleViolationResult(4, i + 13,
-                    $"连续14点上下交替 (点 #{i + 1} ~ #{i + 14})"));
-                break;
+                violations.Add(new RuleViolationResult(3, i - 1,
+                    $"连续{trendLen}点{(dir == 1 ? "递增" : "递减")} (点 #{i - trendLen + 1} ~ #{i})"));
+            }
+        }
+
+        // ── Rule 4: 14 consecutive points alternating up and down (per maximal run) ──
+        int altStart = 0;
+        int altLen = 1;
+        int lastSign = 0;
+        for (int i = 1; i <= n; i++)
+        {
+            if (i < n)
+            {
+                double diff = means[i] - means[i - 1];
+                if (diff == 0) { // flat breaks alternation
+                    if (altLen >= 14)
+                        violations.Add(new RuleViolationResult(4, i - 1, $"连续{altLen - 1}点上下交替 (点 #{altStart + 1} ~ #{i - 1})"));
+                    altStart = i; altLen = 1; lastSign = 0; continue;
+                }
+                int sgn = diff > 0 ? 1 : -1;
+                if (lastSign == 0) { lastSign = sgn; altLen = 2; }
+                else if (sgn != lastSign) { lastSign = sgn; altLen++; }
+                else { // same sign — run broken
+                    if (altLen >= 14)
+                        violations.Add(new RuleViolationResult(4, i - 1, $"连续{altLen - 1}点上下交替 (点 #{altStart + 1} ~ #{i - 1})"));
+                    altStart = i - 1; altLen = 2; lastSign = sgn;
+                }
+            }
+            else if (altLen >= 14)
+            {
+                violations.Add(new RuleViolationResult(4, i - 1, $"连续{altLen}点上下交替 (点 #{altStart + 1} ~ #{i})"));
             }
         }
 
@@ -341,13 +453,11 @@ public class SpcAlgorithmService
             {
                 violations.Add(new RuleViolationResult(5, i,
                     $"连续3点中2点超过2σ (点 #{i - 1} ~ #{i + 1}, 上方)"));
-                break;
             }
-            if (countBelow >= 2)
+            else if (countBelow >= 2)
             {
                 violations.Add(new RuleViolationResult(5, i,
                     $"连续3点中2点超过2σ (点 #{i - 1} ~ #{i + 1}, 下方)"));
-                break;
             }
         }
 
@@ -364,54 +474,38 @@ public class SpcAlgorithmService
             {
                 violations.Add(new RuleViolationResult(6, i,
                     $"连续5点中4点超过1σ (点 #{i - 3} ~ #{i + 1}, 上方)"));
-                break;
             }
-            if (countBelow >= 4)
+            else if (countBelow >= 4)
             {
                 violations.Add(new RuleViolationResult(6, i,
                     $"连续5点中4点超过1σ (点 #{i - 3} ~ #{i + 1}, 下方)"));
-                break;
             }
         }
 
-        // ── Rule 7: 15 consecutive points within 1σ of CL ──
-        for (int i = 0; i <= n - 15; i++)
+        // ── Rule 7: 15 consecutive points within 1σ of CL (per maximal run) ──
+        int withinStart = 0;
+        bool inWithin = Math.Abs(means[0] - cl) <= oneSigma;
+        int withinLen = inWithin ? 1 : 0;
+        for (int i = 1; i <= n; i++)
         {
-            bool allWithin = true;
-            for (int j = i; j < i + 15; j++)
-            {
-                if (Math.Abs(means[j] - cl) > oneSigma)
-                {
-                    allWithin = false;
-                    break;
-                }
-            }
-            if (allWithin)
-            {
-                violations.Add(new RuleViolationResult(7, i + 14,
-                    $"连续15点在1σ内 (点 #{i + 1} ~ #{i + 15})"));
-                break;
-            }
+            bool cur = i < n ? Math.Abs(means[i] - cl) <= oneSigma : false;
+            if (cur == inWithin && cur) { if (i < n) withinLen++; continue; }
+            if (inWithin && withinLen >= 15)
+                violations.Add(new RuleViolationResult(7, i - 1, $"连续{withinLen}点在1σ内 (点 #{withinStart + 1} ~ #{i})"));
+            if (i < n) { inWithin = cur; withinStart = cur ? i : 0; withinLen = cur ? 1 : 0; }
         }
 
-        // ── Rule 8: 8 consecutive points > 1σ from CL (both sides) ──
-        for (int i = 0; i <= n - 8; i++)
+        // ── Rule 8: 8 consecutive points > 1σ from CL (both sides) (per maximal run) ──
+        int beyondStart = 0;
+        bool inBeyond = Math.Abs(means[0] - cl) > oneSigma;
+        int beyondLen = inBeyond ? 1 : 0;
+        for (int i = 1; i <= n; i++)
         {
-            bool allBeyond = true;
-            for (int j = i; j < i + 8; j++)
-            {
-                if (Math.Abs(means[j] - cl) <= oneSigma)
-                {
-                    allBeyond = false;
-                    break;
-                }
-            }
-            if (allBeyond)
-            {
-                violations.Add(new RuleViolationResult(8, i + 7,
-                    $"连续8点超出1σ (点 #{i + 1} ~ #{i + 8})"));
-                break;
-            }
+            bool cur = i < n ? Math.Abs(means[i] - cl) > oneSigma : false;
+            if (cur == inBeyond && cur) { if (i < n) beyondLen++; continue; }
+            if (inBeyond && beyondLen >= 8)
+                violations.Add(new RuleViolationResult(8, i - 1, $"连续{beyondLen}点超出1σ (点 #{beyondStart + 1} ~ #{i})"));
+            if (i < n) { inBeyond = cur; beyondStart = cur ? i : 0; beyondLen = cur ? 1 : 0; }
         }
 
         return violations;
@@ -515,6 +609,15 @@ public class SpcAlgorithmService
 }
 
 // ─── Result records ──────────────────────────────────────────────
+
+/// <summary>
+/// One attribute (P/C/U) data point: sample size + defect/defect-count.
+/// </summary>
+public class AttributePoint
+{
+    public double SampleSize { get; set; }
+    public double Defects { get; set; }
+}
 
 public class ControlLimitsResult
 {

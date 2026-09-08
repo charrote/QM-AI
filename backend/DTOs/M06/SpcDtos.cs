@@ -58,6 +58,7 @@ public class SpcDataPointListDto
     public string IndividualValues { get; set; } = "[]";
     public decimal? SubgroupMean { get; set; }
     public decimal? SubgroupRange { get; set; }
+    public decimal? SubgroupStdDev { get; set; }
     public DateTime MeasuredAt { get; set; }
     public DateTime CreatedAt { get; set; }
 }
