@@ -2,7 +2,7 @@ import request from './request'
 import type {
   PagedResult, PagedRequest,
   Product, CreateProduct,
-  Bom, CreateBom,
+  Bom, CreateBom, BomTree,
   Process, CreateProcess,
   Routing, CreateRouting,
   InspectionStandard, CreateInspectionStandard,
@@ -34,7 +34,12 @@ function crudApi<T, C>(basePath: string) {
 }
 
 export const productApi = crudApi<Product, CreateProduct>('/products')
-export const bomApi = crudApi<Bom, CreateBom>('/boms')
+export const bomApi = {
+  ...crudApi<Bom, CreateBom>('/boms'),
+  tree(): Promise<BomTree[]> {
+    return request.get('/boms/tree').then(r => r.data)
+  },
+}
 export const processApi = crudApi<Process, CreateProcess>('/processes')
 export const routingApi = crudApi<Routing, CreateRouting>('/routings')
 export const inspectionStandardApi = crudApi<InspectionStandard, CreateInspectionStandard>('/inspection-standards')

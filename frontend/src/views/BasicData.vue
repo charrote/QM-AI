@@ -8,6 +8,7 @@ import {
   Setting, Box, Monitor, Document, Upload,
   WarningFilled, Tools, Shop, User,
   Search, List, Refresh, Plus, Check,
+  ArrowDown, ArrowUp,
 } from '@element-plus/icons-vue'
 import RightPanel from '@/components/layout/RightPanel.vue'
 import {
@@ -100,12 +101,12 @@ const entityConfigs: Record<EntityName, EntityConfig<any, any>> = {
     }),
   },
   bom: {
-    key: 'bom', label: 'BOM清单',
+    key: 'bom', label: 'BOM 清单',
     api: bomApi,
     columns: [
-      { prop: 'productName', label: '所属产品' },
       { prop: 'materialCode', label: '物料编码', width: '120' },
       { prop: 'materialName', label: '物料名称' },
+      { prop: 'productName', label: '所属产品' },
       { prop: 'quantity', label: '用量', width: '80' },
       { prop: 'unit', label: '单位', width: '60' },
       { prop: 'level', label: '层级', width: '60' },
@@ -313,6 +314,7 @@ const entityTabs = computed(() =>
 
 // ─── 数据状态 ──────────────────────────────────────────
 const tableData = ref<any[]>([])
+const treeData = ref<any[]>([])
 const loading = ref(false)
 const total = ref(0)
 const searchKeyword = ref('')
@@ -326,11 +328,26 @@ const dialogTitle = ref('')
 const isEdit = ref(false)
 const editingId = ref(0)
 const formRef = ref()
+const bomTableRef = ref()
 const formData = reactive<any>({})
 const saving = ref(false)
 
 const lookupProducts = ref<Product[]>([])
 const lookupProcesses = ref<Process[]>([])
+const bomParentOptions = ref<any[]>([])
+
+// 产品变更时更新父件选项
+function onBomProductChange() {
+  if (!formData.productId) {
+    bomParentOptions.value = []
+    formData.parentId = undefined
+    return
+  }
+  // 从树数据中筛选属于该产品的节点作为父件选项
+  bomParentOptions.value = flattenBomTree(treeData.value).filter(
+    (b: any) => b.productId === formData.productId
+  )
+}
 
 // ─── 字典下拉数据 ──────────────────────────────────────
 const dictData = ref<Record<string, SysDictItem[]>>({})
@@ -361,6 +378,19 @@ const orgOptions = computed(() => {
 async function loadData() {
   loading.value = true
   try {
+    // BOM 使用树形接口，其他实体使用分页列表
+    if (activeEntity.value === 'bom') {
+      // 切换至 BOM 时清空列表数据，避免残留旧数据导致表格渲染异常
+      tableData.value = []
+      treeData.value = await bomApi.tree()
+      addHasChildren(treeData.value)
+      // BOM 分页只计算 L0（顶层产品节点）数量
+      total.value = treeData.value.length
+      console.log('[loadData] BOM tree got', treeData.value.length, 'products')
+      return
+    }
+    // 切换至非 BOM 实体时清空树数据
+    treeData.value = []
     const params: any = {
       page: page.value,
       pageSize: pageSize.value,
@@ -416,6 +446,59 @@ async function loadLookups() {
 // ─── 字典辅助函数 ──────────────────────────────────────
 function getDictOptions(typeCode: string): SysDictItem[] {
   return dictData.value[typeCode] || []
+}
+
+// ─── BOM 树辅助函数 ──────────────────────────────────────
+// 展开 BOM 树为平铺列表（用于搜索和统计）
+function flattenBomTree(nodes: any[]): any[] {
+  const result: any[] = []
+  for (const node of nodes) {
+    result.push(node)
+    if (node.children?.length) {
+      result.push(...flattenBomTree(node.children))
+    }
+  }
+  return result
+}
+
+// 为 BOM 树节点添加 hasChildren 标识（用于 el-table 展开图标）
+function addHasChildren(nodes: any[]) {
+  for (const node of nodes) {
+    node.hasChildren = node.children && node.children.length > 0
+    if (node.children?.length) {
+      addHasChildren(node.children)
+    }
+  }
+}
+
+// ─── BOM 全部展开/折叠（单按钮切换） ──────────────────
+const isAllExpanded = ref(false)
+function handleToggleExpandAll() {
+  if (!bomTableRef.value || !treeData.value.length) return
+  isAllExpanded.value = !isAllExpanded.value
+  if (isAllExpanded.value) {
+    // 展开：递归展开所有节点
+    function expandNode(node: any) {
+      bomTableRef.value!.toggleRowExpansion(node, true)
+      if (node.children?.length) {
+        node.children.forEach((child: any) => expandNode(child))
+      }
+    }
+    treeData.value.forEach((node: any) => expandNode(node))
+  } else {
+    // 折叠：递归折叠所有子节点
+    function collapseNode(node: any) {
+      if (node.children?.length) {
+        node.children.forEach((child: any) => {
+          bomTableRef.value!.toggleRowExpansion(child, false)
+          collapseNode(child)
+        })
+      }
+    }
+    treeData.value.forEach((node: any) => {
+      if (node.children?.length) collapseNode(node)
+    })
+  }
 }
 
 // ─── 搜索 ──────────────────────────────────────────────
@@ -682,6 +765,13 @@ onMounted(() => {
           <el-button @click="handleReset" text>
             <el-icon><Refresh /></el-icon>重置
           </el-button>
+          <!-- BOM 清单：全部展开/折叠切换 -->
+          <template v-if="activeEntity === 'bom'">
+            <el-button @click="handleToggleExpandAll" text>
+              <el-icon><ArrowDown v-if="!isAllExpanded" /><ArrowUp v-else /></el-icon>
+              {{ isAllExpanded ? '全部折叠' : '全部展开' }}
+            </el-button>
+          </template>
           <el-button type="primary" @click="openCreate">
             <el-icon><Plus /></el-icon>新增{{ config.label }}
           </el-button>
@@ -690,17 +780,33 @@ onMounted(() => {
 
       <!-- 数据表格 -->
       <el-table
-        :data="tableData"
-        v-loading="loading && activeEntity === 'defect'"
+        ref="bomTableRef"
+        :data="activeEntity === 'bom' ? treeData : tableData"
+        v-loading="loading && activeEntity !== 'bom'"
         border
         stripe
         style="width: 100%"
         size="small"
         empty-text="暂无数据"
         class="data-card__table"
-        @row-click="openDetail"
+        row-key="id"
+        :tree-props="{ children: 'children', hasChildren: 'hasChildren' }"
+        @row-click="activeEntity !== 'bom' ? openDetail : undefined"
       >
-        <el-table-column type="index" label="#" width="50" fixed class-name="index-cell" />
+        <el-table-column label="#" width="70" fixed class-name="index-cell">
+          <template #default="{ row }">
+            <template v-if="activeEntity === 'bom'">
+              <div class="bom-index" :style="{ paddingLeft: (row.level || 0) * 20 + 'px' }">
+                <el-tag size="small" :type="row.isProduct ? 'primary' : (row.level === 1 ? 'success' : 'info')" effect="plain">
+                  L{{ row.level || 0 }}
+                </el-tag>
+              </div>
+            </template>
+            <template v-else>
+              {{ undefined }}
+            </template>
+          </template>
+        </el-table-column>
         <el-table-column
           v-for="col in config.columns"
           :key="col.prop"
@@ -898,8 +1004,14 @@ onMounted(() => {
             <div class="form-section">
               <div class="form-section__title">物料信息</div>
               <el-form-item label="所属产品" prop="productId" :rules="[{ required: true, message: '请选择产品' }]">
-                <el-select v-model="formData.productId" :disabled="!isEdit" filterable placeholder="请选择产品" style="width: 100%">
+                <el-select v-model="formData.productId" :disabled="!isEdit" filterable placeholder="请选择产品" style="width: 100%"
+                  @change="onBomProductChange">
                   <el-option v-for="p in lookupProducts" :key="p.id" :label="`[${p.code}] ${p.name}`" :value="p.id" />
+                </el-select>
+              </el-form-item>
+              <el-form-item label="父件" prop="parentId">
+                <el-select v-model="formData.parentId" :disabled="!isEdit || !formData.productId" clearable filterable placeholder="选父件（不选=顶级子件）" style="width: 100%">
+                  <el-option v-for="b in bomParentOptions" :key="b.id" :label="`[${b.materialCode}] ${b.materialName} (L${b.level})`" :value="b.id" />
                 </el-select>
               </el-form-item>
               <el-row :gutter="16">
@@ -1510,5 +1622,12 @@ onMounted(() => {
     align-items: flex-start;
     gap: var(--space-3, 12px);
   }
+}
+
+/* ─── BOM 树形序号 ───────────────────────── */
+.bom-index {
+  display: flex;
+  align-items: center;
+  height: 100%;
 }
 </style>

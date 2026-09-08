@@ -65,7 +65,7 @@ function close() {
           <el-button
             v-if="showClose"
             class="rp-close"
-            circle
+            text
             size="small"
             @click="close"
           >
@@ -145,6 +145,7 @@ function close() {
 .rp-close:hover {
   color: var(--el-text-regular);
   background: var(--el-fill-color-light);
+  border-radius: 4px;
 }
 
 /* ── Body ── */

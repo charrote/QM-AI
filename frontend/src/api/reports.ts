@@ -13,8 +13,23 @@ export const reportsApi = {
     reworkRate: number
     totalInspections: number
     totalDefects: number
+    /** 以下为后端增强字段（驾驶舱 KPI 用） */
+    iqcItemCount?: number
+    fqcItemCount?: number
+    passItemCount?: number
+    fpy?: number
   }> {
     return request.get(`${BASE}/quality`, { params }).then(r => r.data)
+  },
+
+  /** 近 N 天按日聚合的 FPY 趋势（无数据日为 fpy=null，前端不填充假数据） */
+  qualityTrend(params?: { days?: number }): Promise<Array<{
+    date: string
+    total: number
+    pass: number
+    fpy: number | null
+  }>> {
+    return request.get(`${BASE}/quality-trend`, { params }).then(r => r.data)
   },
 
   defectPareto(params?: { startDate?: string; endDate?: string }): Promise<Array<{

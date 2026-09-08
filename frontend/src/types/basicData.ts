@@ -48,22 +48,43 @@ export interface CreateProduct {
 export interface Bom {
   id: number
   productId: number
+  productCode?: string
   productName: string
+  parentId?: number
+  parentMaterialName?: string
   materialCode: string
   materialName: string
   quantity: number
   unit?: string
   level: number
+  remark?: string
 }
 
 export interface CreateBom {
   productId: number
+  parentId?: number
   materialCode: string
   materialName: string
   quantity: number
   unit?: string
   level?: number
   remark?: string
+}
+
+export interface BomTree {
+  id: number
+  productId: number
+  productCode: string
+  productName: string
+  parentId?: number
+  materialCode: string
+  materialName: string
+  quantity: number
+  unit?: string
+  level: number
+  remark?: string
+  isProduct: boolean
+  children: BomTree[]
 }
 
 // ─── Process ─────────────────────────────────────────

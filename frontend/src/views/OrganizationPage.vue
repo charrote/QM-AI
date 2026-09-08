@@ -374,12 +374,12 @@ onMounted(() => {
               <el-button
                 v-if="NEXT_LEVEL[selectedNode.level]"
                 size="small"
-                type="success"
+                type="primary"
                 @click="openCreateChild({ ...selectedNode, children: [], childCount: 0 } as OrganizationTreeNode)"
               >
                 <el-icon><Plus /></el-icon> 添加子节点
               </el-button>
-              <el-button size="small" type="danger" @click="handleDelete()">
+              <el-button size="small" type="primary" @click="handleDelete()">
                 <el-icon><Delete /></el-icon> 删除
               </el-button>
             </div>
@@ -720,7 +720,7 @@ onMounted(() => {
 
 .detail-actions {
   display: flex;
-  gap: 8px;
+  gap: 0;
 }
 
 .detail-card {

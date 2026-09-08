@@ -14,6 +14,15 @@ public class Bom
     [Column("product_id")]
     public long ProductId { get; set; }
 
+    /// <summary>产品编码（冗余字段，避免树查询时关联）</summary>
+    [MaxLength(50)]
+    [Column("product_code")]
+    public string? ProductCode { get; set; }
+
+    /// <summary>父件BOM ID（null=顶级子件，用于构建BOM树）</summary>
+    [Column("parent_id")]
+    public long? ParentId { get; set; }
+
     /// <summary>物料编码</summary>
     [Required]
     [MaxLength(100)]

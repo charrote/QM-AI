@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using QM_AI.API.Services;
 
 namespace QM_AI.API.Controllers.M14;
 
@@ -6,31 +7,38 @@ namespace QM_AI.API.Controllers.M14;
 [Route("api/v1/m14/reports")]
 public class ReportsController : ControllerBase
 {
+    private readonly ReportsService _reports;
+
+    public ReportsController(ReportsService reports)
+    {
+        _reports = reports;
+    }
+
     // ─── 质量仪表盘 ───────────────────────────────────────
 
     [HttpGet("quality")]
-    public IActionResult GetQualityStats(
+    public async Task<IActionResult> GetQualityStats(
         [FromQuery] string? startDate,
         [FromQuery] string? endDate,
         [FromQuery] string? module)
     {
-        // TODO: Implement quality stats service
-        return Ok(new {
-            iqcPassRate = 0m,
-            ipqcPassRate = 0m,
-            fqcPassRate = 0m,
-            scrapRate = 0m,
-            reworkRate = 0m,
-            totalInspections = 0,
-            totalDefects = 0
-        });
+        // 真实查库聚合（IQC/FQC 检验项合格率、缺陷总数、报废/返工处置比例）
+        // 注：module 参数当前未用于过滤（前端未使用），保留以兼容既有契约
+        return Ok(await _reports.GetQualityStatsAsync(startDate, endDate));
     }
 
     [HttpGet("defect-pareto")]
-    public IActionResult GetDefectPareto([FromQuery] string? startDate, [FromQuery] string? endDate)
+    public async Task<IActionResult> GetDefectPareto([FromQuery] string? startDate, [FromQuery] string? endDate)
     {
-        // TODO: Implement defect pareto analysis
-        return Ok(new object[0]);
+        // 按缺陷代码聚合 defects 表，LEFT JOIN defect_codes 取名称，count 降序
+        return Ok(await _reports.GetDefectParetoAsync(startDate, endDate));
+    }
+
+    [HttpGet("quality-trend")]
+    public async Task<IActionResult> GetQualityTrend([FromQuery] int days = 7)
+    {
+        // 近 N 天按日聚合 FPY（稀疏数据如实留 null，不填充）
+        return Ok(await _reports.GetQualityTrendAsync(days));
     }
 
     [HttpGet("supplier-scores")]

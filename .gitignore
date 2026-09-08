@@ -38,6 +38,9 @@ docker/.env.example
 .idea/
 .vscode/
 *.swp
+
+# Scratch task prompts (contain local credentials)
+.opencode-task-dashboard.md
 *.swo
 *~
 

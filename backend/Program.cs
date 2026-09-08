@@ -164,6 +164,10 @@ builder.Services.AddScoped<DocumentService>();
 // M13 审核稽核
 builder.Services.AddScoped<AuditService>();
 
+// M14 报表 / 驾驶舱
+builder.Services.AddScoped<ReportsService>();
+builder.Services.AddScoped<DashboardService>();
+
 var app = builder.Build();
 
 // ─── Global exception handler middleware ────────────────────────────

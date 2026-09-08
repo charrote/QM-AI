@@ -45,17 +45,22 @@ public class BomListDto
 {
     public long Id { get; set; }
     public long ProductId { get; set; }
+    public string ProductCode { get; set; } = string.Empty;
     public string ProductName { get; set; } = string.Empty;
+    public long? ParentId { get; set; }
+    public string ParentMaterialName { get; set; } = string.Empty;
     public string MaterialCode { get; set; } = string.Empty;
     public string MaterialName { get; set; } = string.Empty;
     public double Quantity { get; set; }
     public string? Unit { get; set; }
     public int Level { get; set; }
+    public string? Remark { get; set; }
 }
 
 public class CreateBomDto
 {
     public long ProductId { get; set; }
+    public long? ParentId { get; set; }
     public string MaterialCode { get; set; } = string.Empty;
     public string MaterialName { get; set; } = string.Empty;
     public double Quantity { get; set; } = 1;
@@ -65,6 +70,24 @@ public class CreateBomDto
 }
 
 public class UpdateBomDto : CreateBomDto { }
+
+// ─── BOM Tree ──────────────────────────────────────────────
+public class BomTreeDto
+{
+    public long Id { get; set; }
+    public long ProductId { get; set; }
+    public string ProductCode { get; set; } = string.Empty;
+    public string ProductName { get; set; } = string.Empty;
+    public long? ParentId { get; set; }
+    public string MaterialCode { get; set; } = string.Empty;
+    public string MaterialName { get; set; } = string.Empty;
+    public double Quantity { get; set; }
+    public string? Unit { get; set; }
+    public int Level { get; set; }
+    public string? Remark { get; set; }
+    public bool IsProduct { get; set; }
+    public List<BomTreeDto> Children { get; set; } = new();
+}
 
 // ─── Process ─────────────────────────────────────────────────
 public class ProcessListDto

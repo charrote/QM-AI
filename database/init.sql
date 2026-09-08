@@ -81,6 +81,8 @@ CREATE TABLE IF NOT EXISTS products (
 CREATE TABLE IF NOT EXISTS boms (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     product_id BIGINT NOT NULL,
+    product_code VARCHAR(50) DEFAULT NULL COMMENT '产品编码（冗余）',
+    parent_id BIGINT DEFAULT NULL COMMENT '父件BOM ID（层级关系）',
     material_code VARCHAR(50),
     material_name VARCHAR(200),
     quantity DECIMAL(10,3),
@@ -90,7 +92,8 @@ CREATE TABLE IF NOT EXISTS boms (
     org_id BIGINT COMMENT '所属组织',
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (product_id) REFERENCES products(id)
+    FOREIGN KEY (product_id) REFERENCES products(id),
+    INDEX idx_boms_parent (parent_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS processes (

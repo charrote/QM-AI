@@ -1,502 +1,825 @@
 <script setup lang="ts">
 defineOptions({ name: 'Dashboard' })
 
-import { ref, onMounted, computed } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
+import { useRouter } from 'vue-router'
 import {
-  DataAnalysis, TrendCharts, Warning, CircleCheck,
-  Bell, ArrowRight, Box, Monitor, Checked, Service,
-  Search, Calendar
+  DataAnalysis, TrendCharts, CircleCheck, Warning, Bell,
+  Calendar, Box, Monitor, Checked, Search,
 } from '@element-plus/icons-vue'
-import { ElMessage } from 'element-plus'
+import VChart from 'vue-echarts'
+import { use } from 'echarts/core'
+import { CanvasRenderer } from 'echarts/renderers'
+import { LineChart, BarChart } from 'echarts/charts'
+import {
+  GridComponent, TooltipComponent, MarkLineComponent,
+} from 'echarts/components'
+import { reportsApi } from '@/api/reports'
+import { aiApi } from '@/api/ai'
+import { dashboardApi, type PendingItem } from '@/api/dashboard'
 
-const formatDate = (date: Date) => {
-  return date.toLocaleDateString('zh-CN', {
+use([
+  CanvasRenderer,
+  LineChart,
+  BarChart,
+  GridComponent,
+  TooltipComponent,
+  MarkLineComponent,
+])
+
+const router = useRouter()
+
+// ─── 时间 ────────────────────────────────────────────────────
+const now = ref(new Date())
+let clockTimer: number | undefined
+
+const dateText = computed(() =>
+  now.value.toLocaleDateString('zh-CN', {
     year: 'numeric',
     month: 'long',
     day: 'numeric',
     weekday: 'long',
-  })
+  }),
+)
+
+function todayStr(): string {
+  const d = new Date()
+  const p = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`
 }
 
-const currentTime = ref(new Date())
+function fmtTime(iso: string): string {
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return ''
+  const hm = d.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false })
+  if (d.toDateString() === now.value.toDateString()) return hm
+  return `${d.getMonth() + 1}月${d.getDate()}日 ${hm}`
+}
 
-// Time-based greeting
-const greeting = computed(() => {
-  const hour = currentTime.value.getHours()
-  if (hour < 6) return '夜间'
-  if (hour < 9) return '上午好'
-  if (hour < 12) return '上午好'
-  if (hour < 14) return '中午好'
-  if (hour < 18) return '下午好'
-  if (hour < 22) return '晚上好'
-  return '夜间'
+// ─── 数据状态（全部来自接口，无硬编码数据） ──────────────────
+const loading = ref(true)
+
+type QualityStats = Awaited<ReturnType<typeof reportsApi.qualityStats>>
+
+const quality = ref<QualityStats | null>(null)
+const todayStats = ref<QualityStats | null>(null)
+const trend = ref<Array<{ date: string; total: number; pass: number; fpy: number | null }>>([])
+const pareto = ref<Array<{ defectCode: string; defectName: string; count: number; percentage: number }>>([])
+const pendingItems = ref<PendingItem[]>([])
+const pendingTotal = ref(0)
+const aiAlerts = ref<Array<{
+  id: number
+  level: string
+  title: string
+  description: string
+  source: string
+  resolved: boolean
+  createdAt: string
+}>>([])
+const aiUnresolvedTotal = ref(0)
+
+// ─── KPI ─────────────────────────────────────────────────────
+const kpiInspections = computed<number | null>(() =>
+  todayStats.value ? todayStats.value.totalInspections : null,
+)
+
+const kpiFpy = computed<number | null>(() =>
+  quality.value && typeof quality.value.fpy === 'number' ? quality.value.fpy : null,
+)
+
+// 检验数日环比（基于趋势真实数据；任一天无数据则不显示）
+const inspectionDelta = computed<{ text: string; dir: 'up' | 'down' } | null>(() => {
+  const today = trend.value[trend.value.length - 1]
+  const yest = trend.value[trend.value.length - 2]
+  if (!today || !yest || yest.total <= 0) return null
+  const pct = Math.round(((today.total - yest.total) / yest.total) * 100)
+  if (pct === 0) return null
+  return { text: `${Math.abs(pct)}% 较昨日`, dir: pct > 0 ? 'up' : 'down' }
 })
 
-// Stats data
-const stats = ref([
-  {
-    label: '今日检验数',
-    value: 0,
-    unit: '',
-    icon: DataAnalysis,
-    trend: '+12%',
-    trendType: 'up' as const,
-  },
-  {
-    label: '合格率',
-    value: 0,
-    unit: '%',
-    icon: CircleCheck,
-    trend: '+2.1%',
-    trendType: 'up' as const,
-  },
-  {
-    label: '异常待处理',
-    value: 0,
-    unit: '',
-    icon: Warning,
-    trend: '-3',
-    trendType: 'down' as const,
-  },
-  {
-    label: '预警通知',
-    value: 0,
-    unit: '',
-    icon: Bell,
-    trend: '+5',
-    trendType: 'up' as const,
-  },
-])
+const fpyMeta = computed(() => {
+  const v = kpiFpy.value
+  if (v == null) return { color: 'var(--text-placeholder)', tag: '暂无数据', tagCls: 'tag-neutral' }
+  if (v >= 95) return { color: 'var(--success)', tag: '达标（目标 95%）', tagCls: 'tag-good' }
+  if (v >= 90) return { color: 'var(--warning)', tag: '低于目标 95%', tagCls: 'tag-mid' }
+  return { color: 'var(--danger)', tag: '低于目标 95%', tagCls: 'tag-bad' }
+})
 
-// Recent activities
-const recentActivities = ref([
-  { time: '10:32', content: '供应商A来料检验完成，结果合格', type: 'success' },
-  { time: '10:15', content: '产线B3巡检发现尺寸偏差，已标记异常', type: 'warning' },
-  { time: '09:48', content: '产品P001首件检验通过', type: 'success' },
-  { time: '09:30', content: 'SPC控制图检测到C7参数趋势异常', type: 'danger' },
-  { time: '09:12', content: '客户投诉CT-2024-003已分配处理人', type: 'info' },
-  { time: '09:05', content: '产线A2完成批量生产，等待FQC检验', type: 'info' },
-])
+const pendingMeta = computed(() => {
+  if (pendingTotal.value > 0) return { color: 'var(--danger)', tag: '需关注', tagCls: 'tag-bad' }
+  return { color: 'var(--success)', tag: '全部清空', tagCls: 'tag-good' }
+})
 
-// Quick access modules
-const moduleCards = ref([
-  { name: 'IQC来料检验', path: '/iqc/receipts', icon: Box },
-  { name: 'IPQC过程检验', path: '/ipqc/first-pieces', icon: Monitor },
-  { name: 'FQC/OQC成品检验', path: '/fqc/inspections', icon: Checked },
-  { name: 'SPC统计分析', path: '/spc', icon: TrendCharts },
-  { name: '缺陷与CAPA', path: '/defects', icon: Warning },
-  { name: '客诉与8D', path: '/complaints/list', icon: Service },
+const aiMeta = computed(() => {
+  if (aiUnresolvedTotal.value > 0) return { color: 'var(--warning)', tag: '未解决', tagCls: 'tag-mid' }
+  return { color: 'var(--success)', tag: '无预警', tagCls: 'tag-good' }
+})
+
+// ─── 趋势图（近 7 天 FPY + 目标线 95%，稀疏点如实留空） ──────
+const trendOption = computed(() => {
+  const fps = trend.value.map(t => t.fpy ?? null)
+  if (!fps.some(v => v != null)) return null
+
+  const vals = fps.filter((v): v is number => v != null)
+  const min = Math.max(0, Math.floor((Math.min(...vals, 95) - 5) / 5) * 5)
+  const max = Math.min(100, Math.ceil((Math.max(...vals, 95) + 5) / 5) * 5)
+
+  return {
+    grid: { left: 44, right: 12, top: 20, bottom: 24 },
+    tooltip: {
+      trigger: 'axis',
+      valueFormatter: (v: unknown) => (v == null ? '-' : `${v}%`),
+    },
+    xAxis: {
+      type: 'category',
+      boundaryGap: false,
+      data: trend.value.map(t => t.date.slice(5)),
+      axisLine: { lineStyle: { color: 'var(--border-base)' } },
+      axisTick: { show: false },
+      axisLabel: { color: 'var(--text-secondary)', fontSize: 11 },
+    },
+    yAxis: {
+      type: 'value',
+      min,
+      max,
+      axisLabel: { formatter: '{value}%', color: 'var(--text-secondary)', fontSize: 11 },
+      splitLine: { lineStyle: { color: 'var(--border-light)' } },
+    },
+    series: [
+      {
+        name: 'FPY',
+        type: 'line',
+        data: fps,
+        connectNulls: false,
+        symbol: 'circle',
+        symbolSize: 6,
+        lineStyle: { color: 'var(--primary)', width: 2 },
+        itemStyle: { color: 'var(--primary)' },
+        areaStyle: { color: 'rgba(22, 119, 255, 0.06)' },
+        markLine: {
+          silent: true,
+          symbol: 'none',
+          lineStyle: { color: 'var(--danger)', type: 'dashed', width: 1 },
+          label: { formatter: '目标 95%', color: 'var(--danger)', fontSize: 10, position: 'insideEndTop' },
+          data: [{ yAxis: 95 }],
+        },
+      },
+    ],
+  }
+})
+
+// ─── 帕累托（Top5 横向条形） ─────────────────────────────────
+const paretoTop5 = computed(() => pareto.value.slice(0, 5))
+
+const paretoOption = computed(() => {
+  const top = paretoTop5.value
+  if (top.length === 0) return null
+
+  const maxCount = Math.max(...top.map(p => p.count))
+  const reversed = [...top].reverse()
+
+  return {
+    grid: { left: 8, right: 44, top: 8, bottom: 8, containLabel: true },
+    tooltip: {
+      trigger: 'axis',
+      axisPointer: { type: 'shadow' },
+      formatter: (params: unknown) => {
+        const ps = params as Array<{ dataIndex: number; name: string; value: number }>
+        if (!ps?.length) return ''
+        const item = reversed[ps[0].dataIndex]
+        return `${item.defectName}<br/>数量：${item.count} 条 · 占比 ${item.percentage}%`
+      },
+    },
+    xAxis: { type: 'value', show: false, max: maxCount },
+    yAxis: {
+      type: 'category',
+      data: reversed.map(p => p.defectName),
+      axisLine: { show: false },
+      axisTick: { show: false },
+      axisLabel: {
+        color: 'var(--text-regular)',
+        fontSize: 12,
+        width: 96,
+        overflow: 'truncate',
+      },
+    },
+    series: [
+      {
+        type: 'bar',
+        data: reversed.map(p => p.count),
+        barWidth: 10,
+        itemStyle: { color: 'var(--primary)', borderRadius: [0, 4, 4, 0] },
+        label: {
+          show: true,
+          position: 'right',
+          color: 'var(--text-secondary)',
+          fontSize: 11,
+          formatter: '{c}',
+        },
+      },
+    ],
+  }
+})
+
+// ─── 待处理列表 ──────────────────────────────────────────────
+const LABEL_STYLES: Record<string, { color: string; bg: string }> = {
+  紧急: { color: 'var(--danger)', bg: 'var(--danger-bg)' },
+  待判定: { color: 'var(--warning)', bg: 'var(--warning-bg)' },
+  逾期风险: { color: 'var(--primary)', bg: 'var(--primary-bg)' },
+  待放行: { color: 'var(--success)', bg: 'var(--success-bg)' },
+  处理中: { color: 'var(--text-secondary)', bg: 'var(--info-bg)' },
+}
+
+function labelStyle(label: string) {
+  return LABEL_STYLES[label] ?? { color: 'var(--text-secondary)', bg: 'var(--info-bg)' }
+}
+
+const TYPE_ROUTES: Record<string, string> = {
+  iqc: '/iqc/inspections',
+  fqc: '/fqc/inspections',
+  defect: '/defects',
+  capa: '/defects/capa',
+  complaint: '/complaints/list',
+  firstpiece: '/ipqc/first-pieces',
+}
+
+function openPending(item: PendingItem) {
+  router.push(TYPE_ROUTES[item.type] ?? '/')
+}
+
+// ─── AI 风险预警 ─────────────────────────────────────────────
+function alertLevelStyle(level: string) {
+  const l = (level || '').toLowerCase()
+  if (l === 'critical' || l === 'high' || l === '紧急')
+    return { color: 'var(--danger)', bg: 'var(--danger-bg)' }
+  if (l === 'medium' || l === 'warning' || l === 'major' || l === '中等')
+    return { color: 'var(--warning)', bg: 'var(--warning-bg)' }
+  return { color: 'var(--primary)', bg: 'var(--primary-bg)' }
+}
+
+// ─── 常用入口（精简 6 个） ───────────────────────────────────
+const quickEntries = [
+  { name: 'IQC 来料', path: '/iqc/receipts', icon: Box },
+  { name: 'IPQC 首件', path: '/ipqc/first-pieces', icon: Monitor },
+  { name: 'FQC 成品', path: '/fqc/inspections', icon: Checked },
+  { name: 'SPC 分析', path: '/spc', icon: TrendCharts },
   { name: '追溯查询', path: '/trace', icon: Search },
-  { name: '质量仪表盘', path: '/reports/dashboard', icon: DataAnalysis },
-])
+  { name: '质量报表', path: '/reports/dashboard', icon: DataAnalysis },
+]
 
-function getActivityColor(type: string): string {
-  const colors: Record<string, string> = {
-    success: '#52c41a',
-    warning: '#faad14',
-    danger: '#ff4d4f',
-    info: '#8c8c8c',
-  }
-  return colors[type] || '#8c8c8c'
+function openQuick(path: string) {
+  router.push(path)
 }
 
-// Simulate loading data
-onMounted(() => {
-  const animateValue = (el: HTMLElement, target: number) => {
-    let current = 0
-    const step = Math.ceil(target / 30)
-    const timer = setInterval(() => {
-      current += step
-      if (current >= target) {
-        current = target
-        clearInterval(timer)
-      }
-      el.textContent = current.toString()
-    }, 20)
-  }
-
-  setTimeout(() => {
-    const statValues = document.querySelectorAll('.stat-value-number')
-    const targets = [156, 97, 8, 12]
-    statValues.forEach((el, i) => {
-      if (el && targets[i] !== undefined) {
-        animateValue(el as HTMLElement, targets[i])
-      }
-    })
-  }, 300)
-
-  // Update time every minute
-  setInterval(() => {
-    currentTime.value = new Date()
+// ─── 数据加载 ────────────────────────────────────────────────
+onMounted(async () => {
+  clockTimer = window.setInterval(() => {
+    now.value = new Date()
   }, 60000)
+
+  const t = todayStr()
+  const results = await Promise.allSettled([
+    reportsApi.qualityStats(),
+    reportsApi.qualityStats({ startDate: t, endDate: t }),
+    reportsApi.qualityTrend({ days: 7 }),
+    reportsApi.defectPareto(),
+    dashboardApi.pending(),
+    aiApi.alerts({ resolved: false, page: 1, pageSize: 5 }),
+  ])
+
+  const [q, today, tr, pa, pd, ai] = results
+  if (q.status === 'fulfilled') quality.value = q.value
+  else console.error('[Dashboard] qualityStats failed:', q.reason)
+  if (today.status === 'fulfilled') todayStats.value = today.value
+  else console.error('[Dashboard] todayStats failed:', today.reason)
+  if (tr.status === 'fulfilled') trend.value = tr.value
+  else console.error('[Dashboard] qualityTrend failed:', tr.reason)
+  if (pa.status === 'fulfilled') pareto.value = pa.value
+  else console.error('[Dashboard] defectPareto failed:', pa.reason)
+  if (pd.status === 'fulfilled') {
+    pendingItems.value = pd.value.items ?? []
+    pendingTotal.value = pd.value.total ?? 0
+  } else console.error('[Dashboard] pending failed:', pd.reason)
+  if (ai.status === 'fulfilled') {
+    aiAlerts.value = ai.value.items ?? []
+    aiUnresolvedTotal.value = ai.value.total ?? ai.value.items?.length ?? 0
+  } else console.error('[Dashboard] aiAlerts failed:', ai.reason)
+
+  loading.value = false
 })
 
-function navigateTo(path: string) {
-  window.location.href = path
-}
+onBeforeUnmount(() => {
+  if (clockTimer !== undefined) window.clearInterval(clockTimer)
+})
 </script>
 
 <template>
-  <div class="dashboard-page">
-    <!-- Welcome Section -->
-    <div class="dashboard-header">
+  <div class="cockpit">
+    <!-- 头部 -->
+    <div class="cockpit-header">
       <div>
-        <h2 class="welcome-title">{{ greeting }}，质量管理系统</h2>
-        <p class="welcome-subtitle">实时掌握全厂质量动态</p>
+        <h1 class="title">质量决策驾驶舱</h1>
+        <div class="subtitle">全厂质量实时态势 · 待处理事项 · AI 风险预警</div>
       </div>
-      <div class="header-right">
-        <div class="date-pill">
-          <el-icon><Calendar /></el-icon>
-          <span>{{ formatDate(currentTime) }}</span>
+      <div class="date-pill">
+        <el-icon :size="14"><Calendar /></el-icon>
+        <span>{{ dateText }}</span>
+      </div>
+    </div>
+
+    <!-- KPI 条 -->
+    <div class="kpi-row">
+      <div class="kpi">
+        <div class="kpi-label"><el-icon :size="15"><DataAnalysis /></el-icon>今日检验数</div>
+        <div class="kpi-num" :style="{ color: 'var(--primary)' }">
+          {{ kpiInspections ?? '-' }}
+        </div>
+        <div v-if="inspectionDelta" class="kpi-tag" :class="inspectionDelta.dir === 'up' ? 'tag-good' : 'tag-bad'">
+          {{ inspectionDelta.dir === 'up' ? '▲' : '▼' }} {{ inspectionDelta.text }}
+        </div>
+        <div v-else class="kpi-tag tag-neutral">实时</div>
+      </div>
+
+      <div class="kpi">
+        <div class="kpi-label"><el-icon :size="15"><CircleCheck /></el-icon>一次合格率 FPY</div>
+        <div class="kpi-num" :style="{ color: fpyMeta.color }">
+          {{ kpiFpy ?? '-' }}<small v-if="kpiFpy != null">%</small>
+        </div>
+        <div class="kpi-tag" :class="fpyMeta.tagCls">{{ fpyMeta.tag }}</div>
+      </div>
+
+      <div class="kpi">
+        <div class="kpi-label"><el-icon :size="15"><Warning /></el-icon>异常待处理</div>
+        <div class="kpi-num" :style="{ color: pendingMeta.color }">
+          {{ pendingTotal }}
+        </div>
+        <div class="kpi-tag" :class="pendingMeta.tagCls">{{ pendingMeta.tag }}</div>
+      </div>
+
+      <div class="kpi">
+        <div class="kpi-label"><el-icon :size="15"><Bell /></el-icon>AI 预警</div>
+        <div class="kpi-num" :style="{ color: aiMeta.color }">
+          {{ aiUnresolvedTotal }}
+        </div>
+        <div class="kpi-tag" :class="aiMeta.tagCls">{{ aiMeta.tag }}</div>
+      </div>
+    </div>
+
+    <!-- 趋势 + 帕累托 -->
+    <div class="row row-21">
+      <div class="card">
+        <div class="card-head">
+          <b>近 7 天质量趋势</b>
+          <el-link type="primary" :underline="false" @click="openQuick('/reports/dashboard')">查看报表 ›</el-link>
+        </div>
+        <div class="card-body">
+          <template v-if="loading">
+            <el-skeleton :rows="5" animated />
+          </template>
+          <template v-else>
+            <div v-if="trendOption" class="chart-wrap">
+              <div class="legend">
+                <span><i class="chip chip-line" style="background: var(--primary)" />FPY 合格率</span>
+                <span><i class="chip chip-line" style="background: var(--danger)" />目标线 95%</span>
+              </div>
+              <v-chart :option="trendOption" autoresize class="chart" />
+            </div>
+            <div v-else class="empty">暂无数据</div>
+          </template>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <b>缺陷帕累托 Top5</b>
+          <el-link type="primary" :underline="false" @click="openQuick('/defects')">分析 ›</el-link>
+        </div>
+        <div class="card-body">
+          <template v-if="loading">
+            <el-skeleton :rows="5" animated />
+          </template>
+          <template v-else>
+            <div v-if="paretoOption">
+              <v-chart :option="paretoOption" autoresize class="chart" />
+            </div>
+            <div v-else class="empty">暂无数据</div>
+          </template>
         </div>
       </div>
     </div>
 
-    <!-- Stats Cards -->
-    <el-row :gutter="16" class="stats-row">
-      <el-col :xs="12" :sm="6" v-for="stat in stats" :key="stat.label">
-        <el-card shadow="never" class="stat-card">
-          <div class="stat-content">
-            <div class="stat-icon">
-              <el-icon :size="20">
-                <component :is="stat.icon" />
-              </el-icon>
-            </div>
-            <div class="stat-info">
-              <div class="stat-value">
-                <span class="stat-value-number">0</span>
-                <span class="stat-unit" v-if="stat.unit">{{ stat.unit }}</span>
+    <!-- 待处理 + AI 风险 -->
+    <div class="row row-11">
+      <div class="card">
+        <div class="card-head">
+          <b>今日待处理</b>
+          <el-link type="primary" :underline="false" @click="openQuick('/defects')">全部 ›</el-link>
+        </div>
+        <div class="card-body pad-top-sm">
+          <template v-if="loading">
+            <el-skeleton :rows="4" animated />
+          </template>
+          <template v-else-if="pendingItems.length">
+            <div
+              v-for="item in pendingItems"
+              :key="`${item.type}-${item.id}`"
+              class="todo"
+              @click="openPending(item)"
+            >
+              <span class="dot" :style="{ background: labelStyle(item.label).color }" />
+              <div class="todo-tx">
+                <div class="todo-t">{{ item.title }}</div>
+                <div class="todo-m">{{ item.detail }} · {{ fmtTime(item.time) }}</div>
               </div>
-              <div class="stat-label">{{ stat.label }}</div>
-            </div>
-            <div class="stat-trend" :class="'trend--' + stat.trendType">
-              {{ stat.trend }}
-            </div>
-          </div>
-        </el-card>
-      </el-col>
-    </el-row>
-
-    <!-- Main Content -->
-    <el-row :gutter="16">
-      <!-- Recent Activities -->
-      <el-col :xs="24" :lg="10">
-        <el-card shadow="never" class="activity-card">
-          <template #header>
-            <div class="card-header">
-              <span>最近活动</span>
-              <el-link type="primary" :underline="false">查看全部</el-link>
+              <span
+                class="tag"
+                :style="{ color: labelStyle(item.label).color, background: labelStyle(item.label).bg }"
+              >{{ item.label }}</span>
             </div>
           </template>
-          <div class="activity-list">
-            <div
-              v-for="(item, index) in recentActivities"
-              :key="index"
-              class="activity-item"
-            >
-              <div class="activity-dot" :style="{ background: getActivityColor(item.type) }"></div>
-              <div class="activity-content">
-                <div class="activity-text">{{ item.content }}</div>
-                <div class="activity-time">{{ item.time }}</div>
-              </div>
-            </div>
-          </div>
-        </el-card>
-      </el-col>
+          <div v-else class="empty">暂无待处理事项</div>
+        </div>
+      </div>
 
-      <!-- Quick Access -->
-      <el-col :xs="24" :lg="14">
-        <el-card shadow="never" class="modules-card">
-          <template #header>
-            <div class="card-header">
-              <span>快捷入口</span>
+      <div class="card">
+        <div class="card-head">
+          <b>AI 风险预警</b>
+          <el-link type="primary" :underline="false" @click="openQuick('/ai/alerts')">预警中心 ›</el-link>
+        </div>
+        <div class="card-body pad-top-sm">
+          <template v-if="loading">
+            <el-skeleton :rows="4" animated />
+          </template>
+          <template v-else-if="aiAlerts.length">
+            <div v-for="alert in aiAlerts" :key="alert.id" class="risk" @click="openQuick('/ai/alerts')">
+              <div class="risk-ic" :style="alertLevelStyle(alert.level)">
+                <el-icon :size="15"><Warning /></el-icon>
+              </div>
+              <div class="risk-tx">
+                <div class="risk-t">{{ alert.title }}</div>
+                <div class="risk-m">{{ alert.description }}</div>
+              </div>
+              <span class="risk-go">详情 ›</span>
             </div>
           </template>
-          <div class="modules-grid">
-            <div
-              v-for="mod in moduleCards"
-              :key="mod.name"
-              class="module-item"
-              @click="navigateTo(mod.path)"
-            >
-              <div class="module-icon">
-                <el-icon :size="16">
-                  <component :is="mod.icon" />
-                </el-icon>
-              </div>
-              <div class="module-info">
-                <div class="module-name">{{ mod.name }}</div>
-                <div class="module-desc">{{ mod.desc }}</div>
-              </div>
-              <el-icon :size="14" color="#bfbfbf"><ArrowRight /></el-icon>
-            </div>
-          </div>
-        </el-card>
-      </el-col>
-    </el-row>
+          <div v-else class="empty">暂无数据</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 常用入口 -->
+    <div class="card">
+      <div class="card-head">
+        <b>常用入口</b>
+      </div>
+      <div class="quick">
+        <div
+          v-for="q in quickEntries"
+          :key="q.name"
+          class="quick-item"
+          @click="openQuick(q.path)"
+        >
+          <span class="quick-ic">
+            <el-icon :size="17"><component :is="q.icon" /></el-icon>
+          </span>
+          <span class="quick-name">{{ q.name }}</span>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <style scoped>
-.dashboard-page {
-  padding: 0;
-  overflow: hidden;
+.cockpit {
+  padding: var(--space-5);
+  max-width: var(--layout-content-max-width);
+  margin: 0 auto;
 }
 
-/* ═══ Header ═══ */
-.dashboard-header {
+/* ═══ 头部 ═══ */
+.cockpit-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: var(--space-5);
   flex-wrap: wrap;
   gap: var(--space-3);
+  margin-bottom: var(--space-4);
 }
 
-.welcome-title {
-  font-size: var(--font-2xl);
+.title {
+  font-size: var(--font-xl);
   font-weight: var(--font-semibold);
-  color: var(--text-primary, #1a1a1a);
+  color: var(--text-primary);
   margin: 0;
   line-height: 1.3;
 }
 
-.welcome-subtitle {
+.subtitle {
   font-size: var(--font-sm);
-  color: var(--text-secondary, #8c8c8c);
-  margin: var(--space-1) 0 0;
-}
-
-.header-right {
-  display: flex;
-  align-items: center;
+  color: var(--text-secondary);
+  margin-top: var(--space-1);
 }
 
 .date-pill {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 7px;
   font-size: var(--font-sm);
-  color: var(--text-regular, #4a4a4a);
-  background: var(--el-bg-color);
-  padding: 8px 14px;
+  color: var(--text-secondary);
+  background: var(--bg-container);
+  border: 1px solid var(--border-base);
   border-radius: var(--radius-full);
-  border: 1px solid var(--el-border-color-lighter);
+  padding: 7px 14px;
 }
 
-/* ═══ Stats Cards ═══ */
-.stats-row {
-  margin-bottom: var(--space-5);
+/* ═══ KPI 条（语义色数字，无左边彩条，细边框） ═══ */
+.kpi-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: var(--space-4);
 }
 
-.stat-card {
-  margin-bottom: 0;
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--el-border-color-lighter);
-  transition: box-shadow var(--duration-normal) var(--ease-out);
+.kpi {
+  background: var(--bg-container);
+  border: 1px solid var(--border-base);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-xs);
+  padding: 16px 18px;
 }
 
-.stat-card:hover {
-  box-shadow: var(--shadow-sm);
-}
-
-.stat-card :deep(.el-card__body) {
-  padding: var(--space-4) var(--space-5);
-}
-
-.stat-content {
+.kpi-label {
+  font-size: var(--font-sm);
+  color: var(--text-secondary);
   display: flex;
   align-items: center;
-  gap: var(--space-4);
+  gap: 6px;
 }
 
-.stat-icon {
-  width: 36px;
-  height: 36px;
-  border-radius: var(--radius-md);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  color: var(--text-secondary, #8c8c8c);
-  background: var(--el-fill-color-light);
+.kpi-label .el-icon {
+  color: var(--text-placeholder);
 }
 
-.stat-info {
-  flex: 1;
-  min-width: 0;
-}
-
-.stat-value {
-  font-size: var(--font-3xl);
+.kpi-num {
+  font-size: 28px;
   font-weight: var(--font-bold);
-  color: var(--text-primary, #1a1a1a);
-  line-height: 1.2;
-  display: flex;
-  align-items: baseline;
-  gap: 2px;
+  line-height: 1;
+  margin-top: var(--space-2);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.5px;
 }
 
-.stat-unit {
+.kpi-num small {
   font-size: var(--font-md);
   font-weight: var(--font-medium);
-  color: var(--text-secondary, #8c8c8c);
+  color: var(--text-secondary);
+  margin-left: 2px;
 }
 
-.stat-label {
-  font-size: var(--font-sm);
-  color: var(--text-secondary, #8c8c8c);
-  margin-top: 2px;
-}
-
-.stat-trend {
+.kpi-tag {
   font-size: var(--font-xs);
   font-weight: var(--font-medium);
-  padding: 2px 8px;
-  border-radius: var(--radius-full);
-  white-space: nowrap;
-}
-
-.trend--up {
-  color: #52c41a;
-  background: #f6ffed;
-}
-
-.trend--down {
-  color: #ff4d4f;
-  background: #fff2f0;
-}
-
-/* ═══ Activity Card ═══ */
-.activity-card,
-.modules-card {
-  margin-bottom: 0;
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--el-border-color-lighter);
-}
-
-.card-header {
-  display: flex;
-  justify-content: space-between;
+  margin-top: 7px;
+  display: inline-flex;
   align-items: center;
-  font-weight: var(--font-semibold);
+  gap: 3px;
+  padding: 2px 7px;
+  border-radius: var(--radius-full);
 }
 
-.activity-list {
-  max-height: 320px;
-  overflow-y: auto;
+.tag-good { color: var(--success); background: var(--success-bg); }
+.tag-mid  { color: var(--warning); background: var(--warning-bg); }
+.tag-bad  { color: var(--danger); background: var(--danger-bg); }
+.tag-neutral { color: var(--text-secondary); background: var(--info-bg); }
+
+/* ═══ 网格行 ═══ */
+.row {
+  display: grid;
+  gap: 12px;
+  margin-bottom: var(--space-4);
 }
 
-.activity-item {
+.row-21 { grid-template-columns: 1.4fr 1fr; }
+.row-11 { grid-template-columns: 1fr 1fr; }
+
+/* ═══ 卡片（统一 1px 浅灰边框，无彩色竖条） ═══ */
+.card {
+  background: var(--bg-container);
+  border: 1px solid var(--border-base);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-xs);
+  overflow: hidden;
+}
+
+.card-head {
   display: flex;
-  gap: var(--space-3);
-  padding: var(--space-3) 0;
-  border-bottom: 1px solid var(--el-border-color-lighter);
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-light);
 }
 
-.activity-item:last-child {
+.card-head b {
+  font-size: 13.5px;
+  font-weight: var(--font-semibold);
+  color: var(--text-primary);
+}
+
+.card-body {
+  padding: 14px 16px;
+}
+
+.card-body.pad-top-sm {
+  padding-top: 2px;
+}
+
+/* ═══ 图表 ═══ */
+.chart-wrap {
+  width: 100%;
+}
+
+.chart {
+  width: 100%;
+  height: 220px;
+}
+
+.legend {
+  display: flex;
+  gap: 16px;
+  font-size: var(--font-xs);
+  color: var(--text-secondary);
+  padding: 0 4px 6px;
+}
+
+.chip {
+  display: inline-block;
+  width: 10px;
+  height: 3px;
+  border-radius: 2px;
+  margin-right: 5px;
+  vertical-align: middle;
+}
+
+/* ═══ 待处理列表 ═══ */
+.todo {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border-light);
+  cursor: pointer;
+}
+
+.todo:last-child {
   border-bottom: none;
 }
 
-.activity-dot {
-  width: 6px;
-  height: 6px;
+.dot {
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
   margin-top: 6px;
   flex-shrink: 0;
 }
 
-.activity-content {
+.todo-tx {
   flex: 1;
   min-width: 0;
 }
 
-.activity-text {
-  font-size: var(--font-sm);
-  color: var(--text-regular, #4a4a4a);
+.todo-t {
+  font-size: 12.5px;
   line-height: 1.5;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.activity-time {
-  font-size: 11px;
-  color: var(--text-secondary, #8c8c8c);
+.todo-m {
+  font-size: var(--font-xs);
+  color: var(--text-placeholder);
   margin-top: 3px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-/* ═══ Module Cards ═══ */
-.modules-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: var(--space-3);
-}
-
-.module-item {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  padding: var(--space-3) var(--space-4);
-  border-radius: var(--radius-md);
-  border: 1px solid var(--el-border-color-lighter);
-  cursor: pointer;
-  transition: all var(--duration-fast) var(--ease-out);
-}
-
-.module-item:hover {
-  border-color: var(--el-color-primary-light-7);
-  background: var(--primary-light, #e6f4ff);
-}
-
-.module-icon {
-  width: 32px;
-  height: 32px;
+.tag {
+  font-size: 10.5px;
+  padding: 1px 7px;
   border-radius: var(--radius-sm);
+  flex-shrink: 0;
+}
+
+/* ═══ AI 风险 ═══ */
+.risk {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 11px 0;
+  border-bottom: 1px solid var(--border-light);
+  cursor: pointer;
+}
+
+.risk:last-child {
+  border-bottom: none;
+}
+
+.risk-ic {
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  color: var(--text-secondary, #8c8c8c);
-  background: var(--el-fill-color-light);
 }
 
-.module-info {
+.risk-tx {
   flex: 1;
   min-width: 0;
 }
 
-.module-name {
-  font-size: var(--font-sm);
+.risk-t {
+  font-size: 12.5px;
   font-weight: var(--font-medium);
-  color: var(--text-primary, #1a1a1a);
-  line-height: 1.3;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.module-desc {
-  font-size: 11px;
-  color: var(--text-secondary, #8c8c8c);
-  margin-top: 1px;
+.risk-m {
+  font-size: 11.5px;
+  color: var(--text-secondary);
+  margin-top: 3px;
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
-/* ═══ Dark mode ═══ */
-html.dark .stat-card {
-  border-color: var(--el-border-color);
+.risk-go {
+  font-size: var(--font-xs);
+  color: var(--primary);
+  flex-shrink: 0;
+  margin-top: 2px;
 }
 
-html.dark .activity-item {
-  border-color: var(--el-border-color-light);
+/* ═══ 空态 ═══ */
+.empty {
+  padding: 32px 0;
+  text-align: center;
+  font-size: var(--font-sm);
+  color: var(--text-placeholder);
 }
 
-html.dark .module-item {
-  border-color: var(--el-border-color-light);
+/* ═══ 常用入口（精简 6 个） ═══ */
+.quick {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 10px;
+  padding: 14px 16px;
 }
 
-html.dark .module-item:hover {
-  border-color: rgba(96, 165, 250, 0.3);
-  background: rgba(22, 119, 255, 0.08);
+.quick-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 7px;
+  padding: 12px 6px;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  color: var(--text-primary);
+  font-size: var(--font-sm);
+  text-align: center;
+  transition: all var(--duration-fast) var(--ease-out);
 }
 
-html.dark .date-pill {
-  background: var(--el-bg-color);
-  color: var(--text-regular, #d4d4d9);
-  border-color: var(--el-border-color);
+.quick-item:hover {
+  border-color: var(--primary);
+  background: var(--primary-bg);
+}
+
+.quick-ic {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-md);
+  background: var(--primary-bg);
+  color: var(--primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ═══ 响应式 ═══ */
+@media (max-width: 1200px) {
+  .kpi-row { grid-template-columns: repeat(2, 1fr); }
+  .row-21,
+  .row-11 { grid-template-columns: 1fr; }
+  .quick { grid-template-columns: repeat(3, 1fr); }
 }
 </style>
