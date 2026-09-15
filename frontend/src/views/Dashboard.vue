@@ -64,7 +64,7 @@ type QualityStats = Awaited<ReturnType<typeof reportsApi.qualityStats>>
 const quality = ref<QualityStats | null>(null)
 const todayStats = ref<QualityStats | null>(null)
 const trend = ref<Array<{ date: string; total: number; pass: number; fpy: number | null }>>([])
-const pareto = ref<Array<{ defectCode: string; defectName: string; count: number; percentage: number }>>([])
+const pareto = ref<Array<{ defectCode: string; defectName: string; count: number; percentage: number; cumulativePercentage: number }>>([])
 const pendingItems = ref<PendingItem[]>([])
 const pendingTotal = ref(0)
 const aiAlerts = ref<Array<{
@@ -168,7 +168,7 @@ const trendOption = computed(() => {
   }
 })
 
-// ─── 帕累托（Top5 横向条形） ─────────────────────────────────
+// ─── 帕累托（Top5 横向条形 + 累计百分比折线 + 80% 参考线）────────
 const paretoTop5 = computed(() => pareto.value.slice(0, 5))
 
 const paretoOption = computed(() => {
@@ -176,36 +176,58 @@ const paretoOption = computed(() => {
   if (top.length === 0) return null
 
   const maxCount = Math.max(...top.map(p => p.count))
+  // y 轴自上而下展示，最大项在最上：反转后最大放最后一位
   const reversed = [...top].reverse()
 
   return {
-    grid: { left: 8, right: 44, top: 8, bottom: 8, containLabel: true },
+    legend: {
+      data: ['数量', '累计占比'],
+      bottom: 0,
+      icon: 'roundRect',
+      itemWidth: 12,
+      itemHeight: 3,
+      textStyle: { color: 'var(--text-secondary)', fontSize: 11 },
+    },
+    grid: { left: 8, right: 40, top: 8, bottom: 28, containLabel: true },
     tooltip: {
       trigger: 'axis',
       axisPointer: { type: 'shadow' },
       formatter: (params: unknown) => {
-        const ps = params as Array<{ dataIndex: number; name: string; value: number }>
+        const ps = params as Array<{ dataIndex: number; name: string; value: number | null; seriesName: string }>
         if (!ps?.length) return ''
         const item = reversed[ps[0].dataIndex]
-        return `${item.defectName}<br/>数量：${item.count} 条 · 占比 ${item.percentage}%`
+        return `${item.defectName}<br/>数量：${item.count} 条 · 单项占比 ${item.percentage}%<br/>累计占比：${item.cumulativePercentage}%`
       },
     },
     xAxis: { type: 'value', show: false, max: maxCount },
-    yAxis: {
-      type: 'category',
-      data: reversed.map(p => p.defectName),
-      axisLine: { show: false },
-      axisTick: { show: false },
-      axisLabel: {
-        color: 'var(--text-regular)',
-        fontSize: 12,
-        width: 96,
-        overflow: 'truncate',
+    yAxis: [
+      {
+        type: 'category',
+        data: reversed.map(p => p.defectName),
+        axisLine: { show: false },
+        axisTick: { show: false },
+        axisLabel: {
+          color: 'var(--text-regular)',
+          fontSize: 12,
+          width: 96,
+          overflow: 'truncate',
+        },
       },
-    },
+      // 右轴：累计百分比（仅供折线，不显示刻度数字，避免与左轴干扰）
+      {
+        type: 'value',
+        min: 0,
+        max: 100,
+        interval: 25,
+        axisLabel: { show: false },
+        splitLine: { show: false },
+      },
+    ],
     series: [
       {
+        name: '数量',
         type: 'bar',
+        yAxisIndex: 0,
         data: reversed.map(p => p.count),
         barWidth: 10,
         itemStyle: { color: 'var(--primary)', borderRadius: [0, 4, 4, 0] },
@@ -215,6 +237,24 @@ const paretoOption = computed(() => {
           color: 'var(--text-secondary)',
           fontSize: 11,
           formatter: '{c}',
+        },
+      },
+      {
+        name: '累计占比',
+        type: 'line',
+        yAxisIndex: 1,
+        data: reversed.map(p => p.cumulativePercentage),
+        smooth: false,
+        symbol: 'circle',
+        symbolSize: 5,
+        lineStyle: { color: 'var(--warning)', width: 1.5 },
+        itemStyle: { color: 'var(--warning)' },
+        markLine: {
+          silent: true,
+          symbol: 'none',
+          lineStyle: { color: 'var(--danger)', type: 'dashed', width: 1 },
+          label: { formatter: '80%', color: 'var(--danger)', fontSize: 10, position: 'insideEndTop' },
+          data: [{ yAxis: 80 }],
         },
       },
     ],

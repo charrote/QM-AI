@@ -216,7 +216,7 @@ public class DashboardService
         var items = list
             .OrderByDescending(x => x.Priority)
             .ThenByDescending(x => x.Time)
-            .Take(15)
+            .Take(5)
             .ToList();
         return (items, total);
     }

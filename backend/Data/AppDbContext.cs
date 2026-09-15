@@ -8,6 +8,7 @@ using QM_AI.API.Models.M05;
 using QM_AI.API.Models.M06;
 using QM_AI.API.Models.M07;
 using QM_AI.API.Models.M09;
+using QM_AI.API.Models.M10;
 using QM_AI.API.Models.M11;
 using QM_AI.API.Models.M12;
 using QM_AI.API.Models.M13;
@@ -115,6 +116,9 @@ public class AppDbContext : DbContext
     public DbSet<Complaint> Complaints { get; set; } = null!;
     public DbSet<ComplaintEvent> ComplaintEvents { get; set; } = null!;
     public DbSet<D8Report> D8Reports { get; set; } = null!;
+
+    // M10 AI 预警
+    public DbSet<AiAlert> AiAlerts { get; set; } = null!;
 
     // M11 设备联动
     public DbSet<EquipmentParamMapping> EquipmentParamMappings { get; set; } = null!;
@@ -764,6 +768,18 @@ public class AppDbContext : DbContext
         {
             entity.HasIndex(e => e.ComplaintId).IsUnique();
             entity.Property(e => e.Status).HasMaxLength(20);
+        });
+
+        // ── M10 AI 预警 ──
+        modelBuilder.Entity<AiAlert>(entity =>
+        {
+            entity.HasIndex(a => a.AlertNo).IsUnique();
+            entity.HasIndex(a => a.Level);
+            entity.HasIndex(a => a.Source);
+            entity.HasIndex(a => a.Resolved);
+            entity.HasIndex(a => a.CreatedAt);
+            entity.Property(a => a.Level).HasMaxLength(20);
+            entity.Property(a => a.Source).HasMaxLength(20);
         });
 
         // ── M11 设备联动 ──

@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using QM_AI.API.Services;
 
 namespace QM_AI.API.Controllers.M10;
 
@@ -6,36 +7,40 @@ namespace QM_AI.API.Controllers.M10;
 [Route("api/v1/m10/ai")]
 public class AIController : ControllerBase
 {
+    private readonly AiAlertService _alerts;
+
+    public AIController(AiAlertService alerts)
+    {
+        _alerts = alerts;
+    }
+
     // ─── 预警中心 ─────────────────────────────────────────
 
     [HttpGet("alerts")]
-    public IActionResult GetAlerts(
+    public async Task<IActionResult> GetAlerts(
         [FromQuery] string? level,
         [FromQuery] bool? resolved,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20)
     {
-        // TODO: Implement alert service
-        return Ok(new { items = new object[0], total = 0 });
+        var (items, total) = await _alerts.GetAlertsAsync(level, resolved, page, pageSize);
+        return Ok(new { items, total });
     }
 
     [HttpPut("alerts/{id}/resolve")]
-    public IActionResult ResolveAlert(long id)
+    public async Task<IActionResult> ResolveAlert(long id)
     {
-        // TODO: Implement resolve alert logic
-        return Ok();
+        // 登录用户 ID（从 JWT 取，无登录时按 0 处理）
+        var userId = long.TryParse(User.FindFirst("uid")?.Value ?? User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "", out var u) ? u : 0;
+        var ok = await _alerts.ResolveAlertAsync(id, userId);
+        if (!ok) return NotFound(new { message = "预警不存在或已解决" });
+        return Ok(new { id, resolved = true });
     }
 
     [HttpGet("alerts/stats")]
-    public IActionResult GetAlertStats()
+    public async Task<IActionResult> GetAlertStats()
     {
-        // TODO: Implement alert stats logic
-        return Ok(new {
-            totalAlerts = 0,
-            unresolvedAlerts = 0,
-            byLevel = new Dictionary<string, int>(),
-            bySource = new Dictionary<string, int>()
-        });
+        return Ok(await _alerts.GetAlertStatsAsync());
     }
 
     // ─── 根因分析 ─────────────────────────────────────────

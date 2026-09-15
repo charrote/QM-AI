@@ -167,6 +167,7 @@ builder.Services.AddScoped<AuditService>();
 // M14 报表 / 驾驶舱
 builder.Services.AddScoped<ReportsService>();
 builder.Services.AddScoped<DashboardService>();
+builder.Services.AddScoped<AiAlertService>();
 
 var app = builder.Build();
 

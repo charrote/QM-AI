@@ -141,7 +141,7 @@ public class ReportsService
         var codeNameMap = await _db.DefectCodes
             .ToDictionaryAsync(c => c.Code, c => c.Name);
 
-        return groups
+        var sorted = groups
             .Select(g => new DefectParetoItemDto
             {
                 DefectCode = g.Code,
@@ -152,6 +152,16 @@ public class ReportsService
             .OrderByDescending(x => x.Count)
             .ThenBy(x => x.DefectCode)
             .ToList();
+
+        // 累计占比（按 count 降序累加，用于帕累托 80/20 分析）
+        decimal cumPct = 0m;
+        foreach (var item in sorted)
+        {
+            cumPct += item.Percentage;
+            item.CumulativePercentage = Math.Round(cumPct, 2, MidpointRounding.AwayFromZero);
+        }
+
+        return sorted;
     }
 
     // ─── 质量趋势（近 N 天按日聚合） ───────────────────────────

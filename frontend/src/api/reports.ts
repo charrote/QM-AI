@@ -37,6 +37,8 @@ export const reportsApi = {
     defectName: string
     count: number
     percentage: number
+    /** 累计占比（%），按 count 降序累加，帕累托 80/20 用 */
+    cumulativePercentage: number
   }>> {
     return request.get(`${BASE}/defect-pareto`, { params }).then(r => r.data)
   },

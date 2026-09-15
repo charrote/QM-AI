@@ -38,7 +38,12 @@ public class DefectParetoItemDto
     public string DefectCode { get; set; } = string.Empty;
     public string DefectName { get; set; } = string.Empty;
     public int Count { get; set; }
+
+    /// <summary>单项占比（%）= 本项 count / 总缺陷数</summary>
     public decimal Percentage { get; set; }
+
+    /// <summary>累计占比（%），按 count 降序累加，用于帕累托图 80/20 分析</summary>
+    public decimal CumulativePercentage { get; set; }
 }
 
 // ─── 质量趋势（reports/quality-trend） ─────────────────────────

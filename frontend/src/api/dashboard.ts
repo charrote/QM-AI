@@ -13,7 +13,7 @@ export interface PendingItem {
 }
 
 export const dashboardApi = {
-  /** 今日待处理（priority 降序 + time 降序，最多 15 条；total 为全量计数） */
+  /** 今日待处理（priority 降序 + time 降序，最多 5 条；total 为全量计数） */
   pending(): Promise<{ items: PendingItem[]; total: number }> {
     return request.get(`${BASE}/pending`).then(r => r.data)
   },
