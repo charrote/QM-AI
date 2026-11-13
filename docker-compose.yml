@@ -1,20 +1,5 @@
 services:
-  # ─── MySQL ──────────────────────────────────────────────
-  mysql:
-    image: mysql:8.0
-    container_name: qm-ai-mysql
-    restart: unless-stopped
-    env_file: docker/.env.example
-    ports:
-      - "3316:3306"
-    volumes:
-      - ./docker/mysql-conf/my.cnf:/etc/mysql/conf.d/custom.cnf
-      - mysql-data:/var/lib/mysql
-    healthcheck:
-      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u root -p\"$MYSQL_ROOT_PASSWORD\""]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+  # ─── MySQL 已外置到共享服务 ~/SVN/mysql（容器 shared-mysql，端口 3316）───
 
   # ─── Redis ──────────────────────────────────────────────
   redis:
@@ -73,11 +58,11 @@ services:
       dockerfile: Dockerfile
     container_name: qm-ai-backend
     restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     ports:
       - "5611:5611"
     depends_on:
-      mysql:
-        condition: service_healthy
       redis:
         condition: service_healthy
       minio:
@@ -88,7 +73,7 @@ services:
       - .env
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
-      - ConnectionStrings__DefaultConnection=Server=mysql;Port=3306;Database=qmai;User=root;Password=qmai_root_2024;Charset=utf8mb4;AllowZeroDateTime=True
+      - ConnectionStrings__DefaultConnection=Server=host.docker.internal;Port=3316;Database=qmai;User=root;Password=qmai_root_2024;Charset=utf8mb4;AllowZeroDateTime=True
       - Redis__Connection=redis:6379
       - MinIO__Endpoint=minio:19000
       - MinIO__AccessKey=qmai_admin
@@ -140,7 +125,6 @@ services:
       retries: 5
 
 volumes:
-  mysql-data:
   redis-data:
   minio-data:
   # rabbitmq-data:  # 物联网阶段再启用
