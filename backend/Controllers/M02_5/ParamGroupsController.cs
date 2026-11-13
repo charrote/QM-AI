@@ -10,7 +10,7 @@ namespace QM_AI.API.Controllers.M02_5;
 
 [ApiController]
 [Route("api/v1/param-groups")]
-[Authorize]
+[Authorize(Policy = "basic:data")]
 public class ParamGroupsController : ControllerBase
 {
     private readonly AppDbContext _db;

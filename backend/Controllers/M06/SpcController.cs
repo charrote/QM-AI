@@ -8,7 +8,7 @@ namespace QM_AI.API.Controllers.M06;
 
 [ApiController]
 [Route("api/v1/spc")]
-[Authorize]
+[Authorize(Policy = "spc:view")]
 public class SpcController : ControllerBase
 {
     private readonly SpcService _spcService;

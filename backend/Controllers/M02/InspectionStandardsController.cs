@@ -10,7 +10,7 @@ namespace QM_AI.API.Controllers.M02;
 
 [ApiController]
 [Route("api/v1/inspection-standards")]
-[Authorize]
+[Authorize(Policy = "basic:data")]
 public class InspectionStandardsController : ControllerBase
 {
     private readonly AppDbContext _db;

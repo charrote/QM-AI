@@ -12,7 +12,20 @@ export const useAuthStore = defineStore('auth', () => {
   const token = ref<string>('')
   const refreshToken = ref<string>('')
   const user = ref<UserInfo | null>(null)
+  const permissions = ref<Set<string>>(new Set())
   const isAuthenticated = computed(() => !!token.value && !!user.value)
+
+  // 权限检查
+  function hasPermission(code: string): boolean {
+    if (permissions.value.has('*:*')) return true
+    return permissions.value.has(code)
+  }
+
+  function loadPermissions() {
+    if (user.value?.permissions) {
+      permissions.value = new Set(user.value.permissions)
+    }
+  }
 
   // 外部注入的路由实例（由 App.vue 或 router 设置）
   let onSessionExpired: (() => void) | null = null
@@ -30,6 +43,7 @@ export const useAuthStore = defineStore('auth', () => {
       refreshToken.value = savedRefresh || ''
       try {
         user.value = JSON.parse(savedUser)
+        loadPermissions()
       } catch {
         clearAuth()
       }
@@ -60,6 +74,7 @@ export const useAuthStore = defineStore('auth', () => {
     token.value = res.token
     refreshToken.value = res.refreshToken
     user.value = res.user
+    loadPermissions()
     persistAuth()
   }
 
@@ -97,7 +112,10 @@ export const useAuthStore = defineStore('auth', () => {
     token,
     refreshToken,
     user,
+    permissions,
     isAuthenticated,
+    hasPermission,
+    loadPermissions,
     initFromStorage,
     login,
     logout,

@@ -36,6 +36,12 @@ public class User
     [Column("role_id")]
     public long RoleId { get; set; }
 
+    [Column("organization_id")]
+    public long? OrganizationId { get; set; }
+
+    [ForeignKey(nameof(OrganizationId))]
+    public Organization? Organization { get; set; }
+
     [Column("is_active")]
     public bool IsActive { get; set; } = true;
 

@@ -10,7 +10,7 @@ namespace QM_AI.API.Controllers.M02;
 
 [ApiController]
 [Route("api/v1/customers")]
-[Authorize]
+[Authorize(Policy = "basic:data")]
 public class CustomersController : ControllerBase
 {
     private readonly AppDbContext _db;

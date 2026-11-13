@@ -1,10 +1,12 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using QM_AI.API.Services;
 
 namespace QM_AI.API.Controllers.M14;
 
 [ApiController]
 [Route("api/v1/m14/dashboard")]
+[Authorize(Policy = "report:view")]
 public class DashboardController : ControllerBase
 {
     private readonly DashboardService _service;

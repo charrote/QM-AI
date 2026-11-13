@@ -10,7 +10,7 @@ namespace QM_AI.API.Controllers.M02;
 
 [ApiController]
 [Route("api/v1/routings")]
-[Authorize]
+[Authorize(Policy = "basic:data")]
 public class RoutingsController : ControllerBase
 {
     private readonly AppDbContext _db;

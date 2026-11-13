@@ -8,7 +8,7 @@ namespace QM_AI.API.Controllers.M02_Inspection;
 
 [ApiController]
 [Route("api/v1/inspection-items")]
-[Authorize]
+[Authorize(Policy = "basic:data")]
 public class InspectionItemController : ControllerBase
 {
     private readonly InspectionItemService _service;

@@ -7,6 +7,7 @@ declare module 'vue-router' {
     title?: string
     keepAlive?: boolean
     requiresAuth?: boolean
+    permission?: string
   }
 }
 
@@ -395,13 +396,13 @@ const routes: RouteRecordRaw[] = [
         path: 'system/users',
         name: 'UserManagement',
         component: () => import('@/views/system/UserManagementPage.vue'),
-        meta: { title: '用户管理', keepAlive: true, requiresAuth: true },
+        meta: { title: '用户管理', keepAlive: true, requiresAuth: true, permission: 'system:user' },
       },
       {
         path: 'system/roles',
         name: 'RoleManagement',
         component: () => import('@/views/system/RoleManagementPage.vue'),
-        meta: { title: '角色管理', keepAlive: true, requiresAuth: true },
+        meta: { title: '角色管理', keepAlive: true, requiresAuth: true, permission: 'system:role' },
       },
       {
         path: 'system/functions',
@@ -413,13 +414,13 @@ const routes: RouteRecordRaw[] = [
         path: 'system/dict',
         name: 'DataDict',
         component: () => import('@/views/system/DataDictPage.vue'),
-        meta: { title: '数据字典', keepAlive: true, requiresAuth: true },
+        meta: { title: '数据字典', keepAlive: true, requiresAuth: true, permission: 'system:dict' },
       },
       {
         path: 'system/logs',
         name: 'OperationLog',
         component: () => import('@/views/system/OperationLogPage.vue'),
-        meta: { title: '操作日志', keepAlive: true, requiresAuth: true },
+        meta: { title: '操作日志', keepAlive: true, requiresAuth: true, permission: 'system:log' },
       },
     ],
   },
@@ -464,6 +465,12 @@ router.beforeEach((to, _from, next) => {
   }
 
   if (to.name === 'Login' && authStore.isAuthenticated) {
+    next({ name: 'Dashboard' })
+    return
+  }
+
+  // 权限点检查：路由级别
+  if (to.meta.permission && !authStore.hasPermission(to.meta.permission)) {
     next({ name: 'Dashboard' })
     return
   }

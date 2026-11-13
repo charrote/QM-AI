@@ -1,10 +1,12 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using QM_AI.API.Services;
 
 namespace QM_AI.API.Controllers.M10;
 
 [ApiController]
 [Route("api/v1/m10/ai")]
+[Authorize(Policy = "ai:analyze")]
 public class AIController : ControllerBase
 {
     private readonly AiAlertService _alerts;

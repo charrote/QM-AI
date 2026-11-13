@@ -10,7 +10,7 @@ namespace QM_AI.API.Controllers.M02;
 
 [ApiController]
 [Route("api/v1/tools")]
-[Authorize]
+[Authorize(Policy = "basic:data")]
 public class ToolsController : ControllerBase
 {
     private readonly AppDbContext _db;

@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using QM_AI.API.DTOs;
 using QM_AI.API.Models.M09;
 using QM_AI.API.Services;
@@ -7,6 +8,7 @@ namespace QM_AI.API.Controllers.M09;
 
 [ApiController]
 [Route("api/v1/m09/complaints")]
+[Authorize(Policy = "complaint:manage")]
 public class ComplaintController : ControllerBase
 {
     private readonly ComplaintService _service;

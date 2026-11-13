@@ -8,7 +8,7 @@ namespace QM_AI.API.Controllers.M02_Inspection;
 
 [ApiController]
 [Route("api/v1/inspection-plans")]
-[Authorize]
+[Authorize(Policy = "basic:data")]
 public class InspectionPlanController : ControllerBase
 {
     private readonly InspectionPlanService _service;

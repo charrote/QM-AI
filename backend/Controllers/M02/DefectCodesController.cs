@@ -10,7 +10,7 @@ namespace QM_AI.API.Controllers.M02;
 
 [ApiController]
 [Route("api/v1/defect-codes")]
-[Authorize]
+[Authorize(Policy = "basic:data")]
 public class DefectCodesController : ControllerBase
 {
     private readonly AppDbContext _db;

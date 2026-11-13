@@ -38,6 +38,7 @@ public class AppDbContext : DbContext
     public DbSet<User> Users { get; set; } = null!;
     public DbSet<Role> Roles { get; set; } = null!;
     public DbSet<Permission> Permissions { get; set; } = null!;
+    public DbSet<RolePermission> RolePermissions { get; set; } = null!;
 
     // M02 基础数据
     public DbSet<Product> Products { get; set; } = null!;
@@ -101,6 +102,9 @@ public class AppDbContext : DbContext
     public DbSet<SpcAlertTrigger> SpcAlertTriggers { get; set; } = null!;
     public DbSet<SpcAnovaResult> SpcAnovaResults { get; set; } = null!;
     public DbSet<SpcDataSource> SpcDataSources { get; set; } = null!;
+
+    // Workflow
+    public DbSet<WorkflowInstance> WorkflowInstances { get; set; } = null!;
 
     // M07 不良与异常管理
     public DbSet<Defect> Defects { get; set; } = null!;

@@ -1,9 +1,11 @@
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using QM_AI.API.Authorization;
 using QM_AI.API.Data;
 using QM_AI.API.Helpers;
 using QM_AI.API.Middleware;
@@ -66,6 +68,9 @@ builder.Services.AddAuthentication(options =>
 });
 
 builder.Services.AddAuthorization();
+// 注册动态策略提供器和权限处理器
+builder.Services.AddSingleton<Microsoft.AspNetCore.Authorization.IAuthorizationPolicyProvider, PermissionPolicyProvider>();
+builder.Services.AddSingleton<Microsoft.AspNetCore.Authorization.IAuthorizationHandler, PermissionHandler>();
 
 // CORS
 var corsOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? ["http://localhost:5173"];
@@ -130,6 +135,7 @@ builder.Services.AddControllers().AddJsonOptions(options =>
 
 // Services
 builder.Services.AddScoped<AuthService>();
+builder.Services.AddScoped<DataScopeService>();
 builder.Services.AddSingleton<ClosureRuleEngine>();
 builder.Services.AddSingleton<SamplingPlanCalculator>();
 builder.Services.AddScoped<IqcService>();
@@ -177,18 +183,32 @@ app.UseMiddleware<AppExceptionHandlerMiddleware>();
 // 启动时自动初始化种子数据（容错：seed 失败不影响服务启动）
 using (var scope = app.Services.CreateScope())
 {
+    var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+    // ─── 1. 业务种子（含角色/用户/组织/检验数据等） ────────────────
     try
     {
-        var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         // 自动创建缺失的表（EF Core 自动迁移）
         await context.Database.EnsureCreatedAsync();
         Console.WriteLine("[DB] Schema ensured (tables created if missing)");
         await DbInitializer.Initialize(context);
-        Console.WriteLine("[Seed] 种子数据初始化完成");
+        Console.WriteLine("[Seed] 业务种子数据初始化完成");
     }
     catch (Exception ex)
     {
-        Console.WriteLine($"[Seed] 种子数据初始化失败（不影响服务运行）: {ex.Message}");
+        Console.WriteLine($"[Seed] 业务种子初始化失败（不影响服务运行）: {ex.Message}");
+    }
+
+    // ─── 2. RBAC 种子（独立调用，F1 修复） ─────────────────────────
+    // 关键：独立于业务种子的 try 块，确保业务种子 FK 异常不会导致 RBAC 被跳过。
+    // 不放在 DbInitializer.Initialize 内部，避免 hasRoles 交互问题。
+    try
+    {
+        await RbacSeeder.SeedAsync(context);
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"[Seed] RBAC 种子初始化失败（不影响服务运行）: {ex.Message}");
     }
 }
 

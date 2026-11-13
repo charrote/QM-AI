@@ -10,7 +10,7 @@ namespace QM_AI.API.Controllers.M15;
 
 [ApiController]
 [Route("api/v1/permissions")]
-[Authorize]
+[Authorize(Policy = "system:permission")]
 public class PermissionsController : ControllerBase
 {
     private readonly AppDbContext _db;

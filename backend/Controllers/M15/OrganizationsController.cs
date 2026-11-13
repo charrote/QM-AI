@@ -9,7 +9,7 @@ namespace QM_AI.API.Controllers.M15;
 
 [ApiController]
 [Route("api/v1/organizations")]
-[Authorize]
+[Authorize(Policy = "system:org")]
 public class OrganizationsController : ControllerBase
 {
     private readonly AppDbContext _db;

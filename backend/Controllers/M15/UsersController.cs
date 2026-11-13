@@ -5,16 +5,23 @@ using QM_AI.API.Data;
 using QM_AI.API.DTOs;
 using QM_AI.API.DTOs.M15;
 using QM_AI.API.Models;
+using QM_AI.API.Services;
 
 namespace QM_AI.API.Controllers.M15;
 
 [ApiController]
 [Route("api/v1/users")]
-[Authorize]
+[Authorize(Policy = "system:user")]
 public class UsersController : ControllerBase
 {
     private readonly AppDbContext _db;
-    public UsersController(AppDbContext db) => _db = db;
+    private readonly AuthService _auth;
+
+    public UsersController(AppDbContext db, AuthService auth)
+    {
+        _db = db;
+        _auth = auth;
+    }
 
     [HttpGet]
     public async Task<ActionResult<PagedResult<UserListDto>>> List([FromQuery] PagedRequest req)
@@ -70,8 +77,8 @@ public class UsersController : ControllerBase
         if (await _db.Users.AnyAsync(u => u.Username == dto.Username))
             return Conflict(new { message = $"用户名 '{dto.Username}' 已存在" });
 
-        // Hash password (simple BCrypt-like using ASP.NET Core Identity)
-        var hash = HashPassword(dto.Password);
+        // F2 修复：统一使用 AuthService.HashPassword (PBKDF2)
+        var hash = _auth.HashPassword(dto.Password);
 
         var entity = new User
         {
@@ -99,7 +106,7 @@ public class UsersController : ControllerBase
         if (dto.RoleId.HasValue) entity.RoleId = dto.RoleId.Value;
         if (dto.IsActive.HasValue) entity.IsActive = dto.IsActive.Value;
         if (!string.IsNullOrEmpty(dto.Password))
-            entity.PasswordHash = HashPassword(dto.Password);
+            entity.PasswordHash = _auth.HashPassword(dto.Password);
         entity.UpdatedAt = DateTime.UtcNow;
 
         await _db.SaveChangesAsync();
@@ -135,13 +142,5 @@ public class UsersController : ControllerBase
         };
     }
 
-    // Simple password hashing using SHA256 + salt (for development)
-    private static string HashPassword(string password)
-    {
-        using var sha = System.Security.Cryptography.SHA256.Create();
-        var salt = Guid.NewGuid().ToString("N")[..8];
-        var combined = salt + password;
-        var hash = Convert.ToBase64String(sha.ComputeHash(System.Text.Encoding.UTF8.GetBytes(combined)));
-        return $"{salt}:{hash}";
-    }
+
 }

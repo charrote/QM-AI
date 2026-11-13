@@ -10,7 +10,7 @@ namespace QM_AI.API.Controllers.M15;
 
 [ApiController]
 [Route("api/v1/roles")]
-[Authorize]
+[Authorize(Policy = "system:role")]
 public class RolesController : ControllerBase
 {
     private readonly AppDbContext _db;
@@ -100,4 +100,46 @@ public class RolesController : ControllerBase
         await _db.SaveChangesAsync();
         return NoContent();
     }
+
+    /// <summary>获取角色已分配的权限码列表</summary>
+    [HttpGet("{id}/permissions")]
+    public async Task<ActionResult<List<string>>> GetRolePermissions(long id)
+    {
+        var permCodes = await _db.RolePermissions
+            .Where(rp => rp.RoleId == id)
+            .Select(rp => rp.Permission.Code)
+            .ToListAsync();
+        return Ok(permCodes);
+    }
+
+    /// <summary>设置角色权限（全量替换）</summary>
+    [HttpPut("{id}/permissions")]
+    public async Task<IActionResult> SetRolePermissions(long id, [FromBody] SetRolePermissionsDto dto)
+    {
+        var role = await _db.Roles.FindAsync(id);
+        if (role == null) return NotFound();
+
+        // 删除旧关联
+        var oldLinks = await _db.RolePermissions.Where(rp => rp.RoleId == id).ToListAsync();
+        _db.RolePermissions.RemoveRange(oldLinks);
+
+        // 添加新关联
+        if (dto.PermissionCodes != null && dto.PermissionCodes.Count > 0)
+        {
+            var perms = await _db.Permissions.Where(p => dto.PermissionCodes.Contains(p.Code)).ToListAsync();
+            foreach (var perm in perms)
+            {
+                _db.RolePermissions.Add(new RolePermission { RoleId = id, PermissionId = perm.Id });
+            }
+        }
+
+        // 同时更新 DataScope
+        if (dto.DataScope != null)
+            role.DataScope = dto.DataScope;
+
+        await _db.SaveChangesAsync();
+        return NoContent();
+    }
 }
+
+public record SetRolePermissionsDto(List<string> PermissionCodes, string? DataScope = null);

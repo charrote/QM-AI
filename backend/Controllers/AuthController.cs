@@ -44,13 +44,30 @@ public class AuthController : ControllerBase
     }
 
     [HttpGet("me")]
+    [Microsoft.AspNetCore.Authorization.Authorize]
     public IActionResult GetCurrentUser()
     {
-        var user = HttpContext.Items["User"] as UserInfoDto;
+        // JwtMiddleware 现在存的是 User 模型
+        var user = HttpContext.Items["User"] as QM_AI.API.Models.User;
 
         if (user == null)
             return Unauthorized(new { message = "Not authenticated" });
 
-        return Ok(user);
+        var permissions = HttpContext.Items["Permissions"] as HashSet<string> ?? new HashSet<string>();
+
+        var dto = new QM_AI.API.DTOs.Auth.UserInfoDto
+        {
+            Id = user.Id,
+            Username = user.Username,
+            DisplayName = user.DisplayName,
+            Avatar = user.Avatar,
+            Email = user.Email,
+            Role = user.Role?.Name,
+            DataScope = user.Role?.DataScope,
+            Permissions = permissions.ToList(),
+            CreatedAt = user.CreatedAt,
+        };
+
+        return Ok(dto);
     }
 }

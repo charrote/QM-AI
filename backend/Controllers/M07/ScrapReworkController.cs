@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using QM_AI.API.Models.M07;
 using QM_AI.API.Services;
 
@@ -9,6 +10,7 @@ namespace QM_AI.API.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/v1/defects/scrap-rework")]
+[Authorize(Policy = "defect:manage")]
 public class ScrapReworkController : ControllerBase
 {
     private readonly CapaService _capaService;

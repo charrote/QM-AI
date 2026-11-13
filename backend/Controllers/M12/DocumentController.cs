@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using QM_AI.API.Models.M12;
 using QM_AI.API.Services;
 
@@ -6,6 +7,7 @@ namespace QM_AI.API.Controllers.M12;
 
 [ApiController]
 [Route("api/v1/m12/documents")]
+[Authorize(Policy = "document:manage")]
 public class DocumentController : ControllerBase
 {
     private readonly DocumentService _service;

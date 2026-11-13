@@ -20,5 +20,13 @@ public class Role
     [Column("description")]
     public string? Description { get; set; }
 
+    /// <summary>
+    /// 数据范围：self=仅本人, group=本组(含下级组织), all=全部
+    /// </summary>
+    [MaxLength(20)]
+    [Column("data_scope")]
+    public string? DataScope { get; set; } = "all";
+
     public ICollection<User> Users { get; set; } = new List<User>();
+    public ICollection<RolePermission> Permissions { get; set; } = new List<RolePermission>();
 }

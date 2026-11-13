@@ -8,5 +8,7 @@ public class UserInfoDto
     public string? Avatar { get; set; }
     public string? Email { get; set; }
     public string? Role { get; set; }
+    public string? DataScope { get; set; }
+    public List<string> Permissions { get; set; } = new();
     public DateTime CreatedAt { get; set; }
 }

@@ -5,6 +5,8 @@ export interface UserInfo {
   avatar: string
   email: string
   role: string
+  dataScope?: string
+  permissions: string[]
 }
 
 export interface LoginRequest {

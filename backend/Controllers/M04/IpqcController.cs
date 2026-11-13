@@ -8,7 +8,7 @@ namespace QM_AI.API.Controllers.M04;
 
 [ApiController]
 [Route("api/v1/ipqc")]
-[Authorize]
+[Authorize(Policy = "ipqc:inspect")]
 public class IpqcController : ControllerBase
 {
     private readonly IpqcService _ipqcService;

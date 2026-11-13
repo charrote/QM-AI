@@ -8,7 +8,7 @@ namespace QM_AI.API.Controllers.M05;
 
 [ApiController]
 [Route("api/v1/fqc")]
-[Authorize]
+[Authorize(Policy = "fqc:inspect")]
 public class FqcController : ControllerBase
 {
     private readonly FqcService _fqcService;

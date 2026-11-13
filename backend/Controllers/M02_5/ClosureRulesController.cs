@@ -11,7 +11,7 @@ namespace QM_AI.API.Controllers.M02_5;
 
 [ApiController]
 [Route("api/v1/closure-rules")]
-[Authorize]
+[Authorize(Policy = "basic:data")]
 public class ClosureRulesController : ControllerBase
 {
     private readonly AppDbContext _db;

@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using QM_AI.API.Models.M11;
 using QM_AI.API.Services;
@@ -7,6 +8,7 @@ namespace QM_AI.API.Controllers.M11;
 
 [ApiController]
 [Route("api/v1/m11/equipment-link")]
+[Authorize(Policy = "equipment:manage")]
 public class EquipmentLinkController : ControllerBase
 {
     private readonly EquipmentLinkService _service;

@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using QM_AI.API.DTOs;
 using QM_AI.API.Models.M07;
 using QM_AI.API.Services;
@@ -10,6 +11,7 @@ namespace QM_AI.API.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/v1/defects")]
+[Authorize(Policy = "defect:manage")]
 public class DefectsController : ControllerBase
 {
     private readonly DefectService _defectService;

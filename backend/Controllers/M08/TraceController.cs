@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using QM_AI.API.Services;
 
 namespace QM_AI.API.Controllers;
@@ -8,6 +9,7 @@ namespace QM_AI.API.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/v1/trace")]
+[Authorize(Policy = "trace:view")]
 public class TraceController : ControllerBase
 {
     private readonly TraceService _traceService;

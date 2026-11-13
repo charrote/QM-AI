@@ -9,7 +9,7 @@ namespace QM_AI.API.Controllers.M15;
 
 [ApiController]
 [Route("api/v1/sys-dict")]
-[Authorize]
+[Authorize(Policy = "system:dict")]
 public class SysDictController : ControllerBase
 {
     private readonly AppDbContext _db;
